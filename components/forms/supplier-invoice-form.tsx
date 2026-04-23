@@ -1,0 +1,206 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/modal";
+import { SearchableDropdown } from "@/components/searchable-dropdown";
+import { textareaClass } from "@/lib/form-styles";
+import { api } from "@/lib/api";
+import { useAlertStore } from "@/lib/stores/alert-store";
+import { getErrorMessage } from "@/lib/utils";
+import { ProductForm } from "./product-form";
+
+type ItemDraft = {
+  itemId: string;
+  unitPrice: number | null;
+  quantity: string;
+  amount: string;
+  notes: string;
+};
+
+const blankItem = (): ItemDraft => ({
+  itemId: "",
+  unitPrice: null,
+  quantity: "1",
+  amount: "",
+  notes: "",
+});
+
+export function SupplierInvoiceForm({
+  open,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const addAlert = useAlertStore((s) => s.addAlert);
+
+  const [supplierId, setSupplierId] = useState("");
+  const [currencyId, setCurrencyId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState<ItemDraft[]>([blankItem()]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSupplierId("");
+    setCurrencyId("");
+    setNotes("");
+    setItems([blankItem()]);
+  }, [open]);
+
+  const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const updated = { ...it, ...patch };
+        if ("quantity" in patch && updated.unitPrice != null) {
+          const qty = Number(updated.quantity) || 0;
+          updated.amount = String(updated.unitPrice * qty);
+        }
+        return updated;
+      }),
+    );
+  };
+
+  const removeItem = (idx: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
+  const canSubmit =
+    supplierId && currencyId && items.length > 0 && items.every((it) => it.itemId && Number(it.quantity) > 0 && Number(it.amount) > 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.post("/supplier-invoices", {
+        supplierId,
+        currencyId,
+        notes: notes || undefined,
+        items: items.map((it) => ({
+          itemType: "product",
+          itemId: it.itemId,
+          quantity: Number(it.quantity),
+          amount: Number(it.amount),
+          notes: it.notes || "",
+        })),
+      });
+      addAlert("success", "Supplier invoice created.");
+      onSaved();
+      onClose();
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="New Supplier Invoice" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Supplier *</label>
+            <SearchableDropdown
+              value={supplierId}
+              onChange={setSupplierId}
+              apiEndpoint="/suppliers/dropdown"
+              mapItem={(s: { id: string; name: string }) => ({ value: s.id, label: s.name })}
+              placeholder="Select supplier…"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Currency *</label>
+            <SearchableDropdown
+              value={currencyId}
+              onChange={setCurrencyId}
+              apiEndpoint="/currencies/dropdown"
+              mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
+              placeholder="Select currency…"
+              required
+              defaultFirst
+            />
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Notes</label>
+          <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+
+        {/* Items */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Items *</label>
+            <Button type="button" variant="outline" size="sm" onClick={() => setItems((prev) => [...prev, blankItem()])}>
+              <Plus className="size-3.5 mr-1" /> Add Item
+            </Button>
+          </div>
+
+          {items.map((item, idx) => (
+            <div key={idx} className="rounded-md border border-border p-3 space-y-2">
+              <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Product *</label>
+                  <SearchableDropdown
+                    value={item.itemId}
+                    onChange={(v) => updateItem(idx, { itemId: v })}
+                    apiEndpoint="/products/dropdown"
+                    mapItem={(p: { id: string; name: string }) => ({ value: p.id, label: p.name })}
+                    placeholder="Select product…"
+                    renderAddForm={({ open, onClose, onCreated }) => (
+                      <ProductForm
+                        open={open}
+                        onClose={onClose}
+                        onSaved={(created) => {
+                          if (created) onCreated(String(created.id), String(created.name));
+                        }}
+                      />
+                    )}
+                  />
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(idx)} disabled={items.length === 1}>
+                  <Trash2 className="size-3.5 text-red-500" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Qty *</label>
+                  <Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, { quantity: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Amount *</label>
+                  <Input type="number" step="0.01" min="0" value={item.amount} onChange={(e) => updateItem(idx, { amount: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Notes</label>
+                  <Input value={item.notes} onChange={(e) => updateItem(idx, { notes: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Total + Actions */}
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-sm font-medium">Total: ${total.toFixed(2)}</span>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={submitting || !canSubmit}>
+              {submitting ? "Creating…" : "Create Invoice"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}

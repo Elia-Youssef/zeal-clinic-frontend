@@ -1,0 +1,257 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/modal";
+import { PageHeader } from "@/components/page-header";
+import { Loading } from "@/components/loading";
+import { DataTable, type Column } from "@/components/data-table";
+import { api } from "@/lib/api";
+import { useAlertStore } from "@/lib/stores/alert-store";
+import { getErrorMessage } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { usePermissions } from "@/hooks/use-permissions";
+import type { Invoice, InvoiceItem } from "@/lib/types";
+
+export default function InvoiceDetailPage() {
+  usePageTitle("Invoice");
+  const { id } = useParams<{ id: string }>();
+  const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
+
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const load = async () => {
+    try {
+      const inv = await api.get<Invoice>(`/invoices/${id}`);
+      setInvoice(inv);
+      setNotes(inv.notes ?? "");
+    } catch {
+      addAlert("error", "Failed to load invoice.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [id]);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoice) return;
+    setSubmitting(true);
+    const prefix =
+      invoice.fromEntityId === "self" ? "client-invoices" : "supplier-invoices";
+    try {
+      await api.put(`/${prefix}/${id}`, { notes });
+      addAlert("success", "Invoice updated.");
+      setEditOpen(false);
+      load();
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <Loading />;
+  if (!invoice)
+    return (
+      <p className="py-12 text-center text-muted-foreground">
+        Invoice not found.
+      </p>
+    );
+
+  const hasAnyDiscount = invoice.items?.some((i) => i.discountId) ?? false;
+  const isClientInvoice = invoice.fromEntityId === "self";
+  const otherLabel = isClientInvoice ? "To" : "From";
+  const otherEntityId = isClientInvoice
+    ? invoice.toEntityId
+    : invoice.fromEntityId;
+  const otherEntityName = isClientInvoice
+    ? invoice.toEntityName
+    : invoice.fromEntityName;
+  const otherHrefPrefix = isClientInvoice ? "/patients" : "/suppliers";
+
+  return (
+    <div className="space-y-4 flex flex-col">
+      <PageHeader
+        backHref="/financials"
+        title={`Invoice #${invoice.invoiceNumber}`}
+        onEdit={can("transactions:write") ? () => setEditOpen(true) : undefined}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Details</CardTitle>
+        </CardHeader>
+
+        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div>
+            <span className="text-muted-foreground">{otherLabel}</span>
+            {otherEntityId ? (
+              <Link
+                href={`${otherHrefPrefix}/${otherEntityId}`}
+                className="block font-medium capitalize hover:underline"
+              >
+                {otherEntityName ?? "—"}
+              </Link>
+            ) : (
+              <p className="font-medium capitalize">{otherEntityName ?? "—"}</p>
+            )}
+          </div>
+          <div>
+            <span className="text-muted-foreground">Date</span>
+            <p>{invoice.createdAt?.slice(0, 10) ?? "---"}</p>
+          </div>
+          <div className="col-span-2">
+            <span className="text-muted-foreground">Notes</span>
+            <p>{invoice.notes || "---"}</p>
+          </div>
+          <div className="col-span-2">
+            <span className="text-muted-foreground">Created By</span>
+            <p>{invoice.createdBy ?? "---"}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Items</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <DataTable
+            columns={[
+              {
+                header: "Type",
+                key: "type",
+                render: (i) => (
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {i.itemType ?? "---"}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Name",
+                key: "name",
+                render: (i) => i.itemName ?? "---",
+              },
+              {
+                header: "Notes",
+                key: "notes",
+                render: (i) => i.notes || "---",
+              },
+              {
+                header: "Quantity",
+                key: "quantity",
+                render: (i) => i.quantity ?? "---",
+              },
+              {
+                header: "Amount",
+                key: "amount",
+                render: (i) => `$${(i.amount ?? 0).toFixed(2)}`,
+              },
+              ...(hasAnyDiscount
+                ? ([
+                    {
+                      header: "Discount",
+                      key: "discount",
+                      render: (i: InvoiceItem) =>
+                        i.discountId ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs">
+                              {i.discountName ?? "—"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              -${(i.discountValue ?? 0).toFixed(2)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        ),
+                    },
+                    {
+                      header: "Final",
+                      key: "finalAmount",
+                      className: "text-right",
+                      render: (i: InvoiceItem) => (
+                        <span className="font-medium">
+                          ${(i.finalAmount ?? 0).toFixed(2)}
+                        </span>
+                      ),
+                    },
+                  ] satisfies Column<InvoiceItem>[])
+                : []),
+            ]}
+            data={invoice.items || []}
+            rowKey={(i) => i.id}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="flex flex-col items-end w-fit self-end">
+        <CardContent className="flex flex-col items-end gap-2 text-sm w-50">
+          {hasAnyDiscount && (
+            <>
+              <div className="flex flex-row justify-between items-center gap-3 w-full">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>${(invoice.amount ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex flex-row justify-between items-center gap-3 w-full">
+                <span className="text-muted-foreground">Discount</span>
+                <span>
+                  -$
+                  {((invoice.amount ?? 0) - (invoice.finalAmount ?? 0)).toFixed(
+                    2,
+                  )}
+                </span>
+              </div>
+            </>
+          )}
+          <div className="flex flex-row justify-between items-center gap-3 w-full text-lg font-semibold">
+            <span className="text-muted-foreground">Total</span>
+            <p className="">
+              ${(invoice.finalAmount ?? invoice.amount ?? 0).toFixed(2)}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit Invoice"
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Notes</label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Saving…" : "Update"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}

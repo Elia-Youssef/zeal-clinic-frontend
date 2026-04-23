@@ -6,16 +6,20 @@ import { cn } from "@/lib/utils"
 export function Tabs({
   tabs,
   defaultTab,
+  activeTab,
   onChange,
 }: {
   tabs: string[]
   defaultTab?: string
+  /** Controlled active tab: when provided, the component is fully controlled. */
+  activeTab?: string
   onChange?: (tab: string) => void
 }) {
-  const [active, setActive] = useState(defaultTab ?? tabs[0])
+  const [internal, setInternal] = useState(defaultTab ?? tabs[0])
+  const active = activeTab ?? internal
 
   const handleClick = (tab: string) => {
-    setActive(tab)
+    setInternal(tab)
     onChange?.(tab)
   }
 
