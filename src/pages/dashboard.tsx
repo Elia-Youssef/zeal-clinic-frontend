@@ -18,6 +18,7 @@ import { AnalyticsListCard } from "@/components/analytics/analytics-list-card";
 import { AnalyticsChartCard } from "@/components/analytics/analytics-chart-card";
 import { dashboardStatusColors } from "@/lib/constants";
 import type { Appointment, BalanceTransaction } from "@/lib/types";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type TotalPayload = { total: number };
 type AppointmentCounts = { today: number; thisWeek: number; thisMonth: number };
@@ -126,105 +127,131 @@ const topProcedureColumns: Column<TopProcedure>[] = [
 ];
 
 function DashboardContent() {
+  const { can } = usePermissions();
+
   return (
     <div className="space-y-6">
       {/* Primary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AnalyticsStatCard<TotalPayload>
-          title="Total Patients"
-          endpoint="/analytics/patients/total"
-          icon={Users}
-          extract={(d) => d.total}
-        />
-        <AnalyticsStatCard<AppointmentCounts>
-          title="Today's Appointments"
-          endpoint="/analytics/appointments/counts"
-          icon={CalendarDays}
-          extract={(d) => d.today}
-        />
-        <AnalyticsStatCard<TotalPayload>
-          title="Monthly Revenue"
-          endpoint="/analytics/revenue/this-month"
-          icon={DollarSign}
-          extract={(d) => d.total}
-          format={currency}
-        />
-        <AnalyticsStatCard<TotalPayload>
-          title="Low Stock Alerts"
-          endpoint="/analytics/inventory/low-stock"
-          icon={AlertTriangle}
-          extract={(d) => d.total}
-          valueClassName="text-red-500"
-        />
+        {can("patients:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Total Patients"
+            endpoint="/analytics/patients/total"
+            icon={Users}
+            extract={(d) => d.total}
+          />
+        )}
+        {can("appointments:read") && (
+          <AnalyticsStatCard<AppointmentCounts>
+            title="Today's Appointments"
+            endpoint="/analytics/appointments/counts"
+            icon={CalendarDays}
+            extract={(d) => d.today}
+          />
+        )}
+        {can("transactions:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Monthly Revenue"
+            endpoint="/analytics/revenue/this-month"
+            icon={DollarSign}
+            extract={(d) => d.total}
+            format={currency}
+          />
+        )}
+        {can("inventory:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Low Stock Alerts"
+            endpoint="/analytics/inventory/low-stock"
+            icon={AlertTriangle}
+            extract={(d) => d.total}
+            valueClassName="text-red-500"
+          />
+        )}
       </div>
 
       {/* Secondary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AnalyticsStatCard<TotalPayload>
-          title="New Patients (month)"
-          endpoint="/analytics/patients/new-this-month"
-          icon={TrendingUp}
-          extract={(d) => d.total}
-        />
-        <AnalyticsStatCard<TotalPayload>
-          title="Procedures (month)"
-          endpoint="/analytics/procedures/completed-this-month"
-          icon={Activity}
-          extract={(d) => d.total}
-        />
-        <AnalyticsStatCard<TotalPayload>
-          title="Outstanding Receivables"
-          endpoint="/analytics/revenue/outstanding"
-          icon={Stethoscope}
-          extract={(d) => d.total}
-          format={currency}
-        />
-        <AnalyticsStatCard<CancellationRate>
-          title="Cancellation Rate (month)"
-          endpoint="/analytics/appointments/cancellation-rate"
-          icon={TrendingDown}
-          extract={(d) => d.rate}
-          format={percent}
-          valueClassName="text-red-500"
-        />
+        {can("patients:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="New Patients (month)"
+            endpoint="/analytics/patients/new-this-month"
+            icon={TrendingUp}
+            extract={(d) => d.total}
+          />
+        )}
+        {can("services:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Procedures (month)"
+            endpoint="/analytics/procedures/completed-this-month"
+            icon={Activity}
+            extract={(d) => d.total}
+          />
+        )}
+        {can("transactions:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Outstanding Receivables"
+            endpoint="/analytics/revenue/outstanding"
+            icon={Stethoscope}
+            extract={(d) => d.total}
+            format={currency}
+          />
+        )}
+        {can("appointments:read") && (
+          <AnalyticsStatCard<CancellationRate>
+            title="Cancellation Rate (month)"
+            endpoint="/analytics/appointments/cancellation-rate"
+            icon={TrendingDown}
+            extract={(d) => d.rate}
+            format={percent}
+            valueClassName="text-red-500"
+          />
+        )}
       </div>
 
       {/* Revenue trend (last 30 days) */}
-      <AnalyticsChartCard
-        title="Revenue — last 30 days"
-        metric="revenue"
-        groupBy="day"
-        kind="area"
-        formatValue={currency}
-      />
+      {can("transactions:read") && (
+        <AnalyticsChartCard
+          title="Revenue — last 30 days"
+          metric="revenue"
+          groupBy="day"
+          kind="area"
+          formatValue={currency}
+        />
+      )}
 
       {/* Recent lists */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <AnalyticsListCard<Appointment>
-          title="Today's Appointments"
-          endpoint="/analytics/appointments/recent-today?limit=5"
-          columns={appointmentColumns}
-          rowKey={(a) => a.id}
-          emptyMessage="No appointments today."
-        />
+        {can("appointments:read") && (
+          <AnalyticsListCard<Appointment>
+            title="Today's Appointments"
+            endpoint="/analytics/appointments/recent-today?limit=5"
+            columns={appointmentColumns}
+            rowKey={(a) => a.id}
+            emptyMessage="No appointments today."
+          />
+        )}
 
-        <AnalyticsListCard<BalanceTransaction>
-          title="Recent Transactions"
-          endpoint="/analytics/transactions/recent?limit=5"
-          columns={transactionColumns}
-          rowKey={(t) => t.id}
-          emptyMessage="No recent transactions."
-        />
+        {can("transactions:read") && (
+          <AnalyticsListCard<BalanceTransaction>
+            title="Recent Transactions"
+            endpoint="/analytics/transactions/recent?limit=5"
+            columns={transactionColumns}
+            rowKey={(t) => t.id}
+            emptyMessage="No recent transactions."
+          />
+        )}
       </div>
 
       {/* Top procedures this month */}
-      <AnalyticsListCard<TopProcedure>
-        title="Top Procedures (month)"
-        endpoint="/analytics/procedures/top?limit=5"
-        columns={topProcedureColumns}
-        rowKey={(p) => p.procedureId}
-        emptyMessage="No procedures completed yet this month."
-      />
+      {can("services:read") && (
+        <AnalyticsListCard<TopProcedure>
+          title="Top Procedures (month)"
+          endpoint="/analytics/procedures/top?limit=5"
+          columns={topProcedureColumns}
+          rowKey={(p) => p.procedureId}
+          emptyMessage="No procedures completed yet this month."
+        />
+      )}
     </div>
   );
 }

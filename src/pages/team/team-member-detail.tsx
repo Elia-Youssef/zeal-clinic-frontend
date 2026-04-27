@@ -199,7 +199,7 @@ function EmployeeDetailContent() {
 
       {/* Salaries + Payments */}
       <div className="flex flex-row gap-4">
-        <Card className="flex-1 flex flex-col gap-4">
+        <Card className={`${can("transactions:read") ? "flex-1" : ""} flex flex-col gap-4`}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Salaries</CardTitle>
             {can("team:write") && (
@@ -228,6 +228,7 @@ function EmployeeDetailContent() {
           </CardContent>
         </Card>
 
+        {can("transactions:read") && (
         <DataList<Transaction>
           className="flex-1"
           title="Payments"
@@ -290,6 +291,7 @@ function EmployeeDetailContent() {
             )
           }
         />
+        )}
       </div>
 
       <DataList<AuditLogEntry>

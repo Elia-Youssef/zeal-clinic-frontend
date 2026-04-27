@@ -172,7 +172,7 @@ function ProductDetailContent() {
       {/* Allergy conflicts & Invoices */}
       <div className="flex flex-row gap-4">
         <DataList<ProductAllergyConflict>
-          className="flex-1"
+          className={can("transactions:read") ? "flex-1" : ""}
           title="Allergy Conflicts"
           columns={[
             {
@@ -217,34 +217,36 @@ function ProductDetailContent() {
           }
         />
 
-        <DataList<Invoice>
-          className="flex-1"
-          title="Invoices"
-          columns={[
-            {
-              header: "#",
-              key: "#",
-              render: (i) => `#${i.invoiceNumber}`,
-            },
-            {
-              header: "Date",
-              key: "date",
-              render: (i) => i.createdAt?.slice(0, 10) ?? "—",
-            },
-            {
-              header: "Amount",
-              key: "amount",
-              render: (i) => `$${i.amount.toFixed(2)}`,
-            },
-          ]}
-          endpoint={`/products/${id}/invoices`}
-          rowKey={(i) => i.id}
-          limit={5}
-          hideSearch
-          refreshKey={refreshKey}
-          onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
-          emptyMessage="No invoices."
-        />
+        {can("transactions:read") && (
+          <DataList<Invoice>
+            className="flex-1"
+            title="Invoices"
+            columns={[
+              {
+                header: "#",
+                key: "#",
+                render: (i) => `#${i.invoiceNumber}`,
+              },
+              {
+                header: "Date",
+                key: "date",
+                render: (i) => i.createdAt?.slice(0, 10) ?? "—",
+              },
+              {
+                header: "Amount",
+                key: "amount",
+                render: (i) => `$${i.amount.toFixed(2)}`,
+              },
+            ]}
+            endpoint={`/products/${id}/invoices`}
+            rowKey={(i) => i.id}
+            limit={5}
+            hideSearch
+            refreshKey={refreshKey}
+            onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
+            emptyMessage="No invoices."
+          />
+        )}
       </div>
 
       {/* Add conflict modal */}

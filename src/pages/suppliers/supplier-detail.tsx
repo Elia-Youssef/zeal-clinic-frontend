@@ -95,6 +95,7 @@ function SupplierDetailContent() {
       </Card>
 
       {/* Invoices & Payments */}
+      {can("transactions:read") && (
       <div className="flex flex-row gap-4">
         <DataList<Invoice>
           className="flex-1"
@@ -214,6 +215,7 @@ function SupplierDetailContent() {
           />
         </Card>
       </div>
+      )}
 
       {/* Modals */}
       <SupplierForm

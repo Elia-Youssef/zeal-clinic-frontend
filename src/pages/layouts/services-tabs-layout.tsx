@@ -4,9 +4,9 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { RouteTabs } from "@/components/shared/route-tabs";
 
 const tabs = [
-  { label: "Procedures", href: "/services/procedures" },
-  { label: "Types", href: "/services/types" },
-  { label: "Categories", href: "/services/categories" },
+  { label: "Procedures", href: "/services/procedures", scopes: ["services:read"] },
+  { label: "Types", href: "/services/types", scopes: ["services:read"] },
+  { label: "Categories", href: "/services/categories", scopes: ["services:read"] },
 ];
 
 export default function ServicesTabsLayout({ children }: { children: React.ReactNode }) {

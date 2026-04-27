@@ -2,7 +2,7 @@
  * api.ts: Centralized fetch wrapper for the clinic backend.
  *
  * Every API call goes through `api.*` helpers so that:
- *  - The JWT token is attached automatically from localStorage.
+ *  - The JWT token is attached automatically from sessionStorage.
  *  - The standard `{ success, data, error }` envelope is unwrapped.
  *  - Network / HTTP errors surface as thrown `ApiError` instances.
  *
@@ -41,7 +41,15 @@ export class ApiError extends Error {
 /** Read the JWT token stored at login. Returns empty string if absent. */
 function getToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("token") ?? "";
+  return sessionStorage.getItem("token") ?? "";
+}
+
+/** Clear auth session data after the backend rejects the current token. */
+function clearAuthSession(): void {
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("auth_user");
+  sessionStorage.removeItem("auth_role");
+  sessionStorage.removeItem("auth_scopes");
 }
 
 /**
@@ -85,10 +93,7 @@ async function request<T>(
   /* Handle auth / authorization redirects */
   if (res.status === 401) {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("auth_user");
-      localStorage.removeItem("auth_role");
-      localStorage.removeItem("auth_scopes");
+      clearAuthSession();
       window.location.href = "/";
     }
     throw new ApiError("Session expired", 401);
@@ -182,10 +187,7 @@ export const api = {
     const res = await fetch(`${BASE_URL}${endpoint}`, { headers });
     if (res.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("auth_user");
-        localStorage.removeItem("auth_role");
-        localStorage.removeItem("auth_scopes");
+        clearAuthSession();
         window.location.href = "/";
       }
       throw new ApiError("Session expired", 401);

@@ -244,6 +244,7 @@ function PatientDetailContent() {
       </div>
 
       <div className="flex flex-row gap-4">
+        {can("appointments:read") && (
         <DataList
           className="flex-1"
           title="Appointments"
@@ -304,9 +305,10 @@ function PatientDetailContent() {
             )
           }
         />
+        )}
 
         <DataList<Prescription>
-          className="flex-1"
+          className={can("appointments:read") ? "flex-1" : ""}
           title="Prescriptions"
           columns={[
             {
@@ -361,6 +363,7 @@ function PatientDetailContent() {
         />
       </div>
 
+      {can("transactions:read") && (
       <div className="flex flex-row gap-4">
         <DataList
           className="flex-1"
@@ -388,7 +391,7 @@ function PatientDetailContent() {
           hideSearch
           onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
           headerActions={
-            can("appointments:write") && (
+            can("transactions:write") && (
               <Button
                 size="sm"
                 className="gap-1"
@@ -465,7 +468,7 @@ function PatientDetailContent() {
             limit={5}
             hideSearch
             headerActions={
-              can("appointments:write") && (
+              can("transactions:write") && (
                 <Button
                   size="sm"
                   className="gap-1"
@@ -478,6 +481,7 @@ function PatientDetailContent() {
           />
         </Card>
       </div>
+      )}
 
       <PatientForm
         open={editOpen}

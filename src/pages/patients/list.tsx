@@ -53,7 +53,11 @@ export default function PatientsListPage() {
         columns={columns}
         rowKey={(p) => p.id}
         searchPlaceholder="Search patients…"
-        emptyMessage="No patients yet. Click Add Patient to get started."
+        emptyMessage={
+          can("patients:write")
+            ? "No patients yet. Click Add Patient to get started."
+            : "No patients yet."
+        }
         emptySearchMessage="No patients match your search."
         onRowClick={(p) => navigate(`/patients/${p.id}`)}
         headerActions={

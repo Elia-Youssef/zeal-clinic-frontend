@@ -52,7 +52,11 @@ function SuppliersContent() {
         columns={columns}
         rowKey={(s) => s.id}
         searchPlaceholder="Search suppliers…"
-        emptyMessage="No suppliers yet. Click Add Supplier to get started."
+        emptyMessage={
+          can("inventory:write")
+            ? "No suppliers yet. Click Add Supplier to get started."
+            : "No suppliers yet."
+        }
         emptySearchMessage="No suppliers match your search."
         onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
         headerActions={

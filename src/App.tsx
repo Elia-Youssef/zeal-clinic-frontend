@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import Home from "@/pages/login";
 import AuthenticatedLayout from "@/pages/layouts/authenticated-layout";
@@ -39,8 +45,10 @@ import SettingsTabsLayout from "@/pages/layouts/settings-tabs-layout";
 import SettingsRolesPage from "@/pages/settings/roles";
 import SettingsUsersPage from "@/pages/settings/users";
 import SettingsAuditLogPage from "@/pages/settings/audit-log";
+import SettingsConnectionPage from "@/pages/settings/connection";
 import UserDetailPage from "@/pages/settings/user-detail";
 import { LoadingOverlay } from "@/components/shared/loading-overlay";
+import { RequireScopes, ScopeRedirect } from "@/components/shared/scope-guard";
 import { ThemeProvider } from "@/contexts/theme-context";
 
 function LayoutRoute({
@@ -64,65 +72,356 @@ function App() {
           <Route element={<LayoutRoute layout={AuthenticatedLayout} />}>
             <Route path="dashboard" element={<DashboardPage />} />
 
-            <Route path="patients" element={<Navigate to="/patients/list" replace />} />
+            <Route
+              path="patients"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/patients/list", scopes: ["patients:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={PatientsTabsLayout} />}>
-              <Route path="patients/list" element={<PatientsListPage />} />
-              <Route path="patients/allergies" element={<PatientsAllergiesPage />} />
-              <Route path="patients/medicines" element={<PatientsMedicinesPage />} />
+              <Route
+                path="patients/list"
+                element={
+                  <RequireScopes scopes={["patients:read"]}>
+                    <PatientsListPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="patients/allergies"
+                element={
+                  <RequireScopes scopes={["patients:read"]}>
+                    <PatientsAllergiesPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="patients/medicines"
+                element={
+                  <RequireScopes scopes={["patients:read"]}>
+                    <PatientsMedicinesPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
-            <Route path="patients/:id" element={<PatientDetailPage />} />
+            <Route
+              path="patients/:id"
+              element={
+                <RequireScopes scopes={["patients:read"]}>
+                  <PatientDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="schedule" element={<Navigate to="/schedule/calendar" replace />} />
+            <Route
+              path="schedule"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/schedule/calendar", scopes: ["appointments:read"] },
+                    { to: "/schedule/rooms", scopes: ["rooms:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={ScheduleTabsLayout} />}>
-              <Route path="schedule/calendar" element={<ScheduleCalendarPage />} />
-              <Route path="schedule/rooms" element={<ScheduleRoomsPage />} />
+              <Route
+                path="schedule/calendar"
+                element={
+                  <RequireScopes scopes={["appointments:read"]}>
+                    <ScheduleCalendarPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="schedule/rooms"
+                element={
+                  <RequireScopes scopes={["rooms:read"]}>
+                    <ScheduleRoomsPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
 
-            <Route path="reports" element={<Navigate to="/reports/forecast" replace />} />
+            <Route
+              path="reports"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/reports/forecast", scopes: ["reports:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={ReportsTabsLayout} />}>
-              <Route path="reports/forecast" element={<ReportsForecastPage />} />
-              <Route path="reports/profit-loss" element={<ReportsProfitLossPage />} />
+              <Route
+                path="reports/forecast"
+                element={
+                  <RequireScopes scopes={["reports:read"]}>
+                    <ReportsForecastPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="reports/profit-loss"
+                element={
+                  <RequireScopes scopes={["reports:read"]}>
+                    <ReportsProfitLossPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
 
-            <Route path="inventory" element={<Navigate to="/inventory/products" replace />} />
+            <Route
+              path="inventory"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/inventory/products", scopes: ["inventory:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={InventoryTabsLayout} />}>
-              <Route path="inventory/products" element={<InventoryProductsPage />} />
-              <Route path="inventory/categories" element={<InventoryCategoriesPage />} />
+              <Route
+                path="inventory/products"
+                element={
+                  <RequireScopes scopes={["inventory:read"]}>
+                    <InventoryProductsPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="inventory/categories"
+                element={
+                  <RequireScopes scopes={["inventory:read"]}>
+                    <InventoryCategoriesPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
-            <Route path="inventory/products/:id" element={<ProductDetailPage />} />
+            <Route
+              path="inventory/products/:id"
+              element={
+                <RequireScopes scopes={["inventory:read"]}>
+                  <ProductDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="suppliers" element={<SuppliersPage />} />
-            <Route path="suppliers/:id" element={<SupplierDetailPage />} />
+            <Route
+              path="suppliers"
+              element={
+                <RequireScopes scopes={["inventory:read"]}>
+                  <SuppliersPage />
+                </RequireScopes>
+              }
+            />
+            <Route
+              path="suppliers/:id"
+              element={
+                <RequireScopes scopes={["inventory:read"]}>
+                  <SupplierDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="financials" element={<Navigate to="/financials/invoices" replace />} />
+            <Route
+              path="financials"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    {
+                      to: "/financials/invoices",
+                      scopes: ["transactions:read"],
+                    },
+                    { to: "/financials/discounts", scopes: ["services:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={FinancialsTabsLayout} />}>
-              <Route path="financials/invoices" element={<FinancialsInvoicesPage />} />
-              <Route path="financials/balances" element={<FinancialsBalancesPage />} />
-              <Route path="financials/adjustments" element={<FinancialsAdjustmentsPage />} />
-              <Route path="financials/discounts" element={<FinancialsDiscountsPage />} />
-              <Route path="financials/currencies" element={<FinancialsCurrenciesPage />} />
+              <Route
+                path="financials/invoices"
+                element={
+                  <RequireScopes scopes={["transactions:read"]}>
+                    <FinancialsInvoicesPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="financials/balances"
+                element={
+                  <RequireScopes scopes={["transactions:read"]}>
+                    <FinancialsBalancesPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="financials/adjustments"
+                element={
+                  <RequireScopes scopes={["transactions:read"]}>
+                    <FinancialsAdjustmentsPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="financials/discounts"
+                element={
+                  <RequireScopes scopes={["services:read"]}>
+                    <FinancialsDiscountsPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="financials/currencies"
+                element={
+                  <RequireScopes scopes={["transactions:read"]}>
+                    <FinancialsCurrenciesPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
-            <Route path="financials/invoices/:id" element={<InvoiceDetailPage />} />
-            <Route path="financials/discounts/:id" element={<DiscountDetailPage />} />
+            <Route
+              path="financials/invoices/:id"
+              element={
+                <RequireScopes scopes={["transactions:read"]}>
+                  <InvoiceDetailPage />
+                </RequireScopes>
+              }
+            />
+            <Route
+              path="financials/discounts/:id"
+              element={
+                <RequireScopes scopes={["services:read"]}>
+                  <DiscountDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="services" element={<Navigate to="/services/procedures" replace />} />
+            <Route
+              path="services"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/services/procedures", scopes: ["services:read"] },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={ServicesTabsLayout} />}>
-              <Route path="services/procedures" element={<ServicesProceduresPage />} />
-              <Route path="services/types" element={<ServicesTypesPage />} />
-              <Route path="services/categories" element={<ServicesCategoriesPage />} />
+              <Route
+                path="services/procedures"
+                element={
+                  <RequireScopes scopes={["services:read"]}>
+                    <ServicesProceduresPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="services/types"
+                element={
+                  <RequireScopes scopes={["services:read"]}>
+                    <ServicesTypesPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="services/categories"
+                element={
+                  <RequireScopes scopes={["services:read"]}>
+                    <ServicesCategoriesPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
-            <Route path="services/procedures/:id" element={<ProcedureDetailPage />} />
+            <Route
+              path="services/procedures/:id"
+              element={
+                <RequireScopes scopes={["services:read"]}>
+                  <ProcedureDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="team" element={<TeamPage />} />
-            <Route path="team/:id" element={<TeamDetailPage />} />
+            <Route
+              path="team"
+              element={
+                <RequireScopes scopes={["team:read"]}>
+                  <TeamPage />
+                </RequireScopes>
+              }
+            />
+            <Route
+              path="team/:id"
+              element={
+                <RequireScopes scopes={["team:read"]}>
+                  <TeamDetailPage />
+                </RequireScopes>
+              }
+            />
 
-            <Route path="settings" element={<Navigate to="/settings/roles" replace />} />
+            <Route
+              path="settings"
+              element={
+                <ScopeRedirect
+                  targets={[
+                    { to: "/settings/roles", scopes: ["roles:read"] },
+                    { to: "/settings/users", scopes: ["team:read"] },
+                    {
+                      to: "/settings/audit-log",
+                      scopes: ["roles:read", "team:read"],
+                    },
+                  ]}
+                />
+              }
+            />
             <Route element={<LayoutRoute layout={SettingsTabsLayout} />}>
-              <Route path="settings/roles" element={<SettingsRolesPage />} />
-              <Route path="settings/users" element={<SettingsUsersPage />} />
-              <Route path="settings/audit-log" element={<SettingsAuditLogPage />} />
+              <Route
+                path="settings/roles"
+                element={
+                  <RequireScopes scopes={["roles:read"]}>
+                    <SettingsRolesPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="settings/users"
+                element={
+                  <RequireScopes scopes={["team:read"]}>
+                    <SettingsUsersPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="settings/audit-log"
+                element={
+                  <RequireScopes scopes={["roles:read", "team:read"]}>
+                    <SettingsAuditLogPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="settings/connection"
+                element={
+                  <RequireScopes scopes={["roles:read", "team:read"]}>
+                    <SettingsConnectionPage />
+                  </RequireScopes>
+                }
+              />
             </Route>
-            <Route path="settings/users/:id" element={<UserDetailPage />} />
+            <Route
+              path="settings/users/:id"
+              element={
+                <RequireScopes scopes={["team:read"]}>
+                  <UserDetailPage />
+                </RequireScopes>
+              }
+            />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>

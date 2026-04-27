@@ -33,10 +33,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       username,
       password,
     });
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("auth_user", data.user);
-    localStorage.setItem("auth_role", data.role);
-    localStorage.setItem("auth_scopes", JSON.stringify(data.scopes));
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("auth_user", data.user);
+    sessionStorage.setItem("auth_role", data.role);
+    sessionStorage.setItem("auth_scopes", JSON.stringify(data.scopes));
     set({
       token: data.token,
       isAuthenticated: true,
@@ -47,23 +47,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("auth_user");
-    localStorage.removeItem("auth_role");
-    localStorage.removeItem("auth_scopes");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("auth_user");
+    sessionStorage.removeItem("auth_role");
+    sessionStorage.removeItem("auth_scopes");
     set({ token: "", isAuthenticated: false, user: "", role: "", scopes: [] });
   },
 
-  /** Read token from localStorage on app start. Returns true if a token exists. */
+  /** Read token from sessionStorage on app start. Returns true if a token exists. */
   hydrate: () => {
     if (typeof window === "undefined") return false;
-    const token = localStorage.getItem("token") ?? "";
+    const token = sessionStorage.getItem("token") ?? "";
     if (token) {
-      const user = localStorage.getItem("auth_user") ?? "";
-      const role = localStorage.getItem("auth_role") ?? "";
+      const user = sessionStorage.getItem("auth_user") ?? "";
+      const role = sessionStorage.getItem("auth_role") ?? "";
       let scopes: string[] = [];
       try {
-        scopes = JSON.parse(localStorage.getItem("auth_scopes") ?? "[]");
+        scopes = JSON.parse(sessionStorage.getItem("auth_scopes") ?? "[]");
       } catch {
         scopes = [];
       }

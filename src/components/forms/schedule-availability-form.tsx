@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { ScheduleAvailability } from "@/lib/types";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const dayOptions = [
   { value: "1", label: "Monday" },
@@ -41,6 +42,7 @@ export function ScheduleAvailabilityForm({
 }) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [dayOfWeek, setDayOfWeek] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -144,7 +146,7 @@ export function ScheduleAvailabilityForm({
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          {isEdit && (
+          {isEdit && can("team:delete") && (
             <Button
               type="button"
               variant="destructive"

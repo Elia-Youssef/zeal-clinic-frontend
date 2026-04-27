@@ -4,9 +4,9 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { RouteTabs } from "@/components/shared/route-tabs";
 
 const tabs = [
-  { label: "List", href: "/patients/list" },
-  { label: "Allergies", href: "/patients/allergies" },
-  { label: "Medicines", href: "/patients/medicines" },
+  { label: "List", href: "/patients/list", scopes: ["patients:read"] },
+  { label: "Allergies", href: "/patients/allergies", scopes: ["patients:read"] },
+  { label: "Medicines", href: "/patients/medicines", scopes: ["patients:read"] },
 ];
 
 export default function PatientsTabsLayout({ children }: { children: React.ReactNode }) {

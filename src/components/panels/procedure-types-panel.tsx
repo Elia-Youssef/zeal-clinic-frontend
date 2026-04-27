@@ -100,21 +100,23 @@ export function ProcedureTypesPanel() {
     { key: "desc", header: "Description", render: (t) => t.description || "—" },
   ];
 
-  const actions: RowAction<ProcedureType>[] = can("services:write")
-    ? [
-        {
+  const actions: RowAction<ProcedureType>[] = [
+    ...(can("services:write")
+      ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
-          onClick: (t) => { setEditing(t); setFormOpen(true); },
-        },
-        {
+          onClick: (t: ProcedureType) => { setEditing(t); setFormOpen(true); },
+        }]
+      : []),
+    ...(can("services:delete")
+      ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
           destructive: true,
-          onClick: (t) => handleDelete(t),
-        },
-      ]
-    : [];
+          onClick: (t: ProcedureType) => handleDelete(t),
+        }]
+      : []),
+  ];
 
   return (
     <>

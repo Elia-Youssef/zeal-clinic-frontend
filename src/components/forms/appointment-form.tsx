@@ -33,6 +33,7 @@ import { PatientForm } from "./patient-form";
 import { ClientInvoiceFormBody } from "./client-invoice-form";
 import { ClientPaymentFormBody } from "./client-payment-form";
 import type { Appointment, Invoice } from "@/lib/types";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export type AppointmentFormData = {
   id?: string;
@@ -160,6 +161,11 @@ export function AppointmentForm({
   /** When provided, the view mode shows an "Open in Schedule" button. */
   onOpenInSchedule?: () => void;
 }) {
+  const { can } = usePermissions();
+  const canWriteAppointments = can("appointments:write");
+  const canDeleteAppointments = can("appointments:delete");
+  const canWritePatients = can("patients:write");
+  const canWriteTransactions = can("transactions:write");
   const isEdit = !!initialData?.id;
   const currentStatus = initialData?.status ?? "Scheduled";
   const initialPage: Page = readOnly && isEdit ? "view" : "main";
@@ -232,7 +238,7 @@ export function AppointmentForm({
               : "New Appointment";
 
   const headerAction =
-    (page === "main" || page === "view") && isEdit ? (
+    (page === "main" || page === "view") && isEdit && canWriteAppointments ? (
       <StatusPicker status={currentStatus} onChange={handleStatusChange} />
     ) : undefined;
 
@@ -249,7 +255,7 @@ export function AppointmentForm({
       {page === "view" && isEdit && (
         <ViewPage
           initialData={initialData!}
-          onEdit={() => setPage("main")}
+          onEdit={canWriteAppointments ? () => setPage("main") : undefined}
           onClose={onClose}
           onOpenInSchedule={onOpenInSchedule}
         />
@@ -260,6 +266,8 @@ export function AppointmentForm({
           initialData={initialData}
           onCancelEdit={onClose}
           onSaved={handleSaved}
+          canDelete={canDeleteAppointments}
+          canCreatePatient={canWritePatients}
         />
       )}
       {page === "cancel" && isEdit && (
@@ -310,6 +318,7 @@ export function AppointmentForm({
                 patientId={initialData?.patientId ?? ""}
                 onBack={() => setPage("main")}
                 onCompleted={handleCompleted}
+                canContinue={canWriteTransactions}
               />
             </div>
           )}
@@ -526,7 +535,7 @@ function ViewPage({
   onOpenInSchedule,
 }: {
   initialData: Partial<AppointmentFormData>;
-  onEdit: () => void;
+  onEdit?: () => void;
   onClose: () => void;
   onOpenInSchedule?: () => void;
 }) {
@@ -577,9 +586,11 @@ function ViewPage({
         <Button type="button" variant="outline" onClick={onClose}>
           Close
         </Button>
-        <Button type="button" onClick={onEdit}>
-          Edit
-        </Button>
+        {onEdit && (
+          <Button type="button" onClick={onEdit}>
+            Edit
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -592,11 +603,15 @@ function MainPage({
   initialData,
   onCancelEdit,
   onSaved,
+  canDelete,
+  canCreatePatient,
 }: {
   isEdit: boolean;
   initialData?: Partial<AppointmentFormData>;
   onCancelEdit: () => void;
   onSaved: () => void;
+  canDelete: boolean;
+  canCreatePatient: boolean;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [form, setForm] = useState<AppointmentFormData>(() =>
@@ -677,20 +692,24 @@ function MainPage({
           })}
           placeholder="Select patient..."
           required
-          renderAddForm={({ open: addOpen, onClose: closeAdd, onCreated }) => (
-            <PatientForm
-              open={addOpen}
-              onClose={closeAdd}
-              onSaved={(created) => {
-                if (created) {
-                  onCreated(
-                    String(created.id),
-                    `${created.firstName} ${created.lastName}`,
-                  );
-                }
-              }}
-            />
-          )}
+          renderAddForm={
+            canCreatePatient
+              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                  <PatientForm
+                    open={addOpen}
+                    onClose={closeAdd}
+                    onSaved={(created) => {
+                      if (created) {
+                        onCreated(
+                          String(created.id),
+                          `${created.firstName} ${created.lastName}`,
+                        );
+                      }
+                    }}
+                  />
+                )
+              : undefined
+          }
         />
       </div>
 
@@ -789,7 +808,7 @@ function MainPage({
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        {isEdit && (
+        {isEdit && canDelete && (
           <Button
             type="button"
             variant="destructive"
@@ -880,11 +899,13 @@ function CompletePage({
   patientId,
   onBack,
   onCompleted,
+  canContinue,
 }: {
   appointmentId: string;
   patientId: string;
   onBack: () => void;
   onCompleted: (notes: string, advance: boolean) => void;
+  canContinue: boolean;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [notes, setNotes] = useState("");
@@ -930,13 +951,15 @@ function CompletePage({
         >
           {submitting ? "Completing..." : "Complete"}
         </Button>
-        <Button
-          type="button"
-          disabled={submitting || !patientId}
-          onClick={() => handleComplete(true)}
-        >
-          Complete & Continue
-        </Button>
+        {canContinue && (
+          <Button
+            type="button"
+            disabled={submitting || !patientId}
+            onClick={() => handleComplete(true)}
+          >
+            Complete & Continue
+          </Button>
+        )}
       </div>
     </div>
   );

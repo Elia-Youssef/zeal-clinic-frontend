@@ -84,15 +84,19 @@ export default function InvoicesPage() {
         headerActions={
           can("transactions:write") ? (
             entityTab === "Patient" ? (
-              <AddButton
-                label="New Invoice"
-                onClick={() => setClientInvoiceOpen(true)}
-              />
+              can("patients:read") ? (
+                <AddButton
+                  label="New Invoice"
+                  onClick={() => setClientInvoiceOpen(true)}
+                />
+              ) : undefined
             ) : entityTab === "Supplier" ? (
-              <AddButton
-                label="New Invoice"
-                onClick={() => setSupplierInvoiceOpen(true)}
-              />
+              can("inventory:read") ? (
+                <AddButton
+                  label="New Invoice"
+                  onClick={() => setSupplierInvoiceOpen(true)}
+                />
+              ) : undefined
             ) : undefined
           ) : undefined
         }

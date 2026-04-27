@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { AllergyForm } from "@/components/forms/allergy-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function ProductAllergyConflictForm({
   open,
@@ -22,6 +23,7 @@ export function ProductAllergyConflictForm({
   productId: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [allergyId, setAllergyId] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -58,20 +60,20 @@ export function ProductAllergyConflictForm({
             apiEndpoint="/allergies/dropdown"
             mapItem={(a: any) => ({ value: a.id, label: a.name })}
             placeholder="Select…"
-            renderAddForm={({
-              open: addOpen,
-              onClose: closeAdd,
-              onCreated,
-            }) => (
-              <AllergyForm
-                open={addOpen}
-                onClose={closeAdd}
-                onSaved={(created) => {
-                  if (created)
-                    onCreated(String(created.id), String(created.name));
-                }}
-              />
-            )}
+            renderAddForm={
+              can("patients:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <AllergyForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created)
+                          onCreated(String(created.id), String(created.name));
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
         <div className="space-y-1.5">

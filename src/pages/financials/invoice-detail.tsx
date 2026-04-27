@@ -83,6 +83,9 @@ export default function InvoiceDetailPage() {
     ? invoice.toEntityName
     : invoice.fromEntityName;
   const otherHrefPrefix = isClientInvoice ? "/patients" : "/suppliers";
+  const canOpenOtherEntity = isClientInvoice
+    ? can("patients:read")
+    : can("inventory:read");
 
   return (
     <div className="space-y-4 flex flex-col">
@@ -100,7 +103,7 @@ export default function InvoiceDetailPage() {
         <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
           <div>
             <span className="text-muted-foreground">{otherLabel}</span>
-            {otherEntityId ? (
+            {otherEntityId && canOpenOtherEntity ? (
               <Link
                 to={`${otherHrefPrefix}/${otherEntityId}`}
                 className="block font-medium capitalize hover:underline"

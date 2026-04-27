@@ -121,21 +121,23 @@ export function ProcedureCategoriesPanel() {
     { key: "desc", header: "Description", render: (c) => c.description || "—" },
   ];
 
-  const actions: RowAction<ProcedureCategory>[] = can("services:write")
-    ? [
-        {
+  const actions: RowAction<ProcedureCategory>[] = [
+    ...(can("services:write")
+      ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
-          onClick: (c) => { setEditing(c); setFormOpen(true); },
-        },
-        {
+          onClick: (c: ProcedureCategory) => { setEditing(c); setFormOpen(true); },
+        }]
+      : []),
+    ...(can("services:delete")
+      ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
           destructive: true,
-          onClick: (c) => handleDelete(c),
-        },
-      ]
-    : [];
+          onClick: (c: ProcedureCategory) => handleDelete(c),
+        }]
+      : []),
+  ];
 
   return (
     <>

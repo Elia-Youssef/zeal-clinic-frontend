@@ -118,7 +118,7 @@ function DiscountDetailContent() {
     },
   ];
 
-  const itemActions: RowAction<DiscountItem>[] = can("services:write")
+  const itemActions: RowAction<DiscountItem>[] = can("services:delete")
     ? [
         {
           label: "Remove",

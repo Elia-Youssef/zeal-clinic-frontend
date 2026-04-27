@@ -13,11 +13,13 @@ import { useUsersStore } from "@/lib/stores/users-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 function UserDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
 
   const user = useUsersStore((s) => s.current);
   const loading = useUsersStore((s) => s.detailLoading);
@@ -77,8 +79,8 @@ function UserDetailContent() {
             </Badge>
           </>
         }
-        onEdit={() => setEditOpen(true)}
-        onDelete={handleDelete}
+        onEdit={can("team:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("team:delete") ? handleDelete : undefined}
       />
 
       <Card>
@@ -92,8 +94,8 @@ function UserDetailContent() {
           <DetailField label="Status">
             <Badge
               variant={user.isActive ? "default" : "secondary"}
-              className="cursor-pointer"
-              onClick={handleToggleActive}
+              className={can("team:write") ? "cursor-pointer" : undefined}
+              onClick={can("team:write") ? handleToggleActive : undefined}
             >
               {user.isActive ? "Active" : "Inactive"}
             </Badge>

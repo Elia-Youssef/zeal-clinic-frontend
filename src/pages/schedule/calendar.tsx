@@ -185,6 +185,7 @@ function AppointmentCard({
   appt: Appointment;
   onClick: (appt: Appointment) => void;
 }) {
+  const { can } = usePermissions();
   const startTime = SchedUtils.isoToTime(appt.startTime);
   const endTime = SchedUtils.isoToTime(appt.endTime);
   const startDec = SchedUtils.timeToDecimal(startTime);
@@ -231,13 +232,19 @@ function AppointmentCard({
       </HoverCardTrigger>
       <HoverCardContent side="right" align="start" className="space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <Link
-            to={`/patients/${appt.patientId}`}
-            onClick={(e) => e.stopPropagation()}
-            className="font-heading font-medium leading-tight hover:underline"
-          >
-            {appt.patientName || "Unknown Patient"}
-          </Link>
+          {can("patients:read") ? (
+            <Link
+              to={`/patients/${appt.patientId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-heading font-medium leading-tight hover:underline"
+            >
+              {appt.patientName || "Unknown Patient"}
+            </Link>
+          ) : (
+            <span className="font-heading font-medium leading-tight">
+              {appt.patientName || "Unknown Patient"}
+            </span>
+          )}
           <Badge className={cn("shrink-0", style.badge)}>{appt.status}</Badge>
         </div>
         <div className="grid grid-cols-[80px_1fr] gap-y-1 text-xs">

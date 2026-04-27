@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export type GlobalSearchHit = {
   id: string;
@@ -56,6 +57,14 @@ type SearchResponse = {
   procedures: ProcedureRow[];
   products: ProductRow[];
   employees: EmployeeRow[];
+};
+
+const searchCategoryScopes: Record<string, string> = {
+  Patients: "patients:read",
+  Employees: "team:read",
+  Suppliers: "inventory:read",
+  Procedures: "services:read",
+  Products: "inventory:read",
 };
 
 function joinName(...parts: (string | undefined)[]): string {
@@ -125,6 +134,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
 
 export function HeaderSearch() {
   const navigate = useNavigate();
+  const { scopes } = usePermissions();
   const [query, setQuery] = useState("");
   const [groups, setGroups] = useState<GlobalSearchGroup[]>([]);
   const [open, setOpen] = useState(false);
@@ -137,11 +147,17 @@ export function HeaderSearch() {
     }
     const timer = setTimeout(() => {
       fetchResults(query)
-        .then(setGroups)
+        .then((results) =>
+          setGroups(
+            results.filter((group) =>
+              scopes.includes(searchCategoryScopes[group.category] ?? ""),
+            ),
+          ),
+        )
         .catch(() => setGroups([]));
     }, 250);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, scopes]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

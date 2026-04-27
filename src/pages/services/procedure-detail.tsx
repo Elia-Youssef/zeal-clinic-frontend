@@ -131,7 +131,7 @@ function ProcedureDetailContent() {
           </>
         }
         onEdit={can("services:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("services:write") ? handleDelete : undefined}
+        onDelete={can("services:delete") ? handleDelete : undefined}
       />
 
       {/* Details */}
@@ -201,7 +201,7 @@ function ProcedureDetailContent() {
             },
           ]}
           actions={
-            can("services:write")
+            can("services:delete")
               ? [
                   {
                     label: "Delete",
@@ -247,7 +247,7 @@ function ProcedureDetailContent() {
             },
           ]}
           actions={
-            can("services:write")
+            can("services:delete")
               ? [
                   {
                     label: "Delete",
@@ -321,8 +321,10 @@ function ProcedureDetailContent() {
         hideSearch
         refreshKey={refreshKey}
         emptyMessage="No patient procedures."
-        onRowClick={(i) =>
-          i.patientId && navigate(`/patients/${i.patientId}`)
+        onRowClick={
+          can("patients:read")
+            ? (i) => i.patientId && navigate(`/patients/${i.patientId}`)
+            : undefined
         }
       />
 

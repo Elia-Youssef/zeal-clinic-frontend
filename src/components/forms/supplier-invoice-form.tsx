@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { ProductForm } from "./product-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type ItemDraft = {
   itemId: string;
@@ -38,6 +39,7 @@ export function SupplierInvoiceForm({
   onSaved: () => void;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
 
   const [supplierId, setSupplierId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
@@ -157,15 +159,19 @@ export function SupplierInvoiceForm({
                     apiEndpoint="/products/dropdown"
                     mapItem={(p: { id: string; name: string }) => ({ value: p.id, label: p.name })}
                     placeholder="Select product…"
-                    renderAddForm={({ open, onClose, onCreated }) => (
-                      <ProductForm
-                        open={open}
-                        onClose={onClose}
-                        onSaved={(created) => {
-                          if (created) onCreated(String(created.id), String(created.name));
-                        }}
-                      />
-                    )}
+                    renderAddForm={
+                      can("inventory:write")
+                        ? ({ open, onClose, onCreated }) => (
+                            <ProductForm
+                              open={open}
+                              onClose={onClose}
+                              onSaved={(created) => {
+                                if (created) onCreated(String(created.id), String(created.name));
+                              }}
+                            />
+                          )
+                        : undefined
+                    }
                   />
                 </div>
                 <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(idx)} disabled={items.length === 1}>

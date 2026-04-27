@@ -18,6 +18,7 @@ import { cn, getErrorMessage } from "@/lib/utils";
 import { invoiceItemTypeOptions } from "@/lib/constants";
 import type { Invoice } from "@/lib/types";
 import { ProcedureForm } from "./procedure-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type DiscountSource = "discount" | "voucher";
 type AppliedValueType = "percentage" | "fixed" | "";
@@ -50,8 +51,8 @@ type ItemDraft = {
   voucherCode: string;
 };
 
-const blankItem = (): ItemDraft => ({
-  itemType: "product",
+const blankItem = (itemType: ItemDraft["itemType"] = "product"): ItemDraft => ({
+  itemType,
   itemId: "",
   unitPrice: null,
   quantity: "1",
@@ -127,11 +128,26 @@ export function ClientInvoiceFormBody({
   onCancel: () => void;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
+  const defaultItemType: ItemDraft["itemType"] = can("inventory:read")
+    ? "product"
+    : can("services:read")
+      ? "procedure"
+      : "other";
+  const visibleItemTypeOptions = invoiceItemTypeOptions.filter((option) => {
+    if (option.value === "product") return can("inventory:read");
+    if (option.value === "procedure" || option.value === "discount") {
+      return can("services:read");
+    }
+    return true;
+  });
 
   const [patientId, setPatientId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ItemDraft[]>([blankItem()]);
+  const [items, setItems] = useState<ItemDraft[]>([
+    blankItem(defaultItemType),
+  ]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -139,8 +155,8 @@ export function ClientInvoiceFormBody({
     setPatientId(defaultPatientId ?? "");
     setCurrencyId("");
     setNotes("");
-    setItems([blankItem()]);
-  }, [open]);
+    setItems([blankItem(defaultItemType)]);
+  }, [open, defaultItemType]);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>
@@ -388,7 +404,7 @@ export function ClientInvoiceFormBody({
                           voucherCode: "",
                         })
                       }
-                      options={invoiceItemTypeOptions}
+                      options={visibleItemTypeOptions}
                       placeholder="Type…"
                     />
                   </div>
@@ -415,19 +431,23 @@ export function ClientInvoiceFormBody({
                           label: p.name,
                         })}
                         placeholder="Select procedure…"
-                        renderAddForm={({ open, onClose, onCreated }) => (
-                          <ProcedureForm
-                            open={open}
-                            onClose={onClose}
-                            onSaved={(created) => {
-                              if (created)
-                                onCreated(
-                                  String(created.id),
-                                  String(created.name),
-                                );
-                            }}
-                          />
-                        )}
+                        renderAddForm={
+                          can("services:write")
+                            ? ({ open, onClose, onCreated }) => (
+                                <ProcedureForm
+                                  open={open}
+                                  onClose={onClose}
+                                  onSaved={(created) => {
+                                    if (created)
+                                      onCreated(
+                                        String(created.id),
+                                        String(created.name),
+                                      );
+                                  }}
+                                />
+                              )
+                            : undefined
+                        }
                       />
                     ) : isGift ? (
                       <Input

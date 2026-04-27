@@ -1,7 +1,7 @@
 /**
  * app-sidebar.tsx: Main sidebar navigation for the dashboard.
  * Contains nav links, theme toggle, and logout button.
- * Logout calls POST /api/auth/logout then clears localStorage.
+ * Logout calls POST /api/auth/logout then clears sessionStorage.
  */
 "use client";
 
@@ -76,7 +76,7 @@ const navItems = {
       title: "Financials",
       href: "/financials",
       icon: DollarSign,
-      scopes: ["transactions:read"],
+      scopes: ["transactions:read", "services:read"],
     },
     {
       title: "Team",
