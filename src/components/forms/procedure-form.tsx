@@ -1,8 +1,8 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -173,12 +173,10 @@ export function ProcedureForm({
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="proc-isActive"
             checked={form.isActive}
-            onChange={(e) => update("isActive", e.target.checked)}
-            className="size-4 rounded border-input"
+            onCheckedChange={(value) => update("isActive", value)}
           />
           <label htmlFor="proc-isActive" className="text-sm font-medium">
             Active

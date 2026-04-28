@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -28,12 +27,17 @@ import { textareaClass } from "@/lib/form-styles";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
 import { cn, getErrorMessage } from "@/lib/utils";
+import {
+  appointmentStatusStyles,
+  defaultAppointmentStatusStyle,
+} from "@/lib/constants";
 import { DetailField } from "@/components/shared/detail-field";
 import { PatientForm } from "./patient-form";
 import { ClientInvoiceFormBody } from "./client-invoice-form";
 import { ClientPaymentFormBody } from "./client-payment-form";
 import type { Appointment, Invoice } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export type AppointmentFormData = {
   id?: string;
@@ -61,13 +65,6 @@ type Page =
 
 type WizardStage = "complete" | "invoice" | "payment";
 
-const STATUS_BADGE_CLASSES: Record<string, string> = {
-  Scheduled: "bg-primary/90 text-white hover:bg-primary",
-  "In-Progress": "bg-yellow-500 text-white hover:bg-yellow-600",
-  Completed: "bg-green-700 text-white hover:bg-green-800",
-  Cancelled: "bg-gray-500 text-white hover:bg-gray-600",
-};
-
 const STATUS_ICONS: Record<string, LucideIcon> = {
   Scheduled: CalendarClock,
   "In-Progress": PlayCircle,
@@ -86,6 +83,9 @@ function StatusPicker({
 }) {
   const others = TRANSITION_STATUSES.filter((s) => s !== status);
   const CurrentIcon = STATUS_ICONS[status];
+  const badgeClass = (
+    appointmentStatusStyles[status] ?? defaultAppointmentStatusStyle
+  ).badge;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -94,7 +94,7 @@ function StatusPicker({
             type="button"
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
-              STATUS_BADGE_CLASSES[status] ?? "bg-muted text-foreground",
+              badgeClass,
             )}
           >
             {CurrentIcon && <CurrentIcon className="size-3.5" />}
@@ -242,15 +242,12 @@ export function AppointmentForm({
       <StatusPicker status={currentStatus} onChange={handleStatusChange} />
     ) : undefined;
 
-  const modalSize = page === "invoice" ? "lg" : undefined;
-
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={title}
       headerAction={headerAction}
-      size={modalSize}
     >
       {page === "view" && isEdit && (
         <ViewPage
@@ -451,7 +448,7 @@ function CompleteSummary({
     <div className="space-y-4">
       <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <CheckCircle2 className="size-4 text-green-600" />
+          <CheckCircle2 className="size-4 text-status-completed" />
           Appointment completed
         </div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
@@ -492,7 +489,7 @@ function InvoiceSummary({
       <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <CheckCircle2 className="size-4 text-green-600" />
+            <CheckCircle2 className="size-4 text-status-completed" />
             Invoice created
           </div>
           {invoice && (
@@ -614,6 +611,7 @@ function MainPage({
   canCreatePatient: boolean;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const confirm = useConfirm();
   const [form, setForm] = useState<AppointmentFormData>(() =>
     mergeInitial(initialData),
   );
@@ -660,7 +658,15 @@ function MainPage({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Delete this appointment?")) return;
+    if (
+      !(await confirm({
+        title: "Delete appointment?",
+        description: "Delete this appointment?",
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     setSubmitting(true);
     try {
       await api.del(`/appointments/${initialData!.id}`);

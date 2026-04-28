@@ -1,4 +1,3 @@
-"use client"
 
 import type { ReactNode } from "react"
 import { Trash2 } from "lucide-react"
@@ -26,7 +25,7 @@ export function ListItem({
           {actions}
           {onDelete && (
             <Button variant="ghost" size="icon-sm" onClick={onDelete}>
-              <Trash2 className="size-3.5 text-red-500" />
+              <Trash2 className="size-3.5 text-destructive" />
             </Button>
           )}
         </div>

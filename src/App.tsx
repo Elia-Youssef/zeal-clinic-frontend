@@ -28,11 +28,12 @@ import SuppliersPage from "@/pages/suppliers/list";
 import SupplierDetailPage from "@/pages/suppliers/supplier-detail";
 import FinancialsTabsLayout from "@/pages/layouts/financials-tabs-layout";
 import FinancialsInvoicesPage from "@/pages/financials/invoices";
+import FinancialsExpensesPage from "@/pages/financials/expenses";
 import FinancialsBalancesPage from "@/pages/financials/balances";
-import FinancialsAdjustmentsPage from "@/pages/financials/adjustments";
 import FinancialsDiscountsPage from "@/pages/financials/discounts";
 import FinancialsCurrenciesPage from "@/pages/financials/currencies";
 import InvoiceDetailPage from "@/pages/financials/invoice-detail";
+import ExpenseDetailPage from "@/pages/financials/expense-detail";
 import DiscountDetailPage from "@/pages/financials/discount-detail";
 import ServicesTabsLayout from "@/pages/layouts/services-tabs-layout";
 import ServicesProceduresPage from "@/pages/services/procedures";
@@ -48,8 +49,9 @@ import SettingsAuditLogPage from "@/pages/settings/audit-log";
 import SettingsConnectionPage from "@/pages/settings/connection";
 import UserDetailPage from "@/pages/settings/user-detail";
 import { LoadingOverlay } from "@/components/shared/loading-overlay";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { RequireScopes, ScopeRedirect } from "@/components/shared/scope-guard";
-import { ThemeProvider } from "@/contexts/theme-context";
+import "@/lib/stores/ui-store";
 
 function LayoutRoute({
   layout: Layout,
@@ -65,7 +67,7 @@ function LayoutRoute({
 
 function App() {
   return (
-    <ThemeProvider>
+    <>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -254,18 +256,18 @@ function App() {
                 }
               />
               <Route
-                path="financials/balances"
+                path="financials/expenses"
                 element={
                   <RequireScopes scopes={["transactions:read"]}>
-                    <FinancialsBalancesPage />
+                    <FinancialsExpensesPage />
                   </RequireScopes>
                 }
               />
               <Route
-                path="financials/adjustments"
+                path="financials/balances"
                 element={
                   <RequireScopes scopes={["transactions:read"]}>
-                    <FinancialsAdjustmentsPage />
+                    <FinancialsBalancesPage />
                   </RequireScopes>
                 }
               />
@@ -291,6 +293,14 @@ function App() {
               element={
                 <RequireScopes scopes={["transactions:read"]}>
                   <InvoiceDetailPage />
+                </RequireScopes>
+              }
+            />
+            <Route
+              path="financials/expenses/:id"
+              element={
+                <RequireScopes scopes={["transactions:read"]}>
+                  <ExpenseDetailPage />
                 </RequireScopes>
               }
             />
@@ -428,7 +438,8 @@ function App() {
         </Routes>
       </BrowserRouter>
       <LoadingOverlay />
-    </ThemeProvider>
+      <ConfirmDialog />
+    </>
   );
 }
 

@@ -1,10 +1,10 @@
-"use client";
 
 import { useState } from "react";
 import { type Column } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";
 import { Tabs } from "@/components/shared/tabs";
 import type { Balance } from "@/lib/types";
+import { transactionColors } from "@/lib/constants";
 
 const entityTabs = ["Patient", "Supplier"];
 
@@ -16,18 +16,15 @@ export default function BalancesPage() {
     entity.toLowerCase() as "patient" | "supplier";
 
   const getTextColor = (amount: number | undefined) => {
-    let color = "text-gray-600 dark:text-gray-300";
-    let green = "text-green-900 dark:text-green-300";
-    let red = "text-red-900 dark:text-red-300";
-
-    if (!amount) return color;
+    if (!amount) return transactionColors.neutral;
     if (amount < 0) {
-      color = entityTab === "Patient" ? green : red;
-    } else if (amount > 0) {
-      color = entityTab === "Patient" ? red : green;
+      return entityTab === "Patient"
+        ? transactionColors.inflow
+        : transactionColors.outflow;
     }
-
-    return color;
+    return entityTab === "Patient"
+      ? transactionColors.outflow
+      : transactionColors.inflow;
   };
 
   const balanceColumns: Column<Balance>[] = [

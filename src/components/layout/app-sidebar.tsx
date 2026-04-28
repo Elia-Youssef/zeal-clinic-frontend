@@ -1,12 +1,10 @@
 /**
  * app-sidebar.tsx: Main sidebar navigation for the dashboard.
- * Contains nav links, theme toggle, and logout button.
- * Logout calls POST /api/auth/logout then clears sessionStorage.
+ * Theme toggle and logout live in the header avatar menu.
  */
-"use client";
 
 import { Link } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -18,20 +16,13 @@ import {
   BarChart3,
   Settings,
   Activity,
-  LogOut,
-  Sun,
-  Moon,
   Truck,
 } from "lucide-react";
 
-import { useTheme } from "@/contexts/theme-context";
-import { api } from "@/lib/api";
-import { useAuthStore } from "@/lib/stores/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -41,6 +32,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 const navItems = {
   "": [
@@ -117,11 +109,8 @@ const navItems = {
 
 export function AppSidebar() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
   const { canAny } = usePermissions();
-
-  const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
 
   const visibleNavItems = Object.entries(navItems)
     .map(([group, items]) => ({
@@ -132,17 +121,6 @@ export function AppSidebar() {
     }))
     .filter((g) => g.items.length > 0);
 
-  /** Tell the backend to invalidate the session, then clear local state. */
-  const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      /* Even if the call fails we still clear locally so the user can log out */
-    }
-    logout();
-    navigate("/");
-  };
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -150,12 +128,15 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link to="/dashboard" />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Activity className="size-4" />
+                <div
+                  className="w-full h-full bg-no-repeat bg-center bg-cover"
+                  style={{ backgroundImage: `url(/zeal.png)` }}
+                />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Clinic</span>
+                <span className="truncate font-semibold">Zeal Clinic</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  Management
+                  {user}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -168,7 +149,11 @@ export function AppSidebar() {
       <SidebarContent>
         {visibleNavItems.map(({ group, items }) => (
           <SidebarGroup key={group}>
-            {group && <SidebarGroupLabel>{group}</SidebarGroupLabel>}
+            {group && (
+              <SidebarGroupLabel className="pointer-events-none">
+                {group}
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
               <SidebarMenu className="flex flex-col gap-1">
                 {items.map((item) => (
@@ -191,33 +176,6 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-
-      <SidebarSeparator className="mx-0" />
-
-      <SidebarFooter>
-        <SidebarMenu className="text-muted-foreground text-sm">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={toggleTheme}
-              tooltip={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
-              }
-            >
-              {theme === "light" ? <Moon /> : <Sun />}
-              <span>{theme === "light" ? "Dark mode" : "Light mode"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
-              <LogOut />
-              <span>Logout</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }

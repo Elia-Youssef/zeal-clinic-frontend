@@ -1,4 +1,3 @@
-"use client";
 
 import { useMemo } from "react";
 import {
@@ -97,7 +96,7 @@ export function AnalyticsChartCard({
         {loading ? (
           <Skeleton className="aspect-video w-full" />
         ) : error ? (
-          <p className="py-12 text-center text-sm text-red-500">{error}</p>
+          <p className="py-12 text-center text-sm text-destructive">{error}</p>
         ) : !data || data.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             No data for this range.

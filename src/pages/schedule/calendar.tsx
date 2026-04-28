@@ -1,4 +1,3 @@
-"use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Link } from "react-router-dom";
@@ -32,19 +31,24 @@ import {
 } from "@/components/forms/appointment-form";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
 import { useAppointmentsStore } from "@/lib/stores/appointments-store";
+import {
+  appointmentStatusStyles,
+  defaultAppointmentStatusStyle,
+} from "@/lib/constants";
 import type { Appointment, Room, RoomDayCount } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 
 const DAY_START_HOUR = 8; // inclusive: first hour on the grid
 const DAY_END_HOUR = 20; // exclusive: last hour row ends here
-const HOUR_HEIGHT = 120; // px per hour slot
+// rem-based so the schedule scales with the root font size (UI scale slider).
+const HOUR_HEIGHT = 7.5; // rem per hour slot (= 120px at 100% scale)
 const HOURS = Array.from(
   { length: DAY_END_HOUR - DAY_START_HOUR },
   (_, i) => i + DAY_START_HOUR,
 );
 const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
 const gridColsFor = (roomCount: number) =>
-  `50px 12px repeat(${roomCount}, 1fr)`;
+  `3.125rem 0.75rem repeat(${roomCount}, 1fr)`;
 
 // Helpers
 
@@ -97,42 +101,18 @@ class SchedUtils {
   }
 }
 
-// Appointment status styles
-const statusStyles: Record<string, { card: string; badge: string }> = {
-  Scheduled: {
-    card: "bg-primary/10 border-primary/30",
-    badge: "bg-primary text-primary-foreground",
-  },
-  "In-Progress": {
-    card: "bg-yellow-500/10 border-yellow-500/30",
-    badge: "bg-yellow-500 text-white",
-  },
-  Completed: {
-    card: "bg-green-700/10 border-green-500/30",
-    badge: "bg-green-700 text-white",
-  },
-  Cancelled: {
-    card: "bg-gray-500/10 border-gray-500/30",
-    badge: "bg-gray-500 text-white",
-  },
-};
-const DEFAULT_STATUS_STYLE = {
-  card: "bg-muted/10 border-muted/30",
-  badge: "bg-muted text-white",
-};
-
 const EMPTY_APPTS: Appointment[] = [];
 
 // Static grid pieces (memoized, render once)
 
 const TimeLabelsColumn = memo(function TimeLabelsColumn() {
   return (
-    <div className="relative" style={{ height: GRID_HEIGHT }}>
+    <div className="relative" style={{ height: `${GRID_HEIGHT}rem` }}>
       {HOURS.map((hour, i) => (
         <div
           key={hour}
           className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
-          style={{ top: i * HOUR_HEIGHT }}
+          style={{ top: `${i * HOUR_HEIGHT}rem` }}
         >
           {i ? SchedUtils.formatHour(hour) : ""}
         </div>
@@ -148,7 +128,7 @@ const HourLinesColumn = memo(function HourLinesColumn() {
         <div
           key={hour}
           className="border-b border-border"
-          style={{ height: HOUR_HEIGHT }}
+          style={{ height: `${HOUR_HEIGHT}rem` }}
         />
       ))}
     </div>
@@ -192,7 +172,8 @@ function AppointmentCard({
   const endDec = SchedUtils.timeToDecimal(endTime);
   const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
   const height = (endDec - startDec) * HOUR_HEIGHT;
-  const style = statusStyles[appt.status] ?? DEFAULT_STATUS_STYLE;
+  const style =
+    appointmentStatusStyles[appt.status] ?? defaultAppointmentStatusStyle;
 
   return (
     <HoverCard>
@@ -205,7 +186,7 @@ function AppointmentCard({
               "absolute cursor-pointer overflow-hidden rounded-md border transition-opacity w-full flex flex-col gap-1 justify-between",
               style.card,
             )}
-            style={{ top, height }}
+            style={{ top: `${top}rem`, height: `${height}rem` }}
             onClick={(e) => {
               e.stopPropagation();
               onClick(appt);
@@ -247,7 +228,7 @@ function AppointmentCard({
           )}
           <Badge className={cn("shrink-0", style.badge)}>{appt.status}</Badge>
         </div>
-        <div className="grid grid-cols-[80px_1fr] gap-y-1 text-xs">
+        <div className="grid grid-cols-[5rem_1fr] gap-y-1 text-xs">
           <span className="text-muted-foreground">Time</span>
           <span>
             {startTime} – {endTime}
@@ -293,7 +274,7 @@ function RoomColumn({
         <div
           key={hour}
           className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer"
-          style={{ height: HOUR_HEIGHT }}
+          style={{ height: `${HOUR_HEIGHT}rem` }}
           onClick={() => onCellClick(roomId, hour)}
         />
       ))}
@@ -325,10 +306,10 @@ function CurrentTimeLine({ dateStr }: { dateStr: string }) {
   return (
     <div
       className="pointer-events-none absolute left-12.5 right-0 z-10"
-      style={{ top: (decimal - DAY_START_HOUR) * HOUR_HEIGHT }}
+      style={{ top: `${(decimal - DAY_START_HOUR) * HOUR_HEIGHT}rem` }}
     >
-      <div className="h-2.5 w-2.5 bg-red-600 absolute -translate-y-1/2 top-px left-0 rounded-2xl" />
-      <div className="h-0.5 bg-red-600/60" />
+      <div className="h-2.5 w-2.5 bg-destructive absolute -translate-y-1/2 top-px left-0 rounded-2xl" />
+      <div className="h-0.5 bg-destructive/60" />
     </div>
   );
 }
@@ -436,7 +417,7 @@ function WeekView({
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const dayLabel = (d: Date) =>
     d.toLocaleDateString("en-US", { weekday: "short" });
-  const weekGridCols = `100px repeat(${rooms.length}, 1fr)`;
+  const weekGridCols = `6.25rem repeat(${rooms.length}, 1fr)`;
 
   return (
     <div>
@@ -759,6 +740,7 @@ function CalendarPageContent() {
         onClose={() => setModalOpen(false)}
         initialData={formData}
         onSaved={reloadAppointments}
+        readOnly={formData?.status === "Completed"}
       />
     </div>
   );

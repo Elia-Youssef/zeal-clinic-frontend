@@ -1,4 +1,3 @@
-"use client";
 
 import { DashboardWrapper } from "@/components/layout/dashboard-wrapper";
 

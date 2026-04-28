@@ -1,4 +1,3 @@
-"use client";
 
 import type { ReactNode } from "react";
 import {
@@ -53,7 +52,7 @@ export function AnalyticsListCard<T>({
             ))}
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-sm text-red-500">{error}</p>
+          <p className="py-4 text-center text-sm text-destructive">{error}</p>
         ) : !data || data.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             {emptyMessage}

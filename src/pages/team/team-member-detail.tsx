@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -16,12 +15,15 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useEmployeesStore } from "@/lib/stores/employees-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { transactionColors } from "@/lib/constants";
 import type { AuditLogEntry, Salary, Transaction } from "@/lib/types";
 import { EmployeeForm } from "@/components/forms/employee-form";
 import { EmployeePaymentForm } from "@/components/forms/employee-payment-form";
 import { SalaryForm } from "@/components/forms/salary-form";
+import { BalanceAdjustmentForm } from "@/components/forms/balance-adjustment-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useConfirm } from "@/hooks/use-confirm";
 
 /* ------------------------------------------------------------------ */
 /*  Page content                                                       */
@@ -32,6 +34,7 @@ function EmployeeDetailContent() {
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const employee = useEmployeesStore((s) => s.current);
   const slots = useEmployeesStore((s) => s.slots);
@@ -42,24 +45,28 @@ function EmployeeDetailContent() {
   const [editOpen, setEditOpen] = useState(false);
   const [salaryFormOpen, setSalaryFormOpen] = useState(false);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
+  const [writeOffFormOpen, setWriteOffFormOpen] = useState(false);
+  const [paymentsKey, setPaymentsKey] = useState(0);
 
-  const reload = () => {
-    fetchDetail(id);
-    setRefreshKey((k) => k + 1);
-  };
+  const reloadDetails = () => fetchDetail(id);
+  const bumpPayments = () => setPaymentsKey((k) => k + 1);
 
   useEffect(() => {
-    reload();
+    fetchDetail(id);
     return () => {
       setCurrent(null);
     };
   }, [id]);
 
   const handleDelete = async () => {
+    if (!employee) return;
     if (
-      !employee ||
-      !confirm(`Delete employee ${employee.firstName} ${employee.lastName}?`)
+      !(await confirm({
+        title: "Delete employee?",
+        description: `Delete employee ${employee.firstName} ${employee.lastName}?`,
+        confirmText: "Delete",
+      }))
     ) {
       return;
     }
@@ -72,12 +79,39 @@ function EmployeeDetailContent() {
     }
   };
 
+  const handleDeletePayment = async (paymentId: string) => {
+    if (
+      !(await confirm({
+        title: "Delete payment?",
+        description: "Delete this payment?",
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
+    try {
+      await api.del(`/employee-payments/${paymentId}`);
+      addAlert("success", "Payment deleted.");
+      bumpPayments();
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    }
+  };
+
   const handleDeleteSalary = async (salaryId: string) => {
-    if (!confirm("Delete this salary record?")) return;
+    if (
+      !(await confirm({
+        title: "Delete salary record?",
+        description: "Delete this salary record?",
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/employee-salaries/${salaryId}`);
       addAlert("success", "Salary deleted.");
-      reload();
+      reloadDetails();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -89,7 +123,7 @@ function EmployeeDetailContent() {
   ) => {
     try {
       await api.put(`/employee-salaries/${salaryId}`, { isActive });
-      reload();
+      reloadDetails();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -103,6 +137,10 @@ function EmployeeDetailContent() {
       </p>
     );
   }
+
+  const employeeBalanceIds = new Set(
+    (employee.balance ?? []).map((b) => b.id),
+  );
 
   const salaryColumns: Column<Salary>[] = [
     {
@@ -193,7 +231,7 @@ function EmployeeDetailContent() {
       <EmployeeWeekSchedule
         employeeId={id}
         slots={slots}
-        onChange={reload}
+        onChange={reloadDetails}
         canEdit={can("team:write")}
       />
 
@@ -264,30 +302,64 @@ function EmployeeDetailContent() {
               header: "Amount",
               key: "amount",
               render: (p) => {
-                const isIn = p.transactionType === "refund";
+                const isInflow = employeeBalanceIds.has(p.fromBalanceId);
                 return (
                   <span
-                    className={`text-right font-medium ${isIn ? "text-green-600" : "text-red-500"}`}
+                    className={`text-right font-medium ${isInflow ? transactionColors.inflow : transactionColors.outflow}`}
                   >
-                    {isIn ? "+" : "-"}${p.amount.toFixed(2)}
+                    {isInflow ? "+" : "-"}${p.amount.toFixed(2)}
                   </span>
                 );
               },
             },
           ]}
+          rowClassName={(p) =>
+            p.transactionType === "adjustment" ||
+            p.transactionType === "write-off"
+              ? "bg-amber-50 dark:bg-amber-950/30"
+              : undefined
+          }
           rowKey={(p) => p.id}
+          actions={
+            can("transactions:delete")
+              ? [
+                  {
+                    label: "Delete",
+                    icon: <Trash2 className="size-3.5" />,
+                    destructive: true,
+                    onClick: (p) => handleDeletePayment(p.id),
+                  },
+                ]
+              : []
+          }
           limit={10}
           hideSearch
-          refreshKey={refreshKey}
+          refreshKey={paymentsKey}
           headerActions={
             can("transactions:write") && (
-              <Button
-                size="sm"
-                className="gap-1"
-                onClick={() => setPaymentFormOpen(true)}
-              >
-                <Plus className="size-3.5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setAdjustmentFormOpen(true)}
+                >
+                  Adjustment
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWriteOffFormOpen(true)}
+                >
+                  Write-Off
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => setPaymentFormOpen(true)}
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </div>
             )
           }
         />
@@ -339,26 +411,43 @@ function EmployeeDetailContent() {
         limit={10}
         searchPlaceholder="Search actions…"
         emptyMessage="No recent actions."
-        refreshKey={refreshKey}
       />
 
       <EmployeeForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={reload}
+        onSaved={reloadDetails}
         initial={employee}
       />
       <SalaryForm
         open={salaryFormOpen}
         onClose={() => setSalaryFormOpen(false)}
-        onSaved={reload}
+        onSaved={reloadDetails}
         employeeId={id}
       />
       <EmployeePaymentForm
         open={paymentFormOpen}
         onClose={() => setPaymentFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpPayments}
         employeeId={id}
+      />
+      <BalanceAdjustmentForm
+        open={adjustmentFormOpen}
+        onClose={() => setAdjustmentFormOpen(false)}
+        onSaved={bumpPayments}
+        entityType="employee"
+        entityId={id}
+        mode="adjustment"
+        defaultDirection="outgoing"
+      />
+      <BalanceAdjustmentForm
+        open={writeOffFormOpen}
+        onClose={() => setWriteOffFormOpen(false)}
+        onSaved={bumpPayments}
+        entityType="employee"
+        entityId={id}
+        mode="write-off"
+        defaultDirection="outgoing"
       />
     </div>
   );

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -19,12 +18,14 @@ import { DiscountItemForm } from "@/components/forms/discount-item-form";
 import { DiscountVoucherForm } from "@/components/forms/discount-voucher-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useConfirm } from "@/hooks/use-confirm";
 
 function DiscountDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const [discount, setDiscount] = useState<Discount | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,16 @@ function DiscountDetailContent() {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!discount || !confirm(`Delete discount "${discount.name}"?`)) return;
+    if (!discount) return;
+    if (
+      !(await confirm({
+        title: "Delete discount?",
+        description: `Delete discount "${discount.name}"?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/discounts/${id}`);
       addAlert("success", "Discount deleted.");

@@ -1,4 +1,3 @@
-"use client";
 
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";

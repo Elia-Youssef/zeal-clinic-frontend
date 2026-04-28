@@ -1,13 +1,24 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { api, ApiError } from "@/lib/api";
 import { useLoading } from "@/hooks/use-loading";
-import { Activity, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -68,79 +79,82 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl">
-        {/* Header */}
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-purple-600 shadow-lg">
-            <Activity className="h-8 w-8 text-white" />
-          </div>
-          <div className="text-center">
-            <h1 className="bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-2xl font-bold text-transparent">
-              Welcome
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Clinic Management System
-            </p>
-          </div>
-        </div>
-
-        <hr className="mb-6 border-border" />
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Username
-            </label>
-            <Input
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              className="py-5 px-3"
-              onChange={(e) => setUsername(e.target.value)}
-              required
+    <div className="flex h-full w-full items-center justify-center bg-muted">
+      <Card className="w-90 max-w-full gap-4 py-4">
+        <CardHeader className="flex flex-col items-center text-center">
+          <div className="aspect-square size-14 rounded-xl overflow-hidden mb-2">
+            <div
+              className="size-full bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(/zeal.png)` }}
             />
           </div>
+          <CardTitle className="text-xl">Zeal Clinic</CardTitle>
+          <CardDescription>Sign in to your account to continue</CardDescription>
+        </CardHeader>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Password
-            </label>
-            <div className="relative">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="flex flex-col gap-3">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="username"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Username
+              </label>
               <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="py-5 pl-3 pr-10"
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                className="h-9"
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
             </div>
-          </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Password
+              </label>
+              <InputGroup className="h-9">
+                <InputGroupInput
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-xs"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff /> : <Eye />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-linear-to-r from-purple-600 to-blue-500 text-white shadow-lg transition-opacity hover:opacity-90 py-5 px-3 mt-3"
-            disabled={loading}
-          >
-            {loading ? "Logging in…" : "Login"}
-          </Button>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </CardContent>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

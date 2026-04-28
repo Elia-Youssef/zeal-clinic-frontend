@@ -1,9 +1,13 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/shared/loading";
 import { api } from "@/lib/api";
@@ -65,61 +69,42 @@ export default function ConnectionPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <div className="flex items-center justify-around">
+      <Card className="w-100">
         <CardHeader>
           <CardTitle>Connect a client</CardTitle>
           <CardDescription>
-            Other devices on the same network can connect to this server using the
-            address below. Scan the QR code from a mobile device or copy the URL
-            manually.
+            Other devices on the same network can connect to this server using
+            the address below. Scan the QR code from a mobile device or copy the
+            URL manually.
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-6 mt-2 items-center">
             <div className="flex shrink-0 items-center justify-center rounded-lg bg-white p-4 ring-1 ring-foreground/10">
-              <QRCodeSVG value={data.url} size={200} level="M" />
+              <QRCodeSVG
+                value={data.url}
+                size={200}
+                level="M"
+                fgColor="#090b0c"
+              />
             </div>
 
-            <div className="flex flex-1 flex-col gap-3">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Server URL
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-md border border-border bg-muted px-3 py-2 font-mono text-sm break-all">
-                    {data.url}
-                  </code>
-                  <Button variant="outline" size="sm" onClick={handleCopy}>
-                    {copied ? (
-                      <>
-                        <Check className="size-3.5" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Host
-                  </p>
-                  <p className="font-mono text-sm">{data.host}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Port
-                  </p>
-                  <p className="font-mono text-sm">{data.port}</p>
-                </div>
-              </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                Server URL
+              </p>
+              <code className="flex flex-row items-center justify-between flex-1 rounded-md border border-border bg-muted px-3 gap-4">
+                <span className="font-mono text-sm break-all">{data.url}</span>
+                <Button variant="ghost" onClick={handleCopy} className="p-0">
+                  {copied ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </Button>
+              </code>
             </div>
           </div>
         </CardContent>

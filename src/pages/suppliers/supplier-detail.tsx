@@ -1,8 +1,7 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,18 +13,22 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useSuppliersStore } from "@/lib/stores/suppliers-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { transactionColors } from "@/lib/constants";
 import type { Invoice, BalanceTransaction } from "@/lib/types";
 import { SupplierForm } from "@/components/forms/supplier-form";
 import { SupplierInvoiceForm } from "@/components/forms/supplier-invoice-form";
 import { SupplierPaymentForm } from "@/components/forms/supplier-payment-form";
+import { BalanceAdjustmentForm } from "@/components/forms/balance-adjustment-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useConfirm } from "@/hooks/use-confirm";
 
 function SupplierDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const supplier = useSuppliersStore((s) => s.current);
   const loading = useSuppliersStore((s) => s.detailLoading);
@@ -35,12 +38,14 @@ function SupplierDetailContent() {
   const [editOpen, setEditOpen] = useState(false);
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
+  const [writeOffFormOpen, setWriteOffFormOpen] = useState(false);
+  const [invoicesKey, setInvoicesKey] = useState(0);
+  const [paymentsKey, setPaymentsKey] = useState(0);
 
-  const reload = () => {
-    fetchDetail(id);
-    setRefreshKey((k) => k + 1);
-  };
+  const reloadDetails = () => fetchDetail(id);
+  const bumpInvoices = () => setInvoicesKey((k) => k + 1);
+  const bumpPayments = () => setPaymentsKey((k) => k + 1);
 
   useEffect(() => {
     fetchDetail(id);
@@ -50,11 +55,39 @@ function SupplierDetailContent() {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!supplier || !confirm(`Delete supplier ${supplier.name}?`)) return;
+    if (!supplier) return;
+    if (
+      !(await confirm({
+        title: "Delete supplier?",
+        description: `Delete supplier ${supplier.name}?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/suppliers/${id}`);
       addAlert("success", "Supplier deleted.");
       navigate("/suppliers");
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (
+      !(await confirm({
+        title: "Delete payment?",
+        description: "Delete this payment?",
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
+    try {
+      await api.del(`/supplier-payments/${paymentId}`);
+      addAlert("success", "Payment deleted.");
+      bumpPayments();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -121,7 +154,7 @@ function SupplierDetailContent() {
           rowKey={(i) => i.id}
           limit={5}
           hideSearch
-          refreshKey={refreshKey}
+          refreshKey={invoicesKey}
           onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
           headerActions={
             can("transactions:write") && (
@@ -146,10 +179,10 @@ function SupplierDetailContent() {
                   <span
                     className={
                       balanceAmount === 0
-                        ? "text-gray-600 dark:text-gray-400"
+                        ? transactionColors.neutral
                         : balanceAmount > 0
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-green-600 dark:text-green-400"
+                          ? transactionColors.outflow
+                          : transactionColors.inflow
                     }
                   >
                     {balanceAmount < 0 ? "-" : ""}$
@@ -171,11 +204,19 @@ function SupplierDetailContent() {
               {
                 header: "Method",
                 key: "method",
-                render: (i) => (
-                  <Badge variant="secondary" className="capitalize">
-                    {i.transactionMethod || "—"}
-                  </Badge>
-                ),
+                render: (i) => {
+                  const isAdj =
+                    i.transactionType === "adjustment" ||
+                    i.transactionType === "write-off";
+                  return (
+                    <Badge
+                      variant={isAdj ? "outline" : "secondary"}
+                      className="capitalize"
+                    >
+                      {isAdj ? i.transactionType : i.transactionMethod || "—"}
+                    </Badge>
+                  );
+                },
               },
               {
                 header: "Description",
@@ -189,27 +230,66 @@ function SupplierDetailContent() {
               {
                 header: "Amount",
                 key: "amount",
-                render: (i) => (
-                  <span className="text-right font-medium text-red-500">
-                    -${i.amount.toFixed(2)}
-                  </span>
-                ),
+                render: (i) => {
+                  const isInflow = i.fromBalanceId === supplier.balance?.id;
+                  return (
+                    <span
+                      className={`text-right font-medium ${isInflow ? transactionColors.inflow : transactionColors.outflow}`}
+                    >
+                      {isInflow ? "+" : "-"}${i.amount.toFixed(2)}
+                    </span>
+                  );
+                },
               },
             ]}
+            rowClassName={(i) =>
+              i.transactionType === "adjustment" ||
+              i.transactionType === "write-off"
+                ? "bg-amber-50 dark:bg-amber-950/30"
+                : undefined
+            }
             endpoint={`/suppliers/${id}/payments`}
             rowKey={(i) => i.id}
+            actions={
+              can("transactions:delete")
+                ? [
+                    {
+                      label: "Delete",
+                      icon: <Trash2 className="size-3.5" />,
+                      destructive: true,
+                      onClick: (i) => handleDeletePayment(i.id),
+                    },
+                  ]
+                : []
+            }
             limit={5}
             hideSearch
-            refreshKey={refreshKey}
+            refreshKey={paymentsKey}
             headerActions={
               can("transactions:write") && (
-                <Button
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => setPaymentFormOpen(true)}
-                >
-                  <Plus className="size-3.5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAdjustmentFormOpen(true)}
+                  >
+                    Adjustment
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setWriteOffFormOpen(true)}
+                  >
+                    Write-Off
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setPaymentFormOpen(true)}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </div>
               )
             }
           />
@@ -221,19 +301,37 @@ function SupplierDetailContent() {
       <SupplierForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={reload}
+        onSaved={reloadDetails}
         initial={supplier}
       />
       <SupplierInvoiceForm
         open={invoiceFormOpen}
         onClose={() => setInvoiceFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpInvoices}
       />
       <SupplierPaymentForm
         open={paymentFormOpen}
         onClose={() => setPaymentFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpPayments}
         supplierBalance={supplier.balance}
+      />
+      <BalanceAdjustmentForm
+        open={adjustmentFormOpen}
+        onClose={() => setAdjustmentFormOpen(false)}
+        onSaved={bumpPayments}
+        entityType="supplier"
+        entityId={id}
+        mode="adjustment"
+        defaultDirection="outgoing"
+      />
+      <BalanceAdjustmentForm
+        open={writeOffFormOpen}
+        onClose={() => setWriteOffFormOpen(false)}
+        onSaved={bumpPayments}
+        entityType="supplier"
+        entityId={id}
+        mode="write-off"
+        defaultDirection="outgoing"
       />
     </div>
   );

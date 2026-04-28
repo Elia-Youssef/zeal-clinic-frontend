@@ -1,8 +1,8 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api, toISODate } from "@/lib/api";
@@ -193,15 +193,19 @@ export function EmployeeForm({
 
         {!isEdit && (
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="employeeCreateUser"
                 checked={createUser}
-                onChange={(e) => setCreateUser(e.target.checked)}
-                className="size-4 rounded border-border"
+                onCheckedChange={(value) => setCreateUser(value)}
               />
-              Create User Account
-            </label>
+              <label
+                htmlFor="employeeCreateUser"
+                className="text-sm font-medium"
+              >
+                Create User Account
+              </label>
+            </div>
 
             {createUser && (
               <div className="grid grid-cols-3 gap-3">

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -25,6 +24,7 @@ import type {
 import { ProductAllergyConflictForm } from "@/components/forms/product-allergy-conflict-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useConfirm } from "@/hooks/use-confirm";
 
 /* ------------------------------------------------------------------ */
 /*  Page content                                                       */
@@ -35,13 +35,16 @@ function ProductDetailContent() {
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
   );
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [conflictsKey, setConflictsKey] = useState(0);
+
+  const bumpConflicts = () => setConflictsKey((k) => k + 1);
 
   /* Edit modal */
   const [editOpen, setEditOpen] = useState(false);
@@ -75,11 +78,6 @@ function ProductDetailContent() {
     }
   };
 
-  const reload = () => {
-    load();
-    setRefreshKey((k) => k + 1);
-  };
-
   useEffect(() => {
     load();
   }, [id]);
@@ -98,7 +96,7 @@ function ProductDetailContent() {
       await api.put(`/products/${id}`, payload);
       addAlert("success", "Product updated.");
       setEditOpen(false);
-      reload();
+      load();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     } finally {
@@ -107,7 +105,16 @@ function ProductDetailContent() {
   };
 
   const handleDelete = async () => {
-    if (!product || !confirm(`Delete product "${product.name}"?`)) return;
+    if (!product) return;
+    if (
+      !(await confirm({
+        title: "Delete product?",
+        description: `Delete product "${product.name}"?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/products/${id}`);
       addAlert("success", "Product deleted.");
@@ -121,7 +128,7 @@ function ProductDetailContent() {
     try {
       await api.del(`/product-allergy-conflicts/${conflictId}`);
       addAlert("success", "Conflict removed.");
-      setRefreshKey((k) => k + 1);
+      bumpConflicts();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -202,7 +209,7 @@ function ProductDetailContent() {
           rowKey={(i) => i.id}
           limit={5}
           hideSearch
-          refreshKey={refreshKey}
+          refreshKey={conflictsKey}
           emptyMessage="No allergy conflicts."
           headerActions={
             can("inventory:write") && (
@@ -242,7 +249,6 @@ function ProductDetailContent() {
             rowKey={(i) => i.id}
             limit={5}
             hideSearch
-            refreshKey={refreshKey}
             onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
             emptyMessage="No invoices."
           />
@@ -253,7 +259,7 @@ function ProductDetailContent() {
       <ProductAllergyConflictForm
         open={conflictFormOpen}
         onClose={() => setConflictFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpConflicts}
         productId={id}
       />
 

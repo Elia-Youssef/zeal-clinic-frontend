@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
@@ -95,7 +94,7 @@ export function ClientInvoiceForm({
   defaultPatientLabel?: string;
 }) {
   return (
-    <Modal open={open} onClose={onClose} title="New Client Invoice" wide>
+    <Modal open={open} onClose={onClose} title="New Client Invoice">
       <ClientInvoiceFormBody
         open={open}
         defaultPatientId={defaultPatientId}
@@ -378,7 +377,7 @@ export function ClientInvoiceFormBody({
                     disabled={items.length === 1}
                     aria-label="Remove item"
                   >
-                    <Trash2 className="size-3.5 text-red-500" />
+                    <Trash2 className="size-3.5 text-destructive" />
                   </Button>
                 </div>
 

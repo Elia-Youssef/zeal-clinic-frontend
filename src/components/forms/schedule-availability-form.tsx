@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { ScheduleAvailability } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const dayOptions = [
   { value: "1", label: "Monday" },
@@ -43,6 +43,7 @@ export function ScheduleAvailabilityForm({
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const [dayOfWeek, setDayOfWeek] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -93,7 +94,15 @@ export function ScheduleAvailabilityForm({
 
   const handleDelete = async () => {
     if (!initial) return;
-    if (!confirm("Delete this slot?")) return;
+    if (
+      !(await confirm({
+        title: "Delete slot?",
+        description: "Delete this slot?",
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     setSubmitting(true);
     try {
       await api.del(`/schedule-availability/${initial.id}`);

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,6 +23,7 @@ import { ProcedureSessionForm } from "@/components/forms/procedure-session-form"
 import { ProcedureAllergyConflictForm } from "@/components/forms/procedure-allergy-conflict-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useConfirm } from "@/hooks/use-confirm";
 
 /* ------------------------------------------------------------------ */
 /*  Page content                                                       */
@@ -34,10 +34,12 @@ function ProcedureDetailContent() {
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const [procedure, setProcedure] = useState<Procedure | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [sessionsKey, setSessionsKey] = useState(0);
+  const [conflictsKey, setConflictsKey] = useState(0);
 
   /* Modals */
   const [editOpen, setEditOpen] = useState(false);
@@ -55,17 +57,24 @@ function ProcedureDetailContent() {
     }
   };
 
-  const reload = () => {
-    load();
-    setRefreshKey((k) => k + 1);
-  };
+  const bumpSessions = () => setSessionsKey((k) => k + 1);
+  const bumpConflicts = () => setConflictsKey((k) => k + 1);
 
   useEffect(() => {
     load();
   }, [id]);
 
   const handleDelete = async () => {
-    if (!procedure || !confirm(`Delete procedure "${procedure.name}"?`)) return;
+    if (!procedure) return;
+    if (
+      !(await confirm({
+        title: "Delete procedure?",
+        description: `Delete procedure "${procedure.name}"?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/procedures/${id}`);
       addAlert("success", "Procedure deleted.");
@@ -79,7 +88,7 @@ function ProcedureDetailContent() {
     try {
       await api.del(`/procedures/${id}/sessions/${sessionId}`);
       addAlert("success", "Session removed.");
-      setRefreshKey((k) => k + 1);
+      bumpSessions();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -89,7 +98,7 @@ function ProcedureDetailContent() {
     try {
       await api.del(`/procedure-allergy-conflicts/${conflictId}`);
       addAlert("success", "Conflict removed.");
-      setRefreshKey((k) => k + 1);
+      bumpConflicts();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -216,7 +225,7 @@ function ProcedureDetailContent() {
           rowKey={(i) => i.id}
           limit={5}
           hideSearch
-          refreshKey={refreshKey}
+          refreshKey={sessionsKey}
           emptyMessage="No sessions defined."
           headerActions={
             can("services:write") && (
@@ -262,7 +271,7 @@ function ProcedureDetailContent() {
           rowKey={(i) => i.id}
           limit={5}
           hideSearch
-          refreshKey={refreshKey}
+          refreshKey={conflictsKey}
           emptyMessage="No allergy conflicts."
           headerActions={
             can("services:write") && (
@@ -319,7 +328,6 @@ function ProcedureDetailContent() {
         rowKey={(i) => i.id}
         limit={5}
         hideSearch
-        refreshKey={refreshKey}
         emptyMessage="No patient procedures."
         onRowClick={
           can("patients:read")
@@ -332,7 +340,7 @@ function ProcedureDetailContent() {
       <ProcedureForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={reload}
+        onSaved={load}
         initial={procedure}
       />
 
@@ -340,7 +348,7 @@ function ProcedureDetailContent() {
       <ProcedureSessionForm
         open={sessionFormOpen}
         onClose={() => setSessionFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpSessions}
         procedureId={id}
       />
 
@@ -348,7 +356,7 @@ function ProcedureDetailContent() {
       <ProcedureAllergyConflictForm
         open={conflictFormOpen}
         onClose={() => setConflictFormOpen(false)}
-        onSaved={reload}
+        onSaved={bumpConflicts}
         procedureId={id}
       />
     </div>

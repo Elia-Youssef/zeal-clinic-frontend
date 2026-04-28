@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
@@ -189,10 +188,10 @@ export function SearchableDropdown({
           align="start"
           sideOffset={4}
           className="w-(--anchor-width) max-h-56 gap-0 overflow-hidden p-0"
+          initialFocus={false}
         >
           <div className="flex items-center gap-1 p-1.5">
             <input
-              autoFocus
               type="text"
               className="h-7 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
               placeholder="Search"

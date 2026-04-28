@@ -1,4 +1,3 @@
-"use client";
 
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +47,7 @@ export function AnalyticsStatCard<T>({
         {loading ? (
           <Skeleton className="h-8 w-20" />
         ) : error ? (
-          <div className="text-sm text-red-500">—</div>
+          <div className="text-sm text-destructive">—</div>
         ) : (
           <div className={`text-2xl font-bold ${valueClassName ?? ""}`}>
             {value == null

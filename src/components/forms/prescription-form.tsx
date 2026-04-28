@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
@@ -118,7 +117,6 @@ export function PrescriptionForm({
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Prescription" : "New Prescription"}
-      wide
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
@@ -221,7 +219,7 @@ export function PrescriptionForm({
                   }
                   disabled={medicines.length === 1}
                 >
-                  <span className="text-red-500 text-xs">✕</span>
+                  <span className="text-destructive text-xs">✕</span>
                 </Button>
               </div>
             ))}

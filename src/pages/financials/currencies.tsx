@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -11,10 +10,12 @@ import { getErrorMessage } from "@/lib/utils";
 import type { Currency } from "@/lib/types";
 import { CurrencyForm } from "@/components/forms/currency-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function CurrenciesPage() {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const [refreshKey, setRefreshKey] = useState(0);
   const [curFormOpen, setCurFormOpen] = useState(false);
   const [editingCur, setEditingCur] = useState<Currency | undefined>();
@@ -22,7 +23,15 @@ export default function CurrenciesPage() {
   const handleSaved = () => setRefreshKey((k) => k + 1);
 
   const handleDeleteCur = async (c: Currency) => {
-    if (!confirm(`Delete currency ${c.code}?`)) return;
+    if (
+      !(await confirm({
+        title: "Delete currency?",
+        description: `Delete currency ${c.code}?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/currencies/${c.id}`);
       addAlert("success", "Deleted.");

@@ -87,12 +87,75 @@ export const roomTypeOptions: DropdownOption[] = [
 
 /* ------------------------- Color Maps ---------------------------- */
 
-export const dashboardStatusColors: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  "in-progress": "bg-blue-100 text-blue-800",
-  scheduled: "bg-gray-100 text-gray-800",
-  cancelled: "bg-red-100 text-red-800",
+/**
+ * Single source of truth for appointment-status visuals. Backed by tokens
+ * declared in globals.css so palette tweaks happen in one place.
+ *   - `card`:  faded tint + border, used for the schedule grid block.
+ *   - `badge`: solid pill, used for status badges and the picker button.
+ *   - `tint`:  soft tint pill with colored text, used for table cells.
+ */
+export type AppointmentStatusStyle = {
+  card: string;
+  badge: string;
+  tint: string;
 };
+
+export const appointmentStatusStyles: Record<string, AppointmentStatusStyle> = {
+  Scheduled: {
+    card: "bg-primary/10 border-primary/30",
+    badge: "bg-primary text-primary-foreground hover:bg-primary/90",
+    tint: "border-primary/20 bg-primary/10 text-foreground",
+  },
+  "In-Progress": {
+    card: "bg-status-progress/10 border-status-progress/40",
+    badge:
+      "bg-status-progress text-status-progress-foreground hover:bg-status-progress/90",
+    tint: "border-status-progress/30 bg-status-progress/10 text-status-progress",
+  },
+  Completed: {
+    card: "bg-status-completed/10 border-status-completed/40",
+    badge:
+      "bg-status-completed text-status-completed-foreground hover:bg-status-completed/90",
+    tint: "border-status-completed/30 bg-status-completed/10 text-status-completed",
+  },
+  Cancelled: {
+    card: "bg-status-cancelled/10 border-status-cancelled/40",
+    badge:
+      "bg-status-cancelled text-status-cancelled-foreground hover:bg-status-cancelled/90",
+    tint: "border-status-cancelled/30 bg-status-cancelled/10 text-status-cancelled",
+  },
+};
+
+export const defaultAppointmentStatusStyle: AppointmentStatusStyle = {
+  card: "bg-muted/30 border-border",
+  badge: "bg-muted text-foreground hover:bg-muted/80",
+  tint: "border-border bg-muted/40 text-muted-foreground",
+};
+
+/** Look up the tint style for an appointment status, accepting either
+ *  ProperCase ("Scheduled") or lowercase ("scheduled"/"in-progress"). */
+export function appointmentStatusTint(status: string | undefined | null): string {
+  if (!status) return defaultAppointmentStatusStyle.tint;
+  const normalized = status
+    .toLowerCase()
+    .replace(/(^|-)([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+  return (
+    appointmentStatusStyles[normalized]?.tint ??
+    defaultAppointmentStatusStyle.tint
+  );
+}
+
+/**
+ * Single source of truth for the green/red used to indicate the direction
+ * of money movement (incoming vs outgoing) and positive/negative balances.
+ * Backed by the `--positive` / `--negative` tokens declared in globals.css
+ * so the palette stays consistent across the app.
+ */
+export const transactionColors = {
+  inflow: "text-positive",
+  outflow: "text-negative",
+  neutral: "text-muted-foreground",
+} as const;
 
 /* ----------------------- Lookup Helpers --------------------------- */
 

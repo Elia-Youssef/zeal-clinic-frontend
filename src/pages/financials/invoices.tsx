@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +9,7 @@ import type { Invoice } from "@/lib/types";
 import { ClientInvoiceForm } from "@/components/forms/client-invoice-form";
 import { SupplierInvoiceForm } from "@/components/forms/supplier-invoice-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { transactionColors } from "@/lib/constants";
 
 const entityTabs = ["Patient", "Supplier"];
 
@@ -58,7 +58,7 @@ export default function InvoicesPage() {
       className: "text-right",
       render: (i) => (
         <span
-          className={`font-medium ${entityTab == "Patient" ? "text-green-900 dark:text-green-300" : "text-red-900 dark:text-red-300"}`}
+          className={`font-medium ${entityTab == "Patient" ? transactionColors.inflow : transactionColors.outflow}`}
         >
           ${i.amount.toFixed(2)}
         </span>

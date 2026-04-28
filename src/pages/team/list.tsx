@@ -2,7 +2,6 @@
  * Team page: Employee management with schedule availability.
  * Lists employees from GET /api/employees with CRUD operations.
  */
-"use client";
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

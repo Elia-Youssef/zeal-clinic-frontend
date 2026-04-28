@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, type ComponentType } from "react";
 import {

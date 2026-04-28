@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -12,10 +11,12 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import type { ProductCategory } from "@/lib/types";
 import { CategoryForm } from "@/components/forms/category-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function CategoriesPage() {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
   const fetchAll = useProductsStore((s) => s.fetch);
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -32,7 +33,15 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteCat = async (c: ProductCategory) => {
-    if (!confirm(`Delete category "${c.name}"?`)) return;
+    if (
+      !(await confirm({
+        title: "Delete category?",
+        description: `Delete category "${c.name}"?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/product-categories/${c.id}`);
       addAlert("success", "Category deleted.");

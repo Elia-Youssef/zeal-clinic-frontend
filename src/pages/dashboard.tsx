@@ -1,8 +1,6 @@
-"use client";
 
 import {
   Users,
-  CalendarDays,
   AlertTriangle,
   DollarSign,
   Activity,
@@ -16,12 +14,11 @@ import type { Column } from "@/components/data/data-table";
 import { AnalyticsStatCard } from "@/components/analytics/analytics-stat-card";
 import { AnalyticsListCard } from "@/components/analytics/analytics-list-card";
 import { AnalyticsChartCard } from "@/components/analytics/analytics-chart-card";
-import { dashboardStatusColors } from "@/lib/constants";
+import { appointmentStatusTint, transactionColors } from "@/lib/constants";
 import type { Appointment, BalanceTransaction } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 
 type TotalPayload = { total: number };
-type AppointmentCounts = { today: number; thisWeek: number; thisMonth: number };
 type CancellationRate = { total: number; cancelled: number; rate: number };
 type TopProcedure = { procedureId: string; name: string; count: number };
 
@@ -63,18 +60,11 @@ const appointmentColumns: Column<Appointment>[] = [
     key: "status",
     header: "Status",
     className: "w-32 text-right",
-    render: (a) => {
-      const statusKey = a.status?.toLowerCase() ?? "";
-      return (
-        <Badge
-          className={
-            dashboardStatusColors[statusKey] ?? "bg-gray-100 text-gray-800"
-          }
-        >
-          {a.status}
-        </Badge>
-      );
-    },
+    render: (a) => (
+      <Badge variant="outline" className={appointmentStatusTint(a.status)}>
+        {a.status}
+      </Badge>
+    ),
   },
 ];
 
@@ -102,7 +92,7 @@ const transactionColumns: Column<BalanceTransaction>[] = [
       const income = t.transactionType === "payment";
       return (
         <span
-          className={`font-bold ${income ? "text-green-600" : "text-red-500"}`}
+          className={`font-bold ${income ? transactionColors.inflow : transactionColors.outflow}`}
         >
           {income ? "+" : "-"}
           {currency(Math.abs(t.amount))}
@@ -141,14 +131,6 @@ function DashboardContent() {
             extract={(d) => d.total}
           />
         )}
-        {can("appointments:read") && (
-          <AnalyticsStatCard<AppointmentCounts>
-            title="Today's Appointments"
-            endpoint="/analytics/appointments/counts"
-            icon={CalendarDays}
-            extract={(d) => d.today}
-          />
-        )}
         {can("transactions:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Monthly Revenue"
@@ -156,6 +138,17 @@ function DashboardContent() {
             icon={DollarSign}
             extract={(d) => d.total}
             format={currency}
+            valueClassName={transactionColors.inflow}
+          />
+        )}
+        {can("transactions:read") && (
+          <AnalyticsStatCard<TotalPayload>
+            title="Monthly Expenses"
+            endpoint="/analytics/expenses/this-month"
+            icon={DollarSign}
+            extract={(d) => d.total}
+            format={currency}
+            valueClassName={transactionColors.outflow}
           />
         )}
         {can("inventory:read") && (
@@ -164,7 +157,7 @@ function DashboardContent() {
             endpoint="/analytics/inventory/low-stock"
             icon={AlertTriangle}
             extract={(d) => d.total}
-            valueClassName="text-red-500"
+            valueClassName={transactionColors.outflow}
           />
         )}
       </div>
@@ -203,7 +196,7 @@ function DashboardContent() {
             icon={TrendingDown}
             extract={(d) => d.rate}
             format={percent}
-            valueClassName="text-red-500"
+            valueClassName={transactionColors.outflow}
           />
         )}
       </div>

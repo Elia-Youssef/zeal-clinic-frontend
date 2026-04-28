@@ -1,8 +1,6 @@
-"use client";
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +14,16 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 import type { Invoice, InvoiceItem } from "@/lib/types";
 
 export default function InvoiceDetailPage() {
   usePageTitle("Invoice");
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,28 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     load();
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!invoice) return;
+    if (
+      !(await confirm({
+        title: "Delete invoice?",
+        description: `Delete invoice #${invoice.invoiceNumber}?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
+    const prefix =
+      invoice.fromEntityId === "self" ? "client-invoices" : "supplier-invoices";
+    try {
+      await api.del(`/${prefix}/${id}`);
+      addAlert("success", "Invoice deleted.");
+      navigate(-1);
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +116,7 @@ export default function InvoiceDetailPage() {
         backHref="/financials"
         title={`Invoice #${invoice.invoiceNumber}`}
         onEdit={can("transactions:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("transactions:delete") ? handleDelete : undefined}
       />
 
       <Card>

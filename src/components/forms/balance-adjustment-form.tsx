@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,53 +10,96 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { transactionTypeOptions } from "@/lib/constants";
 
+export type AdjustmentEntityType = "patient" | "supplier" | "employee" | "expense";
+
+const ENDPOINT_MAP: Record<
+  AdjustmentEntityType,
+  { adjustment: string; writeOff: string; idField: string }
+> = {
+  patient: {
+    adjustment: "/client-adjustments",
+    writeOff: "/client-write-offs",
+    idField: "patientId",
+  },
+  supplier: {
+    adjustment: "/supplier-adjustments",
+    writeOff: "/supplier-write-offs",
+    idField: "supplierId",
+  },
+  employee: {
+    adjustment: "/employee-adjustments",
+    writeOff: "/employee-write-offs",
+    idField: "employeeId",
+  },
+  expense: {
+    adjustment: "/expense-adjustments",
+    writeOff: "/expense-write-offs",
+    idField: "expenseId",
+  },
+};
+
+const directionOptions = [
+  { value: "incoming", label: "Incoming" },
+  { value: "outgoing", label: "Outgoing" },
+];
+
 export function BalanceAdjustmentForm({
   open,
   onClose,
   onSaved,
+  entityType,
+  entityId,
   mode = "adjustment",
+  defaultDirection = "outgoing",
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
+  entityType: AdjustmentEntityType;
+  entityId: string;
   mode?: "adjustment" | "write-off";
+  defaultDirection?: "incoming" | "outgoing";
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const isWriteOff = mode === "write-off";
 
-  const [fromBalanceId, setFromBalanceId] = useState("");
-  const [toBalanceId, setToBalanceId] = useState("");
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
+  const [direction, setDirection] = useState<"incoming" | "outgoing">(defaultDirection);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setFromBalanceId("");
-    setToBalanceId("");
     setAmount("");
     setCurrencyId("");
     setTransactionMethod("cash");
+    setDirection(defaultDirection);
     setDescription("");
-  }, [open]);
+  }, [open, defaultDirection]);
 
-  const isWriteOff = mode === "write-off";
-  const canSubmit = fromBalanceId && toBalanceId && Number(amount) > 0 && description;
+  const canSubmit =
+    !!entityId &&
+    !!currencyId &&
+    Number(amount) > 0 &&
+    !!description.trim() &&
+    !!direction;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const endpoint = isWriteOff ? "/balance-write-offs" : "/balance-adjustments";
+      const config = ENDPOINT_MAP[entityType];
+      const endpoint = isWriteOff ? config.writeOff : config.adjustment;
       const payload: Record<string, unknown> = {
-        fromBalanceId,
-        toBalanceId,
+        [config.idField]: entityId,
         amount: Number(amount),
-        description,
+        currencyId,
+        direction,
+        description: description.trim(),
       };
-      if (currencyId) payload.currencyId = currencyId;
-      if (!isWriteOff && transactionMethod) payload.transactionMethod = transactionMethod;
+      if (!isWriteOff) payload.transactionMethod = transactionMethod;
 
       await api.post(endpoint, payload);
       addAlert("success", isWriteOff ? "Write-off created." : "Adjustment created.");
@@ -73,51 +115,38 @@ export function BalanceAdjustmentForm({
   return (
     <Modal open={open} onClose={onClose} title={isWriteOff ? "New Write-Off" : "New Balance Adjustment"}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">From Balance *</label>
-            <SearchableDropdown
-              value={fromBalanceId}
-              onChange={setFromBalanceId}
-              apiEndpoint="/balances"
-              mapItem={(b: { id: string; entityName: string; entityType: string }) => ({
-                value: b.id,
-                label: `${b.entityName} (${b.entityType})`,
-              })}
-              placeholder="Select from…"
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">To Balance *</label>
-            <SearchableDropdown
-              value={toBalanceId}
-              onChange={setToBalanceId}
-              apiEndpoint="/balances"
-              mapItem={(b: { id: string; entityName: string; entityType: string }) => ({
-                value: b.id,
-                label: `${b.entityName} (${b.entityType})`,
-              })}
-              placeholder="Select to…"
-              required
-            />
-          </div>
-        </div>
-
-        <div className={`grid ${isWriteOff ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
+        <div className={`grid ${isWriteOff ? "grid-cols-3" : "grid-cols-4"} gap-3`}>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
-            <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Currency</label>
+            <label className="text-sm font-medium">Currency *</label>
             <SearchableDropdown
               value={currencyId}
               onChange={setCurrencyId}
               apiEndpoint="/currencies/dropdown"
               mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
               placeholder="Select currency…"
+              required
               defaultFirst
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Direction *</label>
+            <SearchableDropdown
+              value={direction}
+              onChange={(v) => setDirection(v as "incoming" | "outgoing")}
+              options={directionOptions}
+              placeholder="Select direction…"
+              required
             />
           </div>
           {!isWriteOff && (
@@ -135,7 +164,13 @@ export function BalanceAdjustmentForm({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Description *</label>
-          <textarea className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} required />
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

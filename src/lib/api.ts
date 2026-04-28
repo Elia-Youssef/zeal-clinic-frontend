@@ -16,9 +16,15 @@
 /*  Configuration                                                      */
 /* ------------------------------------------------------------------ */
 
-/** Base URL for all API requests. Change this when the backend moves. */
-export const BASE_URL =
-  import.meta.env.VITE_API_URL ?? "http://localhost:8080/api";
+/**
+ * Base URL for all API requests.
+ * The frontend is served by the backend, so derive the API origin from
+ * the page's own host. Falls back to localhost during SSR / non-browser builds.
+ */
+export const BASE_URL = "http://localhost:8080/api";
+// typeof window !== "undefined"
+//   ? `${window.location.protocol}//${window.location.host}/api`
+//   : "http://localhost:8080/api";
 
 /* ------------------------------------------------------------------ */
 /*  Error type                                                         */
@@ -108,12 +114,16 @@ async function request<T>(
   /* Parse the standard backend envelope */
   const json = await res.json();
 
-  if (!res.ok || json.Success === false) {
-    throw new ApiError(json.Error ?? "Something went wrong", res.status);
+  const success = json.Success ?? json.success;
+  const error = json.Error ?? json.error;
+  const data = json.Data ?? json.data;
+
+  if (!res.ok || success === false) {
+    throw new ApiError(error ?? "Something went wrong", res.status);
   }
 
   /* Return just the payload; callers never see the envelope */
-  return json.Data as T;
+  return data as T;
 }
 
 /* ------------------------------------------------------------------ */

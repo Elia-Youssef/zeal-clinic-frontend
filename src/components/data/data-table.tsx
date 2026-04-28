@@ -81,12 +81,14 @@ export function DataTable<T>({
   rowKey,
   onRowClick,
   actions,
+  rowClassName,
 }: {
   columns: Column<T>[]
   data: T[]
   rowKey: (row: T) => string
   onRowClick?: (row: T) => void
   actions?: RowAction<T>[]
+  rowClassName?: (row: T) => string | undefined
 }) {
   const hasActions = !!actions && actions.length > 0
   return (
@@ -102,11 +104,16 @@ export function DataTable<T>({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data.map((row) => (
+        {data.map((row) => {
+          const extraClass = rowClassName?.(row)
+          const cls = [onRowClick ? "cursor-pointer" : "", extraClass ?? ""]
+            .filter(Boolean)
+            .join(" ")
+          return (
           <TableRow
             key={rowKey(row)}
             onClick={onRowClick ? () => onRowClick(row) : undefined}
-            className={onRowClick ? "cursor-pointer" : undefined}
+            className={cls || undefined}
           >
             {columns.map((col) => (
               <TableCell key={col.key} className={col.className}>
@@ -121,7 +128,8 @@ export function DataTable<T>({
               </TableCell>
             )}
           </TableRow>
-        ))}
+          )
+        })}
       </TableBody>
     </Table>
   )

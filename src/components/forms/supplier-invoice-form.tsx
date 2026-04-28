@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -105,7 +104,7 @@ export function SupplierInvoiceForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="New Supplier Invoice" size="lg">
+    <Modal open={open} onClose={onClose} title="New Supplier Invoice">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -175,7 +174,7 @@ export function SupplierInvoiceForm({
                   />
                 </div>
                 <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(idx)} disabled={items.length === 1}>
-                  <Trash2 className="size-3.5 text-red-500" />
+                  <Trash2 className="size-3.5 text-destructive" />
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">

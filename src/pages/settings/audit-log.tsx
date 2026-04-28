@@ -1,4 +1,3 @@
-"use client";
 
 import { type Column } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -45,6 +44,7 @@ export function DataList<T>({
   refreshKey = 0,
   hideSearch = false,
   className = "",
+  rowClassName,
 }: {
   title?: React.ReactNode;
   endpoint: string;
@@ -60,6 +60,7 @@ export function DataList<T>({
   refreshKey?: number;
   hideSearch?: boolean;
   className?: string;
+  rowClassName?: (item: T) => string | undefined;
 }) {
   const [data, setData] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
@@ -149,6 +150,7 @@ export function DataList<T>({
             rowKey={rowKey}
             onRowClick={onRowClick}
             actions={actions}
+            rowClassName={rowClassName}
           />
         )}
       </CardContent>

@@ -1,10 +1,10 @@
-"use client";
 
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { HeaderQuickActions } from "@/components/layout/header-quick-actions";
 import { HeaderNotifications } from "@/components/layout/header-notifications";
+import { HeaderUserAvatar } from "@/components/layout/header-user-avatar";
 
 export function AppHeader({ title }: { title: string }) {
   return (
@@ -22,6 +22,7 @@ export function AppHeader({ title }: { title: string }) {
       <div className="flex items-center justify-end gap-2">
         <HeaderQuickActions />
         <HeaderNotifications />
+        <HeaderUserAvatar />
       </div>
     </header>
   );

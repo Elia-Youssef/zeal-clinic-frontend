@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,12 +13,14 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 function UserDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const user = useUsersStore((s) => s.current);
   const loading = useUsersStore((s) => s.detailLoading);
@@ -38,7 +39,16 @@ function UserDetailContent() {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!user || !confirm(`Delete user ${user.username}?`)) return;
+    if (!user) return;
+    if (
+      !(await confirm({
+        title: "Delete user?",
+        description: `Delete user ${user.username}?`,
+        confirmText: "Delete",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/users/${id}`);
       addAlert("success", "User deleted.");

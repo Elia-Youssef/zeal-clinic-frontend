@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -14,16 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const SIZE_CLASSES = {
-  sm: "max-w-sm",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-  xl: "max-w-4xl",
-  full: "max-w-[95vw]",
-} as const;
-
-export type ModalSize = keyof typeof SIZE_CLASSES;
-
 export type ModalStep = {
   id: string;
   title: string;
@@ -37,9 +25,6 @@ type BaseProps = {
   onClose: () => void;
   title: string;
   description?: string;
-  size?: ModalSize;
-  /** Legacy alias for size="lg". Prefer `size`. */
-  wide?: boolean;
   /** Hide the top-right close button. */
   hideClose?: boolean;
   /** Custom element rendered at the top-right of the modal, replacing the close button. */
@@ -73,14 +58,11 @@ export function Modal(props: ModalProps) {
     onClose,
     title,
     description,
-    size,
-    wide,
     hideClose,
     headerAction,
     children,
   } = props;
 
-  const resolvedSize = size ?? (wide ? "lg" : "md");
   const isWizard = "steps" in props && props.steps !== undefined;
 
   return (
@@ -92,7 +74,7 @@ export function Modal(props: ModalProps) {
     >
       <DialogContent
         showCloseButton={!hideClose && !headerAction}
-        className={cn(SIZE_CLASSES[resolvedSize])}
+        className="sm:max-w-125"
       >
         <DialogHeader className="flex flex-row w-full justify-between items-center">
           <div>
@@ -117,7 +99,7 @@ export function Modal(props: ModalProps) {
 function SingleBody({ children, footer }: SingleProps) {
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+      <div className="flex-1 overflow-y-auto p-1">{children}</div>
       {footer && <DialogFooter>{footer}</DialogFooter>}
     </>
   );
@@ -153,7 +135,7 @@ function WizardBody({
   return (
     <>
       <StepIndicator steps={steps} current={current} onSelect={setStep} />
-      <div className="flex-1 overflow-y-auto px-6 py-4">{step.content}</div>
+      <div className="flex-1 overflow-y-auto p-1">{step.content}</div>
       <DialogFooter className="justify-between">
         <Button
           type="button"

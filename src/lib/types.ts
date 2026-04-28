@@ -272,6 +272,15 @@ export type Supplier = {
   balance?: Balance;
 };
 
+export type Expense = {
+  id: string;
+  name: string;
+  category: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Currency = {
   id: string;
   code: string;
