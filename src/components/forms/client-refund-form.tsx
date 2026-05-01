@@ -8,20 +8,27 @@ import { api } from "@/lib/api";
 import { transactionMethodOptions } from "@/lib/constants";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
-import type { BalanceTransaction } from "@/lib/types";
+import type { BalanceTransaction, ClientRefundRequest } from "@/lib/types";
 
-export function ExpensePaymentForm({
+export function ClientRefundForm({
   open,
-  expenseId,
   onClose,
   onSaved,
+  defaultPatientId,
+  defaultPatientLabel,
+  defaultAmount,
+  defaultCurrencyId,
 }: {
   open: boolean;
-  expenseId: string;
   onClose: () => void;
   onSaved: (transaction: BalanceTransaction) => void;
+  defaultPatientId?: string;
+  defaultPatientLabel?: string;
+  defaultAmount?: number;
+  defaultCurrencyId?: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const [patientId, setPatientId] = useState("");
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
@@ -30,28 +37,32 @@ export function ExpensePaymentForm({
 
   useEffect(() => {
     if (!open) return;
-    setAmount("");
+    setPatientId(defaultPatientId ?? "");
+    setAmount(defaultAmount != null ? String(defaultAmount) : "");
+    setCurrencyId(defaultCurrencyId ?? "");
     setTransactionMethod("cash");
     setDescription("");
-  }, [open]);
+  }, [open, defaultPatientId, defaultAmount, defaultCurrencyId]);
 
-  const canSubmit = Number(amount) > 0 && !!currencyId;
+  const canSubmit = !!patientId && Number(amount) > 0 && !!currencyId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     try {
+      const payload: ClientRefundRequest = {
+        patientId,
+        amount: Number(amount),
+        currencyId,
+        transactionMethod: transactionMethod || undefined,
+        description: description.trim() || undefined,
+      };
       const transaction = await api.post<BalanceTransaction>(
-        "/expense-payments",
-        {
-          amount: Number(amount),
-          currencyId,
-          transactionMethod,
-          description: description.trim(),
-          expenseId,
-        },
+        "/client-refunds",
+        payload,
       );
-      addAlert("success", "Expense payment recorded.");
+      addAlert("success", "Refund recorded.");
       onSaved(transaction);
       onClose();
     } catch (err) {
@@ -62,8 +73,28 @@ export function ExpensePaymentForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="New Expense Payment">
+    <Modal open={open} onClose={onClose} title="New Client Refund">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Patient *</label>
+          <SearchableDropdown
+            value={patientId}
+            onChange={setPatientId}
+            defaultApiOption={
+              defaultPatientId && defaultPatientLabel
+                ? { value: defaultPatientId, label: defaultPatientLabel }
+                : undefined
+            }
+            apiEndpoint="/patients/dropdown"
+            mapItem={(p: { id: string; name: string }) => ({
+              value: p.id,
+              label: p.name,
+            })}
+            placeholder="Select patient..."
+            required
+          />
+        </div>
+
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
@@ -88,7 +119,7 @@ export function ExpensePaymentForm({
               })}
               placeholder="Select currency..."
               required
-              defaultFirst
+              defaultFirst={!defaultCurrencyId}
             />
           </div>
           <div className="space-y-1.5">
@@ -118,7 +149,7 @@ export function ExpensePaymentForm({
             Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording..." : "Record Payment"}
+            {submitting ? "Recording..." : "Record Refund"}
           </Button>
         </div>
       </form>

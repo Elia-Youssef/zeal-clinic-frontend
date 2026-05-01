@@ -57,7 +57,7 @@ export default function CategoriesPage() {
       header: "Name",
       render: (c) => <span className="font-medium">{c.name}</span>,
     },
-    { key: "desc", header: "Description", render: (c) => c.description || "—" },
+    { key: "desc", header: "Description", render: (c) => c.description || "---" },
   ];
 
   const catActions: RowAction<ProductCategory>[] = [

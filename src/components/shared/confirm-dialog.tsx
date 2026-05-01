@@ -21,6 +21,8 @@ export function ConfirmDialog() {
     description,
     confirmText = "Confirm",
     cancelText = "Cancel",
+    extraActionText,
+    extraActionVariant = "default",
     variant = "destructive",
   } = options;
 
@@ -42,6 +44,14 @@ export function ConfirmDialog() {
           <AlertDialogCancel onClick={() => resolveWith(false)}>
             {cancelText}
           </AlertDialogCancel>
+          {extraActionText ? (
+            <AlertDialogAction
+              variant={extraActionVariant}
+              onClick={() => resolveWith("extra")}
+            >
+              {extraActionText}
+            </AlertDialogAction>
+          ) : null}
           <AlertDialogAction
             variant={variant}
             onClick={() => resolveWith(true)}

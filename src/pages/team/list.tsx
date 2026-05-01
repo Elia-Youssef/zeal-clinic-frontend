@@ -35,7 +35,7 @@ function TeamContent() {
       ),
     },
     { key: "contact", header: "Contact", render: (e) => e.contact },
-    { key: "email", header: "Email", render: (e) => e.email || "—" },
+    { key: "email", header: "Email", render: (e) => e.email || "---" },
     {
       key: "role",
       header: "Role",

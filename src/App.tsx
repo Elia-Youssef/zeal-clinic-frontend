@@ -17,9 +17,7 @@ import PatientDetailPage from "@/pages/patients/patient-detail";
 import ScheduleTabsLayout from "@/pages/layouts/schedule-tabs-layout";
 import ScheduleCalendarPage from "@/pages/schedule/calendar";
 import ScheduleRoomsPage from "@/pages/schedule/rooms";
-import ReportsTabsLayout from "@/pages/layouts/reports-tabs-layout";
-import ReportsForecastPage from "@/pages/reports/forecast";
-import ReportsProfitLossPage from "@/pages/reports/profit-loss";
+import ReportsPage from "@/pages/reports";
 import InventoryTabsLayout from "@/pages/layouts/inventory-tabs-layout";
 import InventoryProductsPage from "@/pages/inventory/products";
 import InventoryCategoriesPage from "@/pages/inventory/categories";
@@ -152,31 +150,11 @@ function App() {
             <Route
               path="reports"
               element={
-                <ScopeRedirect
-                  targets={[
-                    { to: "/reports/forecast", scopes: ["reports:read"] },
-                  ]}
-                />
+                <RequireScopes scopes={["reports:read"]}>
+                  <ReportsPage />
+                </RequireScopes>
               }
             />
-            <Route element={<LayoutRoute layout={ReportsTabsLayout} />}>
-              <Route
-                path="reports/forecast"
-                element={
-                  <RequireScopes scopes={["reports:read"]}>
-                    <ReportsForecastPage />
-                  </RequireScopes>
-                }
-              />
-              <Route
-                path="reports/profit-loss"
-                element={
-                  <RequireScopes scopes={["reports:read"]}>
-                    <ReportsProfitLossPage />
-                  </RequireScopes>
-                }
-              />
-            </Route>
 
             <Route
               path="inventory"
@@ -263,14 +241,14 @@ function App() {
                   </RequireScopes>
                 }
               />
-              <Route
+              {/* <Route
                 path="financials/balances"
                 element={
                   <RequireScopes scopes={["transactions:read"]}>
                     <FinancialsBalancesPage />
                   </RequireScopes>
                 }
-              />
+              /> */}
               <Route
                 path="financials/discounts"
                 element={

@@ -24,22 +24,22 @@ function SuppliersContent() {
     {
       key: "contact",
       header: "Contact",
-      render: (s) => s.contact || "—",
+      render: (s) => s.contact || "---",
     },
     {
       key: "email",
       header: "Email",
-      render: (s) => s.email || "—",
+      render: (s) => s.email || "---",
     },
     {
       key: "address",
       header: "Address",
-      render: (s) => s.address || "—",
+      render: (s) => s.address || "---",
     },
     {
       key: "date",
       header: "Created",
-      render: (s) => s.createdAt?.slice(0, 10) ?? "—",
+      render: (s) => s.createdAt?.slice(0, 10) ?? "---",
     },
   ];
 

@@ -50,7 +50,7 @@ export default function DiscountsPage() {
       render: (d) => {
         const s = d.startDate?.slice(0, 10);
         const e = d.endDate?.slice(0, 10);
-        if (!s && !e) return "—";
+        if (!s && !e) return "---";
         return `${s ?? "…"} → ${e ?? "…"}`;
       },
     },

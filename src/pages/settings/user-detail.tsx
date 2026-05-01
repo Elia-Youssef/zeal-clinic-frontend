@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,7 +61,10 @@ function UserDetailContent() {
     if (!user) return;
     try {
       await api.put(`/users/${id}`, { isActive: !user.isActive });
-      addAlert("success", user.isActive ? "User deactivated." : "User activated.");
+      addAlert(
+        "success",
+        user.isActive ? "User deactivated." : "User activated.",
+      );
       reload();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
@@ -81,23 +83,15 @@ function UserDetailContent() {
       <PageHeader
         backHref="/settings/users"
         title={user.displayName}
-        badges={
-          <>
-            <Badge variant="outline">{user.role}</Badge>
-            <Badge variant={user.isActive ? "default" : "secondary"}>
-              {user.isActive ? "Active" : "Inactive"}
-            </Badge>
-          </>
-        }
         onEdit={can("team:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("team:delete") ? handleDelete : undefined}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Username">{user.username}</DetailField>
           <DetailField label="Display Name">{user.displayName}</DetailField>
           <DetailField label="Role">{user.role}</DetailField>

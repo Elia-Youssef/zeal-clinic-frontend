@@ -155,7 +155,7 @@ export function ClientInvoiceFormBody({
     setCurrencyId("");
     setNotes("");
     setItems([blankItem(defaultItemType)]);
-  }, [open, defaultItemType]);
+  }, [open, defaultItemType, defaultPatientId]);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>

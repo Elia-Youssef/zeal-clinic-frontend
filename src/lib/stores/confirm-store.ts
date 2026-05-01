@@ -5,15 +5,19 @@ export type ConfirmOptions = {
   description?: string;
   confirmText?: string;
   cancelText?: string;
+  extraActionText?: string;
+  extraActionVariant?: "default" | "destructive";
   variant?: "default" | "destructive";
 };
+
+export type ConfirmResult = boolean | "extra";
 
 type ConfirmState = {
   open: boolean;
   options: ConfirmOptions;
-  resolve: ((value: boolean) => void) | null;
-  request: (options: ConfirmOptions) => Promise<boolean>;
-  resolveWith: (value: boolean) => void;
+  resolve: ((value: ConfirmResult) => void) | null;
+  request: (options: ConfirmOptions) => Promise<ConfirmResult>;
+  resolveWith: (value: ConfirmResult) => void;
 };
 
 export const useConfirmStore = create<ConfirmState>((set, get) => ({
@@ -21,7 +25,7 @@ export const useConfirmStore = create<ConfirmState>((set, get) => ({
   options: {},
   resolve: null,
   request: (options) =>
-    new Promise<boolean>((resolve) => {
+    new Promise<ConfirmResult>((resolve) => {
       const prev = get().resolve;
       if (prev) prev(false);
       set({ open: true, options, resolve });

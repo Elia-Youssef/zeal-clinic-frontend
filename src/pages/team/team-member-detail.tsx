@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
@@ -9,7 +8,12 @@ import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { DataList } from "@/components/data/data-list";
-import { DataTable, type Column, type RowAction } from "@/components/data/data-table";
+import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
+import {
+  DataTable,
+  type Column,
+  type RowAction,
+} from "@/components/data/data-table";
 import { EmployeeWeekSchedule } from "@/components/shared/employee-week-schedule";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -37,9 +41,11 @@ function EmployeeDetailContent() {
   const confirm = useConfirm();
 
   const employee = useEmployeesStore((s) => s.current);
+  const balance = useEmployeesStore((s) => s.currentBalance);
   const slots = useEmployeesStore((s) => s.slots);
   const loading = useEmployeesStore((s) => s.detailLoading);
   const fetchDetail = useEmployeesStore((s) => s.fetchDetail);
+  const fetchBalance = useEmployeesStore((s) => s.fetchBalance);
   const setCurrent = useEmployeesStore((s) => s.setCurrent);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -50,7 +56,10 @@ function EmployeeDetailContent() {
   const [paymentsKey, setPaymentsKey] = useState(0);
 
   const reloadDetails = () => fetchDetail(id);
-  const bumpPayments = () => setPaymentsKey((k) => k + 1);
+  const bumpPayments = () => {
+    setPaymentsKey((k) => k + 1);
+    fetchBalance(id);
+  };
 
   useEffect(() => {
     fetchDetail(id);
@@ -138,10 +147,6 @@ function EmployeeDetailContent() {
     );
   }
 
-  const employeeBalanceIds = new Set(
-    (employee.balance ?? []).map((b) => b.id),
-  );
-
   const salaryColumns: Column<Salary>[] = [
     {
       key: "amount",
@@ -162,13 +167,13 @@ function EmployeeDetailContent() {
     {
       key: "effectiveDate",
       header: "Effective",
-      render: (s) => s.effectiveDate?.slice(0, 10) ?? "—",
+      render: (s) => s.effectiveDate?.slice(0, 10) ?? "---",
     },
     {
       key: "notes",
       header: "Notes",
       render: (s) => (
-        <span className="text-muted-foreground">{s.notes || "—"}</span>
+        <span className="text-muted-foreground">{s.notes || "---"}</span>
       ),
     },
   ];
@@ -197,29 +202,15 @@ function EmployeeDetailContent() {
       <PageHeader
         backHref="/team"
         title={`${employee.firstName} ${employee.lastName}`}
-        badges={
-          <>
-            <Badge variant="outline">{employee.role}</Badge>
-            <Badge
-              variant={
-                employee.employmentType === "Full-time"
-                  ? "default"
-                  : "secondary"
-              }
-            >
-              {employee.employmentType}
-            </Badge>
-          </>
-        }
         onEdit={can("team:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("team:delete") ? handleDelete : undefined}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Contact">{employee.contact}</DetailField>
           <DetailField label="Email">{employee.email || "---"}</DetailField>
           <DetailField label="Date of Birth">
@@ -237,7 +228,9 @@ function EmployeeDetailContent() {
 
       {/* Salaries + Payments */}
       <div className="flex flex-row gap-4">
-        <Card className={`${can("transactions:read") ? "flex-1" : ""} flex flex-col gap-4`}>
+        <Card
+          className={`${can("transactions:read") ? "flex-1" : ""} flex flex-col gap-4`}
+        >
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Salaries</CardTitle>
             {can("team:write") && (
@@ -267,102 +260,100 @@ function EmployeeDetailContent() {
         </Card>
 
         {can("transactions:read") && (
-        <DataList<Transaction>
-          className="flex-1"
-          title="Payments"
-          endpoint={`/employees/${id}/payments`}
-          columns={[
-            {
-              header: "Date",
-              key: "date",
-              render: (p) => p.createdAt?.slice(0, 10) ?? "—",
-            },
-            {
-              header: "Type",
-              key: "type",
-              render: (p) =>
-                p.transactionType ? (
-                  <Badge variant="outline" className="capitalize">
-                    {p.transactionType}
-                  </Badge>
-                ) : (
-                  "—"
-                ),
-            },
-            {
-              header: "Description",
-              key: "description",
-              render: (p) => (
-                <span className="truncate text-muted-foreground">
-                  {p.description || "—"}
-                </span>
-              ),
-            },
-            {
-              header: "Amount",
-              key: "amount",
-              render: (p) => {
-                const isInflow = employeeBalanceIds.has(p.fromBalanceId);
-                return (
-                  <span
-                    className={`text-right font-medium ${isInflow ? transactionColors.inflow : transactionColors.outflow}`}
-                  >
-                    {isInflow ? "+" : "-"}${p.amount.toFixed(2)}
-                  </span>
-                );
+          <DataList<Transaction>
+            className="flex-1"
+            title="Payments"
+            endpoint={`/employees/${id}/payments`}
+            columns={[
+              {
+                header: "Date",
+                key: "date",
+                render: (p) => p.createdAt?.slice(0, 10) ?? "---",
               },
-            },
-          ]}
-          rowClassName={(p) =>
-            p.transactionType === "adjustment" ||
-            p.transactionType === "write-off"
-              ? "bg-amber-50 dark:bg-amber-950/30"
-              : undefined
-          }
-          rowKey={(p) => p.id}
-          actions={
-            can("transactions:delete")
-              ? [
-                  {
-                    label: "Delete",
-                    icon: <Trash2 className="size-3.5" />,
-                    destructive: true,
-                    onClick: (p) => handleDeletePayment(p.id),
-                  },
-                ]
-              : []
-          }
-          limit={10}
-          hideSearch
-          refreshKey={paymentsKey}
-          headerActions={
-            can("transactions:write") && (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAdjustmentFormOpen(true)}
-                >
-                  Adjustment
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setWriteOffFormOpen(true)}
-                >
-                  Write-Off
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => setPaymentFormOpen(true)}
-                >
-                  <Plus className="size-3.5" />
-                </Button>
-              </div>
-            )
-          }
-        />
+              {
+                header: "Type",
+                key: "type",
+                render: (p) =>
+                  p.transactionType ? (
+                    <Badge variant="outline" className="capitalize">
+                      {p.transactionType}
+                    </Badge>
+                  ) : (
+                    "---"
+                  ),
+              },
+              {
+                header: "Description",
+                key: "description",
+                render: (p) => (
+                  <span className="truncate text-muted-foreground">
+                    {p.description || "---"}
+                  </span>
+                ),
+              },
+              {
+                header: "Amount",
+                key: "amount",
+                render: (p) => {
+                  const isInflow = balance?.id === p.fromBalanceId;
+                  return (
+                    <span
+                      className={`text-right font-medium ${isInflow ? transactionColors.inflow : transactionColors.outflow}`}
+                    >
+                      {isInflow ? "+" : "-"}${p.amount.toFixed(2)}
+                    </span>
+                  );
+                },
+              },
+            ]}
+            rowClassName={(p) =>
+              p.transactionType === "adjustment" ||
+              p.transactionType === "write-off"
+                ? "bg-amber-50 dark:bg-amber-950/30"
+                : undefined
+            }
+            rowKey={(p) => p.id}
+            actions={
+              can("transactions:delete")
+                ? [
+                    {
+                      label: "Delete",
+                      icon: <Trash2 className="size-3.5" />,
+                      destructive: true,
+                      onClick: (p) => handleDeletePayment(p.id),
+                    },
+                  ]
+                : []
+            }
+            limit={10}
+            hideSearch
+            refreshKey={paymentsKey}
+            headerActions={
+              can("transactions:write") && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setPaymentFormOpen(true)}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                  <PaymentActionsMenu
+                    actions={[
+                      {
+                        label: "Adjustment",
+                        onClick: () => setAdjustmentFormOpen(true),
+                      },
+                      {
+                        label: "Write-Off",
+                        onClick: () => setWriteOffFormOpen(true),
+                      },
+                    ]}
+                  />
+                </div>
+              )
+            }
+          />
         )}
       </div>
 
@@ -390,21 +381,21 @@ function EmployeeDetailContent() {
           {
             header: "Entity",
             key: "entity",
-            render: (a) => a.entityType ?? "—",
+            render: (a) => a.entityType ?? "---",
           },
           {
             header: "Details",
             key: "details",
             render: (a) => (
               <span className="truncate text-muted-foreground">
-                {a.details || "—"}
+                {a.details || "---"}
               </span>
             ),
           },
           {
             header: "Date",
             key: "date",
-            render: (a) => a.createdAt?.slice(0, 10) ?? "—",
+            render: (a) => a.createdAt?.slice(0, 10) ?? "---",
           },
         ]}
         rowKey={(a) => a.id}

@@ -22,9 +22,10 @@
  * the page's own host. Falls back to localhost during SSR / non-browser builds.
  */
 export const BASE_URL = "http://localhost:8080/api";
-// typeof window !== "undefined"
-//   ? `${window.location.protocol}//${window.location.host}/api`
-//   : "http://localhost:8080/api";
+// export const BASE_URL =
+//   typeof window !== "undefined"
+//     ? `${window.location.protocol}//${window.location.host}/api`
+//     : "http://localhost:8080/api";
 
 /* ------------------------------------------------------------------ */
 /*  Error type                                                         */

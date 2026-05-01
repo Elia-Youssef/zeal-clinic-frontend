@@ -41,9 +41,9 @@ export default function ProductsPage() {
       header: "Category",
       render: (p) =>
         p.categoryId ? (
-          <Badge variant="outline">{catMap[p.categoryId] ?? "—"}</Badge>
+          <Badge variant="outline">{catMap[p.categoryId] ?? "---"}</Badge>
         ) : (
-          "—"
+          "---"
         ),
     },
     {
@@ -57,7 +57,7 @@ export default function ProductsPage() {
       className: "text-right",
       render: (p) => (
         <span className="font-medium">
-          {p.unitPrice != null ? `$${p.unitPrice.toFixed(2)}` : "—"}
+          {p.unitPrice != null ? `$${p.unitPrice.toFixed(2)}` : "---"}
         </span>
       ),
     },

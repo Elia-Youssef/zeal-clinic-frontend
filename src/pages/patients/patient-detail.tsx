@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, FileText, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +8,14 @@ import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/utils";
+import { formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { usePatientsStore } from "@/lib/stores/patients-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { appointmentStatusTint, transactionColors } from "@/lib/constants";
 import { PatientForm } from "@/components/forms/patient-form";
 import { ClientInvoiceForm } from "@/components/forms/client-invoice-form";
 import { ClientPaymentForm } from "@/components/forms/client-payment-form";
+import { ClientRefundForm } from "@/components/forms/client-refund-form";
 import { BalanceAdjustmentForm } from "@/components/forms/balance-adjustment-form";
 import { AppointmentForm } from "@/components/forms/appointment-form";
 import { PatientAllergyForm } from "@/components/forms/patient-allergy-form";
@@ -25,6 +25,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
 import { DataList } from "@/components/data/data-list";
+import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
 import {
   Appointment,
   BalanceTransaction,
@@ -47,18 +48,19 @@ function PatientDetailContent() {
 
   /* Store state */
   const patient = usePatientsStore((s) => s.current);
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [prescriptionsLoading, setPrescriptionsLoading] = useState(true);
+  const balance = usePatientsStore((s) => s.currentBalance);
   const [editingPrescription, setEditingPrescription] =
     useState<Prescription | null>(null);
   const loading = usePatientsStore((s) => s.detailLoading);
   const fetchDetail = usePatientsStore((s) => s.fetchDetail);
+  const fetchBalance = usePatientsStore((s) => s.fetchBalance);
   const setCurrent = usePatientsStore((s) => s.setCurrent);
 
   /* Modals */
   const [editOpen, setEditOpen] = useState(false);
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
+  const [refundFormOpen, setRefundFormOpen] = useState(false);
   const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
   const [writeOffFormOpen, setWriteOffFormOpen] = useState(false);
   const [allergyFormOpen, setAllergyFormOpen] = useState(false);
@@ -81,27 +83,18 @@ function PatientDetailContent() {
   const bumpMedicines = () => setMedicinesKey((k) => k + 1);
   const bumpAppointments = () => setAppointmentsKey((k) => k + 1);
   const bumpPrescriptions = () => setPrescriptionsKey((k) => k + 1);
-  const bumpInvoices = () => setInvoicesKey((k) => k + 1);
-  const bumpPayments = () => setPaymentsKey((k) => k + 1);
-  const reloadDetails = () => fetchDetail(id);
-
-  const fetchPrescriptions = async () => {
-    setPrescriptionsLoading(true);
-    try {
-      const res = await api.get<Prescription[]>(
-        `/patients/${id}/prescriptions`,
-      );
-      setPrescriptions(res);
-    } catch {
-      setPrescriptions([]);
-    } finally {
-      setPrescriptionsLoading(false);
-    }
+  const bumpInvoices = () => {
+    setInvoicesKey((k) => k + 1);
+    fetchBalance(id);
   };
+  const bumpPayments = () => {
+    setPaymentsKey((k) => k + 1);
+    fetchBalance(id);
+  };
+  const reloadDetails = () => fetchDetail(id);
 
   useEffect(() => {
     fetchDetail(id);
-    fetchPrescriptions();
     return () => {
       setCurrent(null);
     };
@@ -117,35 +110,36 @@ function PatientDetailContent() {
       </p>
     );
 
+  const patientName = `${patient.firstName} ${patient.middleName ? patient.middleName + " " : ""}${patient.lastName}`;
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <PageHeader
         backHref="/patients/list"
-        title={`${patient.firstName} ${patient.middleName ? patient.middleName + " " : ""}${patient.lastName}`}
-        badges={<Badge variant="outline">{patient.gender}</Badge>}
+        title={patientName}
         onEdit={can("patients:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("patients:delete") ? handleDelete : undefined}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm">
-          <DetailField label="Email">{patient.email || "—"}</DetailField>
+        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
+          <DetailField label="Email">{patient.email || "---"}</DetailField>
           <DetailField label="Contact">{patient.contact}</DetailField>
           <DetailField label="Emergency Contact">
             <div>
-              {patient.emergencyContactName || "—"}
+              {patient.emergencyContactName || "---"}
               {patient.emergencyContactPhone
                 ? ` (${patient.emergencyContactPhone})`
                 : ""}
             </div>
           </DetailField>
           <DetailField label="Date of Birth">
-            {patient.dateOfBirth?.slice(0, 10) ?? "—"}
+            {patient.dateOfBirth?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField className="col-span-2" label="Address">
             <div>
@@ -161,10 +155,10 @@ function PatientDetailContent() {
             </div>
           </DetailField>
           <DetailField label="Weight">
-            {patient.weight != null ? `${patient.weight} kg` : "—"}
+            {patient.weight != null ? `${patient.weight} kg` : "---"}
           </DetailField>
           <DetailField label="Height">
-            {patient.height != null ? `${patient.height} cm` : "—"}
+            {patient.height != null ? `${patient.height} cm` : "---"}
           </DetailField>
           <DetailField label="Blood Type">
             {patient.bloodType || "—--"}
@@ -267,22 +261,36 @@ function PatientDetailContent() {
             title="Appointments"
             columns={[
               {
-                header: "Procedure",
-                key: "procedure",
-                render: (i) => i.patientProcedure?.procedureName ?? "Other",
+                header: "Procedures",
+                key: "procedures",
+                render: (i) => (
+                  <div className="flex flex-row gap-1">
+                    {i.appointmentProcedures?.map((p) =>
+                      p.procedureName ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs"
+                          key={p.id}
+                        >
+                          {p.procedureName}
+                        </Badge>
+                      ) : null,
+                    )}
+                  </div>
+                ),
               },
               {
                 header: "Date",
                 key: "date",
-                render: (i) => i.startTime?.slice(0, 10) ?? "—",
+                render: (i) => i.startTime?.slice(0, 10) ?? "---",
               },
               {
                 header: "Time",
                 key: "time",
                 render: (i) =>
                   i.startTime && i.endTime
-                    ? `${i.startTime.slice(11, 16)} - ${i.endTime.slice(11, 16)}`
-                    : "—",
+                    ? formatTimeRange(i.startTime, i.endTime)
+                    : "---",
               },
               {
                 header: "Status",
@@ -324,17 +332,17 @@ function PatientDetailContent() {
             {
               header: "Prescribed By",
               key: "prescribedById",
-              render: (i) => i.prescribedByName ?? "—",
+              render: (i) => i.prescribedByName ?? "---",
             },
             {
               header: "Start Date",
               key: "startDate",
-              render: (i) => i.startDate ?? "—",
+              render: (i) => i.startDate ?? "---",
             },
             {
               header: "End Date",
               key: "endDate",
-              render: (i) => i.endDate ?? "—",
+              render: (i) => i.endDate ?? "---",
             },
             {
               header: "Medicines",
@@ -343,18 +351,31 @@ function PatientDetailContent() {
                 i.medicines?.map((i) => i.medicineName).join(", ") ?? "---",
             },
           ]}
-          actions={
-            can("patients:delete")
+          actions={[
+            ...(can("patients:write")
+              ? [
+                  {
+                    label: "Edit",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (i: Prescription) => {
+                      setEditingPrescription(i);
+                      setPrescriptionFormOpen(true);
+                    },
+                  },
+                ]
+              : []),
+            ...(can("patients:delete")
               ? [
                   {
                     label: "Delete",
                     icon: <Trash2 className="size-3.5" />,
                     destructive: true,
-                    onClick: (i) => handleDeletePrescription(i.id),
+                    onClick: (i: Prescription) =>
+                      handleDeletePrescription(i.id),
                   },
                 ]
-              : []
-          }
+              : []),
+          ]}
           endpoint={`/patients/${id}/prescriptions`}
           rowKey={(i: Prescription) => i.id}
           limit={5}
@@ -417,24 +438,36 @@ function PatientDetailContent() {
 
           {/* Payments */}
           <Card className="flex-1 gap-0">
-            {patient.balance && (
+            {balance && (
               <CardHeader className="pb-4 border-b">
                 <CardTitle>
-                  <p className="font-semibold">
-                    Balance:{" "}
-                    <span
-                      className={
-                        (patient.balance.amount ?? 0) == 0
-                          ? transactionColors.neutral
-                          : (patient.balance.amount ?? 0) > 0
-                            ? transactionColors.outflow
-                            : transactionColors.inflow
-                      }
-                    >
-                      {(patient.balance.amount ?? 0) < 0 ? "-" : ""}$
-                      {Math.abs(patient.balance.amount ?? 0).toFixed(2)}
-                    </span>
-                  </p>
+                  <div className="flex items-center justify-between gap-4 font-semibold">
+                    <p>
+                      Balance:{" "}
+                      <span
+                        className={
+                          (balance.amount ?? 0) == 0
+                            ? transactionColors.neutral
+                            : (balance.amount ?? 0) > 0
+                              ? transactionColors.outflow
+                              : transactionColors.inflow
+                        }
+                      >
+                        {(balance.amount ?? 0) < 0 ? "-" : ""}$
+                        {Math.abs(balance.amount ?? 0).toFixed(2)}
+                      </span>
+                    </p>
+                    <p className="text-sm font-normal text-muted-foreground">
+                      In:{" "}
+                      <span className={transactionColors.inflow}>
+                        ${(balance.totalOut ?? 0).toFixed(2)}
+                      </span>
+                      {"  "}· Out:{" "}
+                      <span className={transactionColors.outflow}>
+                        ${(balance.totalIn ?? 0).toFixed(2)}
+                      </span>
+                    </p>
+                  </div>
                 </CardTitle>
               </CardHeader>
             )}
@@ -456,7 +489,9 @@ function PatientDetailContent() {
                       i.transactionType === "write-off";
                     return (
                       <Badge variant="secondary" className="capitalize">
-                        {isAdj ? i.transactionType : i.transactionMethod || "—"}
+                        {isAdj
+                          ? i.transactionType
+                          : i.transactionMethod || "---"}
                       </Badge>
                     );
                   },
@@ -466,7 +501,7 @@ function PatientDetailContent() {
                   key: "description",
                   render: (i) => (
                     <span className="text-muted-foreground truncate">
-                      {i.description || "—"}
+                      {i.description || "---"}
                     </span>
                   ),
                 },
@@ -474,7 +509,7 @@ function PatientDetailContent() {
                   header: "Amount",
                   key: "amount",
                   render: (i) => {
-                    const isInflow = i.fromBalanceId === patient.balance?.id;
+                    const isInflow = i.fromBalanceId === balance?.id;
                     return (
                       <span
                         className={`text-right font-medium ${isInflow ? transactionColors.inflow : transactionColors.outflow}`}
@@ -513,25 +548,27 @@ function PatientDetailContent() {
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => setAdjustmentFormOpen(true)}
-                    >
-                      Adjustment
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setWriteOffFormOpen(true)}
-                    >
-                      Write-Off
-                    </Button>
-                    <Button
-                      size="sm"
                       className="gap-1"
                       onClick={() => setPaymentFormOpen(true)}
                     >
                       <Plus className="size-3.5" />
                     </Button>
+                    <PaymentActionsMenu
+                      actions={[
+                        {
+                          label: "Adjustment",
+                          onClick: () => setAdjustmentFormOpen(true),
+                        },
+                        {
+                          label: "Write-Off",
+                          onClick: () => setWriteOffFormOpen(true),
+                        },
+                        {
+                          label: "Refund",
+                          onClick: () => setRefundFormOpen(true),
+                        },
+                      ]}
+                    />
                   </div>
                 )
               }
@@ -551,12 +588,22 @@ function PatientDetailContent() {
         onClose={() => setInvoiceFormOpen(false)}
         onSaved={bumpInvoices}
         defaultPatientId={id}
+        defaultPatientLabel={patientName}
       />
       <ClientPaymentForm
         open={paymentFormOpen}
         onClose={() => setPaymentFormOpen(false)}
         onSaved={bumpPayments}
         defaultPatientId={id}
+        defaultPatientLabel={patientName}
+      />
+      <ClientRefundForm
+        open={refundFormOpen}
+        onClose={() => setRefundFormOpen(false)}
+        onSaved={bumpPayments}
+        defaultPatientId={id}
+        defaultPatientLabel={patientName}
+        defaultCurrencyId={balance?.currencyId}
       />
       <BalanceAdjustmentForm
         open={adjustmentFormOpen}
@@ -592,7 +639,7 @@ function PatientDetailContent() {
         open={appointmentFormOpen}
         onClose={() => setAppointmentFormOpen(false)}
         onSaved={bumpAppointments}
-        initialData={{ patientId: id }}
+        initialData={{ patientId: id, patientLabel: patientName }}
       />
       <AppointmentForm
         key={viewAppointment?.id ?? "no-appt"}
@@ -607,11 +654,11 @@ function PatientDetailContent() {
                 patientId: viewAppointment.patientId,
                 patientLabel: viewAppointment.patientName,
                 roomId: viewAppointment.roomId,
-                procedureId: viewAppointment.patientProcedure?.id ?? "",
-                procedureLabel:
-                  viewAppointment.patientProcedure?.procedureName ?? "",
-                procedureSessionId:
-                  viewAppointment.patientProcedureSession?.id ?? "",
+                procedures:
+                  viewAppointment.appointmentProcedures?.map((ap) => ({
+                    id: ap.procedureId,
+                    label: ap.procedureName ?? "",
+                  })) ?? [],
                 startTime: viewAppointment.startTime.slice(0, 16),
                 endTime: viewAppointment.endTime.slice(0, 16),
                 status: viewAppointment.status,

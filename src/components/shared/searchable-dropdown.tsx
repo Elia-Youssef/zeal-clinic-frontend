@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ export function SearchableDropdown({
   options: staticOptions,
   defaultApiOption,
   apiEndpoint,
-  apiOptionsLimit = 5,
+  apiOptionsLimit = 7,
   mapItem,
   placeholder = "Select",
   required,

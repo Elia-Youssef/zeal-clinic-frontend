@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Trash2, Check } from "lucide-react";
@@ -8,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
-import { DataTable, type Column, type RowAction } from "@/components/data/data-table";
+import {
+  DataTable,
+  type Column,
+  type RowAction,
+} from "@/components/data/data-table";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -124,7 +127,7 @@ function DiscountDetailContent() {
     {
       key: "created",
       header: "Added",
-      render: (i) => i.createdAt?.slice(0, 10) ?? "—",
+      render: (i) => i.createdAt?.slice(0, 10) ?? "---",
     },
   ];
 
@@ -161,26 +164,30 @@ function DiscountDetailContent() {
     {
       key: "created",
       header: "Created",
-      render: (v) => v.createdAt?.slice(0, 10) ?? "—",
+      render: (v) => v.createdAt?.slice(0, 10) ?? "---",
     },
   ];
 
   const voucherActions: RowAction<Voucher>[] = [
     ...(can("services:write")
-      ? [{
-          label: "Mark as used",
-          icon: <Check className="size-3.5" />,
-          onClick: (v: Voucher) => handleUseVoucher(v.id),
-          hidden: (v: Voucher) => !!v.isUsed,
-        }]
+      ? [
+          {
+            label: "Mark as used",
+            icon: <Check className="size-3.5" />,
+            onClick: (v: Voucher) => handleUseVoucher(v.id),
+            hidden: (v: Voucher) => !!v.isUsed,
+          },
+        ]
       : []),
     ...(can("services:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (v: Voucher) => handleDeleteVoucher(v.id),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (v: Voucher) => handleDeleteVoucher(v.id),
+          },
+        ]
       : []),
   ];
 
@@ -194,16 +201,6 @@ function DiscountDetailContent() {
       <PageHeader
         backHref="/financials/discounts"
         title={discount.name}
-        badges={
-          <>
-            <Badge variant="outline" className="capitalize">
-              {discount.discountType}
-            </Badge>
-            <Badge variant={discount.isActive ? "default" : "outline"}>
-              {discount.isActive ? "Active" : "Inactive"}
-            </Badge>
-          </>
-        }
         onEdit={can("services:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("services:delete") ? handleDelete : undefined}
       />
@@ -211,9 +208,9 @@ function DiscountDetailContent() {
       {/* Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm">
+        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Value">
             {valueDisplay}
             <span className="ml-1 text-muted-foreground capitalize">
@@ -228,22 +225,22 @@ function DiscountDetailContent() {
             {discount.discountType}
           </DetailField>
           <DetailField label="Start Date">
-            {discount.startDate?.slice(0, 10) ?? "—"}
+            {discount.startDate?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField label="End Date">
-            {discount.endDate?.slice(0, 10) ?? "—"}
+            {discount.endDate?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField label="Status">
             {discount.isActive ? "Active" : "Inactive"}
           </DetailField>
           <DetailField label="Created">
-            {discount.createdAt?.slice(0, 10) ?? "—"}
+            {discount.createdAt?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField label="Updated">
-            {discount.updatedAt?.slice(0, 10) ?? "—"}
+            {discount.updatedAt?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField label="Description" className="col-span-3">
-            {discount.description || "—"}
+            {discount.description || "---"}
           </DetailField>
         </CardContent>
       </Card>

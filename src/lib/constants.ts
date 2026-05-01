@@ -34,7 +34,7 @@ export const userRoleOptions: DropdownOption[] = [
   { value: "user", label: "User" },
 ];
 
-export const transactionTypeOptions: DropdownOption[] = [
+export const transactionMethodOptions: DropdownOption[] = [
   { value: "cash", label: "Cash" },
   { value: "card", label: "Card" },
   { value: "transfer", label: "Transfer" },

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
+import { DetailField } from "@/components/shared/detail-field";
 import { Loading } from "@/components/shared/loading";
 import { DataTable, type Column } from "@/components/data/data-table";
 import { api } from "@/lib/api";
@@ -50,13 +50,14 @@ export default function InvoiceDetailPage() {
 
   const handleDelete = async () => {
     if (!invoice) return;
-    if (
-      !(await confirm({
-        title: "Delete invoice?",
-        description: `Delete invoice #${invoice.invoiceNumber}?`,
-        confirmText: "Delete",
-      }))
-    ) {
+    const isClientInvoice = invoice.fromEntityId === "self";
+    const result = await confirm({
+      title: "Delete invoice?",
+      description: `Delete invoice #${invoice.invoiceNumber}?`,
+      confirmText: "Delete",
+    });
+
+    if (!result) {
       return;
     }
     const prefix =
@@ -121,35 +122,33 @@ export default function InvoiceDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">{otherLabel}</span>
+        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+          <DetailField label={otherLabel}>
             {otherEntityId && canOpenOtherEntity ? (
               <Link
                 to={`${otherHrefPrefix}/${otherEntityId}`}
-                className="block font-medium capitalize hover:underline"
+                className="text-sm font-medium capitalize hover:underline"
               >
-                {otherEntityName ?? "—"}
+                {otherEntityName ?? "---"}
               </Link>
             ) : (
-              <p className="font-medium capitalize">{otherEntityName ?? "—"}</p>
+              <p className="text-sm font-medium capitalize">
+                {otherEntityName ?? "---"}
+              </p>
             )}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Date</span>
-            <p>{invoice.createdAt?.slice(0, 10) ?? "---"}</p>
-          </div>
-          <div className="col-span-2">
-            <span className="text-muted-foreground">Notes</span>
-            <p>{invoice.notes || "---"}</p>
-          </div>
-          <div className="col-span-2">
-            <span className="text-muted-foreground">Created By</span>
-            <p>{invoice.createdBy ?? "---"}</p>
-          </div>
+          </DetailField>
+          <DetailField label="Date">
+            {invoice.createdAt?.slice(0, 10) ?? "---"}
+          </DetailField>
+          <DetailField label="Notes" className="col-span-2">
+            {invoice.notes || "---"}
+          </DetailField>
+          <DetailField label="Created By" className="col-span-2">
+            {invoice.createdBy ?? "---"}
+          </DetailField>
         </CardContent>
       </Card>
 
@@ -198,7 +197,7 @@ export default function InvoiceDetailPage() {
                         i.discountId ? (
                           <div className="flex flex-col">
                             <span className="text-xs">
-                              {i.discountName ?? "—"}
+                              {i.discountName ?? "---"}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               -${(i.discountValue ?? 0).toFixed(2)}

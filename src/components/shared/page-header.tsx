@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 export function PageHeader({
   backHref,
   title,
-  badges,
   onEdit,
   onDelete,
 }: {
   backHref?: string;
   title: string;
-  badges?: React.ReactNode;
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
@@ -33,7 +31,6 @@ export function PageHeader({
           <ArrowLeft className="size-4 mr-1" />
         </Button>
         <h2 className="text-xl font-semibold">{title}</h2>
-        {/* {badges} */}
       </div>
       {(onEdit || onDelete) && (
         <div className="flex gap-2">

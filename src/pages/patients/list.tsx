@@ -34,13 +34,13 @@ export default function PatientsListPage() {
     {
       key: "email",
       header: "Email",
-      render: (p) => p.email || "—",
+      render: (p) => p.email || "---",
     },
     {
       key: "dob",
       header: "Date of Birth",
       className: "w-35",
-      render: (p) => p.dateOfBirth?.slice(0, 10) ?? "—",
+      render: (p) => p.dateOfBirth?.slice(0, 10) ?? "---",
     },
   ];
 

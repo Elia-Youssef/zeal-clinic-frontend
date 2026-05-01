@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,7 @@ export function EmployeePaymentForm({
 
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
-  const [transactionType, setTransactionType] = useState("salary");
+  const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,11 +32,11 @@ export function EmployeePaymentForm({
     if (!open) return;
     setAmount("");
     setCurrencyId("");
-    setTransactionType("salary");
+    setTransactionMethod("cash");
     setDescription("");
   }, [open]);
 
-  const canSubmit = Number(amount) > 0 && !!currencyId && !!transactionType;
+  const canSubmit = Number(amount) > 0 && !!currencyId && !!transactionMethod;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +47,7 @@ export function EmployeePaymentForm({
         employeeId,
         amount: Number(amount),
         currencyId,
-        transactionType,
+        transactionMethod,
         description: description || undefined,
       });
       addAlert("success", "Employee payment recorded.");
@@ -94,8 +93,8 @@ export function EmployeePaymentForm({
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Type *</label>
             <SearchableDropdown
-              value={transactionType}
-              onChange={setTransactionType}
+              value={transactionMethod}
+              onChange={setTransactionMethod}
               options={employeePaymentTypeOptions}
               placeholder="Select type…"
               required

@@ -41,7 +41,7 @@ export default function InvoicesPage() {
       key: "date",
       header: "Date",
       className: "w-35",
-      render: (i) => i.createdAt?.slice(0, 10) ?? "—",
+      render: (i) => i.createdAt?.slice(0, 10) ?? "---",
     },
     {
       key: "entity",

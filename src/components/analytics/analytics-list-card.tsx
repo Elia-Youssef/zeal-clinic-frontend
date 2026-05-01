@@ -39,7 +39,7 @@ export function AnalyticsListCard<T>({
   const { data, loading, error } = useAnalytics<T[]>(endpoint);
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
         {headerAction}

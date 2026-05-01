@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,14 @@ export function SupplierInvoiceForm({
   open,
   onClose,
   onSaved,
+  defaultSupplierId,
+  defaultSupplierLabel,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
+  defaultSupplierId?: string;
+  defaultSupplierLabel?: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -48,11 +51,11 @@ export function SupplierInvoiceForm({
 
   useEffect(() => {
     if (!open) return;
-    setSupplierId("");
+    setSupplierId(defaultSupplierId ?? "");
     setCurrencyId("");
     setNotes("");
     setItems([blankItem()]);
-  }, [open]);
+  }, [open, defaultSupplierId]);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>
@@ -72,10 +75,18 @@ export function SupplierInvoiceForm({
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const itemTotal = (item: ItemDraft) =>
+    (Number(item.amount) || 0) * (Number(item.quantity) || 0);
+
+  const total = items.reduce((s, it) => s + itemTotal(it), 0);
 
   const canSubmit =
-    supplierId && currencyId && items.length > 0 && items.every((it) => it.itemId && Number(it.quantity) > 0 && Number(it.amount) > 0);
+    supplierId &&
+    currencyId &&
+    items.length > 0 &&
+    items.every(
+      (it) => it.itemId && Number(it.quantity) > 0 && Number(it.amount) > 0,
+    );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,8 +99,8 @@ export function SupplierInvoiceForm({
         items: items.map((it) => ({
           itemType: "product",
           itemId: it.itemId,
-          quantity: Number(it.quantity),
-          amount: Number(it.amount),
+          quantity: Number(it.quantity) || 0,
+          amount: (Number(it.amount) || 0) * (Number(it.quantity) || 0),
           notes: it.notes || "",
         })),
       });
@@ -112,8 +123,16 @@ export function SupplierInvoiceForm({
             <SearchableDropdown
               value={supplierId}
               onChange={setSupplierId}
+              defaultApiOption={
+                defaultSupplierId && defaultSupplierLabel
+                  ? { value: defaultSupplierId, label: defaultSupplierLabel }
+                  : undefined
+              }
               apiEndpoint="/suppliers/dropdown"
-              mapItem={(s: { id: string; name: string }) => ({ value: s.id, label: s.name })}
+              mapItem={(s: { id: string; name: string }) => ({
+                value: s.id,
+                label: s.name,
+              })}
               placeholder="Select supplier…"
               required
             />
@@ -124,7 +143,10 @@ export function SupplierInvoiceForm({
               value={currencyId}
               onChange={setCurrencyId}
               apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
+              mapItem={(c: { id: string; name: string }) => ({
+                value: c.id,
+                label: c.name,
+              })}
               placeholder="Select currency…"
               required
               defaultFirst
@@ -135,28 +157,46 @@ export function SupplierInvoiceForm({
         {/* Notes */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Notes</label>
-          <textarea className={textareaClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
 
         {/* Items */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Items *</label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setItems((prev) => [...prev, blankItem()])}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setItems((prev) => [...prev, blankItem()])}
+            >
               <Plus className="size-3.5 mr-1" /> Add Item
             </Button>
           </div>
 
           {items.map((item, idx) => (
-            <div key={idx} className="rounded-md border border-border p-3 space-y-2">
+            <div
+              key={idx}
+              className="rounded-md border border-border p-3 space-y-2"
+            >
               <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Product *</label>
+                  <label className="text-xs text-muted-foreground">
+                    Product *
+                  </label>
                   <SearchableDropdown
                     value={item.itemId}
                     onChange={(v) => updateItem(idx, { itemId: v })}
                     apiEndpoint="/products/dropdown"
-                    mapItem={(p: { id: string; name: string }) => ({ value: p.id, label: p.name })}
+                    mapItem={(p: { id: string; name: string }) => ({
+                      value: p.id,
+                      label: p.name,
+                    })}
                     placeholder="Select product…"
                     renderAddForm={
                       can("inventory:write")
@@ -165,7 +205,11 @@ export function SupplierInvoiceForm({
                               open={open}
                               onClose={onClose}
                               onSaved={(created) => {
-                                if (created) onCreated(String(created.id), String(created.name));
+                                if (created)
+                                  onCreated(
+                                    String(created.id),
+                                    String(created.name),
+                                  );
                               }}
                             />
                           )
@@ -173,22 +217,51 @@ export function SupplierInvoiceForm({
                     }
                   />
                 </div>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeItem(idx)} disabled={items.length === 1}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => removeItem(idx)}
+                  disabled={items.length === 1}
+                >
                   <Trash2 className="size-3.5 text-destructive" />
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Qty *</label>
-                  <Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, { quantity: e.target.value })} />
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateItem(idx, { quantity: e.target.value })
+                    }
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Amount *</label>
-                  <Input type="number" step="0.01" min="0" value={item.amount} onChange={(e) => updateItem(idx, { amount: e.target.value })} />
+                  <label className="text-xs text-muted-foreground">
+                    Amount *
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={item.amount}
+                    onChange={(e) =>
+                      updateItem(idx, { amount: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Total: ${itemTotal(item).toFixed(2)}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Notes</label>
-                  <Input value={item.notes} onChange={(e) => updateItem(idx, { notes: e.target.value })} />
+                  <Input
+                    value={item.notes}
+                    onChange={(e) => updateItem(idx, { notes: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
@@ -197,9 +270,13 @@ export function SupplierInvoiceForm({
 
         {/* Total + Actions */}
         <div className="flex items-center justify-between pt-2">
-          <span className="text-sm font-medium">Total: ${total.toFixed(2)}</span>
+          <span className="text-sm font-medium">
+            Total: ${total.toFixed(2)}
+          </span>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={submitting || !canSubmit}>
               {submitting ? "Creating…" : "Create Invoice"}
             </Button>

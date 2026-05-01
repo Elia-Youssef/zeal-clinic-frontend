@@ -17,6 +17,7 @@ import { AnalyticsChartCard } from "@/components/analytics/analytics-chart-card"
 import { appointmentStatusTint, transactionColors } from "@/lib/constants";
 import type { Appointment, BalanceTransaction } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { formatTime } from "@/lib/utils";
 
 type TotalPayload = { total: number };
 type CancellationRate = { total: number; cancelled: number; rate: number };
@@ -27,24 +28,26 @@ const currency = (n: number) =>
 
 const percent = (n: number) => `${(n * 100).toFixed(1)}%`;
 
-const timeOfDay = (iso: string) =>
-  new Date(iso).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const timeOfDay = (iso: string) => formatTime(iso);
 
 const appointmentColumns: Column<Appointment>[] = [
   {
     key: "patient",
     header: "Patient",
-    render: (a) => (
-      <div>
-        <p className="font-medium">{a.patientName ?? "Unknown"}</p>
-        <p className="text-xs text-muted-foreground">
-          {a.patientProcedure?.procedureName ?? a.notes ?? "—"}
-        </p>
-      </div>
-    ),
+    render: (a) => {
+      const procedures = a.appointmentProcedures
+        ?.map((p) => p.procedureName)
+        .filter(Boolean)
+        .join(", ");
+      return (
+        <div>
+          <p className="font-medium">{a.patientName ?? "Unknown"}</p>
+          <p className="text-xs text-muted-foreground">
+            {procedures || a.notes || "---"}
+          </p>
+        </div>
+      );
+    },
   },
   {
     key: "time",

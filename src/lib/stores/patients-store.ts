@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { api, type Paginated } from "@/lib/api";
-import type { Patient } from "@/lib/types";
+import type { Balance, Patient } from "@/lib/types";
 
 type PatientsState = {
   patients: Patient[];
@@ -9,8 +9,10 @@ type PatientsState = {
 
   /* Detail state for the patient detail page */
   current: Patient | null;
+  currentBalance: Balance | null;
   detailLoading: boolean;
   fetchDetail: (id: string) => Promise<void>;
+  fetchBalance: (id: string) => Promise<void>;
   setCurrent: (patient: Patient | null) => void;
 };
 
@@ -29,23 +31,27 @@ export const usePatientsStore = create<PatientsState>((set) => ({
   },
 
   current: null,
+  currentBalance: null,
   detailLoading: true,
 
   fetchDetail: async (id) => {
     set({ detailLoading: true });
     try {
-      // Patient detail is the hub for clinical and financial history, so load
-      // everything in parallel and let the page render from one synchronized
-      // store snapshot instead of scattering ad-hoc requests in the component.
-      const [patient] = await Promise.all([
+      const [patient, balance] = await Promise.all([
         api.get<Patient>(`/patients/${id}`),
+        api.get<Balance>(`/balances/patient/${id}`).catch(() => null),
       ]);
-      set({
-        current: patient,
-      });
+      set({ current: patient, currentBalance: balance });
     } finally {
       set({ detailLoading: false });
     }
+  },
+
+  fetchBalance: async (id) => {
+    const balance = await api
+      .get<Balance>(`/balances/patient/${id}`)
+      .catch(() => null);
+    set({ currentBalance: balance });
   },
 
   setCurrent: (patient) => set({ current: patient }),

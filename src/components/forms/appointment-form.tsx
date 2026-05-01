@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -9,12 +8,12 @@ import {
   XCircle,
   Check,
   ExternalLink,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { DatePicker } from "@/components/ui/date-picker";
-import { TimePicker } from "@/components/ui/time-picker";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import {
   DropdownMenu,
@@ -26,7 +25,7 @@ import { api, toISODateTime } from "@/lib/api";
 import { textareaClass } from "@/lib/form-styles";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, formatTimeRange, getErrorMessage } from "@/lib/utils";
 import {
   appointmentStatusStyles,
   defaultAppointmentStatusStyle,
@@ -38,15 +37,20 @@ import { ClientPaymentFormBody } from "./client-payment-form";
 import type { Appointment, Invoice } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
+import { Input } from "../ui/input";
+import { Badge } from "../ui/badge";
+
+export type AppointmentProcedureSelection = {
+  id: string;
+  label: string;
+};
 
 export type AppointmentFormData = {
   id?: string;
   patientId: string;
   patientLabel?: string;
   roomId: string;
-  procedureId: string;
-  procedureLabel?: string;
-  procedureSessionId: string;
+  procedures: AppointmentProcedureSelection[];
   date: string;
   startTime: string;
   endTime: string;
@@ -121,8 +125,7 @@ function StatusPicker({
 const emptyForm: AppointmentFormData = {
   patientId: "",
   roomId: "",
-  procedureId: "",
-  procedureSessionId: "",
+  procedures: [],
   date: "",
   startTime: "",
   endTime: "",
@@ -137,6 +140,7 @@ const mergeInitial = (
   return {
     ...emptyForm,
     ...initial,
+    procedures: initial.procedures ?? [],
     date: initial.date ?? initial.startTime?.slice(0, 10) ?? "",
     startTime: initial.startTime?.slice(11, 16) ?? "",
     endTime: initial.endTime?.slice(11, 16) ?? "",
@@ -388,7 +392,9 @@ function StageIndicator({
               className={cn(
                 "flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors",
                 isViewing && "text-foreground",
-                !isViewing && clickable && "text-muted-foreground hover:bg-muted",
+                !isViewing &&
+                  clickable &&
+                  "text-muted-foreground hover:bg-muted",
                 !clickable && "text-muted-foreground/60 cursor-not-allowed",
               )}
             >
@@ -438,11 +444,9 @@ function CompleteSummary({
   }, [rooms.length, fetchRooms]);
 
   const roomLabel =
-    rooms.find((r) => r.id === initialData.roomId)?.name ?? "—";
-  const date =
-    initialData.date ?? initialData.startTime?.slice(0, 10) ?? "—";
-  const start = initialData.startTime?.slice(11, 16) ?? "—";
-  const end = initialData.endTime?.slice(11, 16) ?? "—";
+    rooms.find((r) => r.id === initialData.roomId)?.name ?? "---";
+  const date = initialData.date ?? initialData.startTime?.slice(0, 10) ?? "---";
+  const timeRange = formatTimeRange(initialData.startTime, initialData.endTime);
 
   return (
     <div className="space-y-4">
@@ -451,20 +455,25 @@ function CompleteSummary({
           <CheckCircle2 className="size-4 text-status-completed" />
           Appointment completed
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Patient">
-            {initialData.patientLabel || "—"}
+            {initialData.patientLabel || "---"}
           </DetailField>
           <DetailField label="Room">{roomLabel}</DetailField>
-          <DetailField className="col-span-2" label="Procedure">
-            {initialData.procedureLabel || "—"}
+
+          <DetailField className="col-span-2" label="Procedures">
+            {initialData.procedures?.map((p) =>
+              p.label ? (
+                <Badge variant="secondary" className="text-xs">
+                  {p.label}
+                </Badge>
+              ) : null,
+            )}
           </DetailField>
           <DetailField label="Date">{date}</DetailField>
-          <DetailField label="Time">
-            {start === "—" && end === "—" ? "—" : `${start} – ${end}`}
-          </DetailField>
+          <DetailField label="Time">{timeRange}</DetailField>
           <DetailField className="col-span-2" label="Completion Notes">
-            <p className="whitespace-pre-wrap">{notes || "—"}</p>
+            <p className="whitespace-pre-wrap">{notes || "---"}</p>
           </DetailField>
         </div>
       </div>
@@ -504,7 +513,7 @@ function InvoiceSummary({
           )}
         </div>
         {invoice && (
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <DetailField label="Invoice #">{invoice.invoiceNumber}</DetailField>
             <DetailField label="Total">
               ${invoice.finalAmount.toFixed(2)}
@@ -544,28 +553,30 @@ function ViewPage({
   }, [rooms.length, fetchRooms]);
 
   const roomLabel =
-    rooms.find((r) => r.id === initialData.roomId)?.name ?? "—";
-  const date =
-    initialData.date ?? initialData.startTime?.slice(0, 10) ?? "—";
-  const start = initialData.startTime?.slice(11, 16) ?? "—";
-  const end = initialData.endTime?.slice(11, 16) ?? "—";
+    rooms.find((r) => r.id === initialData.roomId)?.name ?? "---";
+  const date = initialData.date ?? initialData.startTime?.slice(0, 10) ?? "---";
+  const timeRange = formatTimeRange(initialData.startTime, initialData.endTime);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
         <DetailField label="Patient">
-          {initialData.patientLabel || "—"}
+          {initialData.patientLabel || "---"}
         </DetailField>
         <DetailField label="Room">{roomLabel}</DetailField>
-        <DetailField className="col-span-2" label="Procedure">
-          {initialData.procedureLabel || "—"}
+        <DetailField className="col-span-2" label="Procedures">
+          {initialData.procedures?.map((p) =>
+            p.label ? (
+              <Badge variant="secondary" className="text-xs">
+                {p.label}
+              </Badge>
+            ) : null,
+          )}
         </DetailField>
         <DetailField label="Date">{date}</DetailField>
-        <DetailField label="Time">
-          {start === "—" && end === "—" ? "—" : `${start} – ${end}`}
-        </DetailField>
+        <DetailField label="Time">{timeRange}</DetailField>
         <DetailField className="col-span-2" label="Notes">
-          <p className="whitespace-pre-wrap">{initialData.notes || "—"}</p>
+          <p className="whitespace-pre-wrap">{initialData.notes || "---"}</p>
         </DetailField>
       </div>
 
@@ -617,14 +628,22 @@ function MainPage({
   );
   const [submitting, setSubmitting] = useState(false);
 
-  const update = (field: keyof AppointmentFormData, value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const update = <K extends keyof AppointmentFormData>(
+    field: K,
+    value: AppointmentFormData[K],
+  ) => setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleProcedureChange = (value: string) =>
+  const addProcedure = (option: AppointmentProcedureSelection) =>
+    setForm((prev) =>
+      prev.procedures.some((p) => p.id === option.id)
+        ? prev
+        : { ...prev, procedures: [...prev.procedures, option] },
+    );
+
+  const removeProcedure = (id: string) =>
     setForm((prev) => ({
       ...prev,
-      procedureId: value,
-      procedureSessionId: "",
+      procedures: prev.procedures.filter((p) => p.id !== id),
     }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -634,8 +653,7 @@ function MainPage({
     const payload = {
       patientId: form.patientId,
       roomId: form.roomId,
-      procedureId: form.procedureId || undefined,
-      procedureSessionId: form.procedureSessionId || undefined,
+      procedureIds: form.procedures.map((p) => p.id),
       startTime: toISODateTime(`${form.date}T${form.startTime}`),
       endTime: toISODateTime(`${form.date}T${form.endTime}`),
       notes: form.notes || undefined,
@@ -730,49 +748,46 @@ function MainPage({
             label: r.name,
           })}
           placeholder="Select room..."
+          apiOptionsLimit={10}
           required
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5 col-span-2">
-          <label className="text-sm font-medium">Procedure</label>
-          <SearchableDropdown
-            value={form.procedureId}
-            onChange={handleProcedureChange}
-            defaultApiOption={
-              form.procedureLabel
-                ? { value: form.procedureId, label: form.procedureLabel }
-                : undefined
-            }
-            apiEndpoint="/procedures/dropdown"
-            mapItem={(p: { id: string; name: string }) => ({
-              value: p.id,
-              label: p.name,
-            })}
-            placeholder="Select a procedure"
-          />
-        </div>
-        {/* <div className="space-y-1.5">
-          <label className="text-sm font-medium">Procedure Session</label>
-          <SearchableDropdown
-            value={form.procedureSessionId}
-            onChange={(value) => update("procedureSessionId", value)}
-            apiEndpoint={
-              form.procedureId
-                ? `/procedures/${form.procedureId}/sessions/dropdown`
-                : undefined
-            }
-            mapItem={(s: { id: string; name: string }) => ({
-              value: s.id,
-              label: s.name,
-            })}
-            placeholder={
-              form.procedureId ? "Optional..." : "Select procedure first..."
-            }
-            disabled={!form.procedureId}
-          />
-        </div> */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Procedures</label>
+        {form.procedures.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {form.procedures.map((p) => (
+              <span
+                key={p.id}
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-muted/50 px-2 py-0.5 text-xs"
+              >
+                {p.label}
+                <button
+                  type="button"
+                  aria-label={`Remove ${p.label}`}
+                  onClick={() => removeProcedure(p.id)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <SearchableDropdown
+          value=""
+          onChange={() => {}}
+          onSelectItem={(opt) =>
+            addProcedure({ id: opt.value, label: opt.label })
+          }
+          apiEndpoint="/procedures/dropdown"
+          mapItem={(p: { id: string; name: string }) => ({
+            value: p.id,
+            label: p.name,
+          })}
+          placeholder="Add a procedure..."
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -786,17 +801,19 @@ function MainPage({
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Start Time *</label>
-          <TimePicker
+          <Input
+            type="time"
             value={form.startTime}
-            onChange={(value) => update("startTime", value)}
+            onChange={(v) => update("startTime", v.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">End Time *</label>
-          <TimePicker
+          <Input
+            type="time"
             value={form.endTime}
-            onChange={(value) => update("endTime", value)}
+            onChange={(v) => update("endTime", v.target.value)}
             required
           />
         </div>
@@ -856,7 +873,7 @@ function CancelPage({
     try {
       await api.put(`/appointments/${appointmentId}`, {
         status: "Cancelled",
-        cancellationReason: reason || undefined,
+        cancelNotes: reason || undefined,
       });
       addAlert("success", "Appointment cancelled.");
       onSaved();
@@ -922,7 +939,7 @@ function CompletePage({
     try {
       await api.put(`/appointments/${appointmentId}`, {
         status: "Completed",
-        notes: notes || undefined,
+        completionNotes: notes || undefined,
       });
       addAlert("success", "Appointment completed.");
       onCompleted(notes, advance);

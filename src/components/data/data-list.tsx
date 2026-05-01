@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -7,13 +6,7 @@ import {
   type RowAction,
 } from "@/components/data/data-table";
 import { SearchBar } from "@/components/shared/search-bar";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/shared/loading";
 import { api, type Paginated } from "@/lib/api";
@@ -115,12 +108,13 @@ export function DataList<T>({
 
   const totalPages = Math.ceil(total / limit);
   const currentPage = Math.floor(offset / limit) + 1;
+  const hasHeader = !!(title || !hideSearch || headerActions);
 
   return (
-    <Card className={"flex flex-col gap-4 " + className}>
-      {(title || !hideSearch || headerActions) && (
+    <Card className={"flex flex-col gap-4 min-w-0 " + className}>
+      {hasHeader && (
         <CardHeader className="flex flex-row items-center justify-between">
-          {title && <CardTitle>{title}</CardTitle>}
+          {title && <CardTitle className="font-semibold">{title}</CardTitle>}
           <div className="flex items-center justify-end gap-2">
             {!hideSearch && (
               <SearchBar
@@ -136,11 +130,13 @@ export function DataList<T>({
         </CardHeader>
       )}
 
-      <CardContent className="flex flex-col gap-2">
+      <div className={hasHeader ? "border-t border-border/70" : undefined}>
         {loading ? (
-          <Loading />
+          <div className="px-4 py-8">
+            <Loading />
+          </div>
         ) : data.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">
+          <p className="px-4 py-12 text-center text-sm text-muted-foreground">
             {filter ? emptySearchMessage : emptyMessage}
           </p>
         ) : (
@@ -153,7 +149,7 @@ export function DataList<T>({
             rowClassName={rowClassName}
           />
         )}
-      </CardContent>
+      </div>
 
       {totalPages > 1 && !loading && (
         <CardFooter className="justify-between">

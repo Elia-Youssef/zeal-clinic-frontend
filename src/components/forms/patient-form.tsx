@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,9 @@ type PatientFormFields = {
   height: string;
   bloodType: string;
   countryId: string;
+  countryName?: string;
   cityId: string;
+  cityName?: string;
   address: string;
   notes: string;
   referralId: string;
@@ -88,12 +89,15 @@ export function PatientForm({
         height: initial.height?.toString() ?? "",
         bloodType: initial.bloodType ?? "",
         countryId: initial.countryId ?? "",
+        countryName: initial.country?.name ?? "",
         cityId: initial.cityId ?? "",
+        cityName: `${initial?.city?.governorate}, ${initial?.city?.district}, ${initial?.city?.name}`,
         address: initial.address ?? "",
         notes: initial.notes ?? "",
         referralId: initial.referralId ?? "",
         referralSource: initial.referralSource ?? "",
       });
+      setIsLebanon(initial.country?.name === "Lebanon");
     } else {
       setForm(emptyForm);
     }
@@ -282,14 +286,18 @@ export function PatientForm({
             <label className="text-sm font-medium">Country</label>
             <SearchableDropdown
               value={form.countryId}
-              // initialOption={{
-              //   value: form.countryId,
-              //   label: `${initial?.country?.name}`,
-              // }}
+              defaultApiOption={
+                form.countryName
+                  ? { value: form.countryId, label: form.countryName }
+                  : undefined
+              }
               apiEndpoint="/countries/dropdown"
               onChange={(v) => update("countryId", v)}
               mapItem={(item) => ({ value: item.id, label: item.name })}
-              onSelectItem={(i) => setIsLebanon(i.label === "Lebanon")}
+              onSelectItem={(i) => {
+                setIsLebanon(i.label === "Lebanon");
+                update("countryName", i.label);
+              }}
             />
           </div>
           {isLebanon ? (
@@ -298,13 +306,15 @@ export function PatientForm({
                 <label className="text-sm font-medium">City</label>
                 <SearchableDropdown
                   value={form.cityId}
-                  // initialOption={{
-                  //   value: form.cityId,
-                  //   label: `${initial?.city?.governorate}, ${initial?.city?.district}, ${initial?.city?.name}`,
-                  // }}
+                  defaultApiOption={
+                    form.cityName
+                      ? { value: form.cityId, label: form.cityName }
+                      : undefined
+                  }
                   apiEndpoint="/lebanon-cities/dropdown"
                   onChange={(v) => update("cityId", v)}
                   mapItem={(item) => ({ value: item.id, label: item.name })}
+                  onSelectItem={(i) => update("cityName", i.label)}
                 />
               </div>
               <div className="space-y-1.5">

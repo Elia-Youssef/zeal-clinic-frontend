@@ -41,7 +41,7 @@ export default function BalancesPage() {
         <span className={`font-medium ${getTextColor(b.amount)}`}>
           {b.amount != null
             ? `${b.amount < 0 ? "-" : ""}$${Math.abs(b.amount).toFixed(2)}`
-            : "—"}
+            : "---"}
         </span>
       ),
     },

@@ -81,7 +81,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
       icon: Users,
       items: (data.patients ?? []).map((p) => ({
         id: p.id,
-        label: joinName(p.first_name, p.middle_name, p.last_name) || "—",
+        label: joinName(p.first_name, p.middle_name, p.last_name) || "---",
         contact: p.contact,
         email: p.email,
         href: `/patients/${p.id}`,
@@ -92,7 +92,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
       icon: Briefcase,
       items: (data.employees ?? []).map((e) => ({
         id: e.id,
-        label: joinName(e.first_name, e.last_name) || "—",
+        label: joinName(e.first_name, e.last_name) || "---",
         contact: e.contact,
         email: e.email,
         href: `/team/${e.id}`,
@@ -103,7 +103,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
       icon: Truck,
       items: (data.suppliers ?? []).map((s) => ({
         id: s.id,
-        label: s.name ?? "—",
+        label: s.name ?? "---",
         contact: s.contact,
         email: s.email,
         href: `/suppliers/${s.id}`,
@@ -114,7 +114,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
       icon: Stethoscope,
       items: (data.procedures ?? []).map((pr) => ({
         id: pr.id,
-        label: pr.name ?? "—",
+        label: pr.name ?? "---",
         sublabel: pr.remarks,
         href: `/services/procedures/${pr.id}`,
       })),
@@ -124,7 +124,7 @@ async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
       icon: Package,
       items: (data.products ?? []).map((pd) => ({
         id: pd.id,
-        label: pd.name ?? "—",
+        label: pd.name ?? "---",
         href: `/inventory/products/${pd.id}`,
       })),
     },

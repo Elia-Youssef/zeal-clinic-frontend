@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -45,10 +44,10 @@ export function DashboardWrapper({ children }: { children: React.ReactNode }) {
         <RealtimeSubscriber />
         <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <AppSidebar />
-          <SidebarInset>
+          <SidebarInset className="min-w-0">
             <AppHeader title={title} />
-            <div className="flex flex-col items-center w-full">
-              <div className="flex-1 overflow-auto p-6 min-w-150 w-[90%]">
+            <div className="flex flex-col items-center w-full min-w-0">
+              <div className="flex-1 p-6 w-[90%] min-w-0 max-w-full">
                 {children}
               </div>
             </div>

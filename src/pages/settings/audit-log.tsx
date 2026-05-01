@@ -4,10 +4,10 @@ import { DataList } from "@/components/data/data-list";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogEntry } from "@/lib/types";
 
-const actionColors: Record<string, string> = {
-  POST: "bg-green-100 text-green-800",
-  PUT: "bg-blue-100 text-blue-800",
-  DELETE: "bg-red-100 text-red-800",
+const actionClasses: Record<string, string> = {
+  POST: "bg-positive/10 text-positive border-positive/30",
+  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
+  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 const columns: Column<AuditLogEntry>[] = [
@@ -34,7 +34,11 @@ const columns: Column<AuditLogEntry>[] = [
   {
     key: "action",
     header: "Action",
-    render: (e) => <Badge className={actionColors[e.action]}>{e.action}</Badge>,
+    render: (e) => (
+      <Badge variant="outline" className={actionClasses[e.action]}>
+        {e.action}
+      </Badge>
+    ),
   },
   {
     key: "entity",

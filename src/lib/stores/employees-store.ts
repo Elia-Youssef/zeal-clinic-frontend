@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { api, type Paginated } from "@/lib/api";
-import type { Employee, ScheduleAvailability, Transaction } from "@/lib/types";
+import type { Balance, Employee, ScheduleAvailability } from "@/lib/types";
 
 type EmployeesState = {
   employees: Employee[];
@@ -9,13 +9,13 @@ type EmployeesState = {
 
   /* Detail state */
   current: Employee | null;
+  currentBalance: Balance | null;
   slots: ScheduleAvailability[];
-  payments: Transaction[];
   detailLoading: boolean;
   fetchDetail: (id: string) => Promise<void>;
+  fetchBalance: (id: string) => Promise<void>;
   setCurrent: (employee: Employee | null) => void;
   setSlots: (slots: ScheduleAvailability[]) => void;
-  setPayments: (payments: Transaction[]) => void;
 };
 
 export const useEmployeesStore = create<EmployeesState>((set) => ({
@@ -33,27 +33,33 @@ export const useEmployeesStore = create<EmployeesState>((set) => ({
   },
 
   current: null,
+  currentBalance: null,
   slots: [],
-  payments: [],
   detailLoading: true,
 
   fetchDetail: async (id) => {
     set({ detailLoading: true });
     try {
-      const [emp, avail, payments] = await Promise.all([
+      const [emp, avail, balance] = await Promise.all([
         api.get<Employee>(`/employees/${id}`),
         api.get<Paginated<ScheduleAvailability>>(
           `/schedule-availability?employeeId=${id}`,
         ),
-        api.get<Transaction[]>(`/employees/${id}/payments`),
+        api.get<Balance>(`/balances/employee/${id}`).catch(() => null),
       ]);
-      set({ current: emp, slots: avail.items, payments });
+      set({ current: emp, slots: avail.items, currentBalance: balance });
     } finally {
       set({ detailLoading: false });
     }
   },
 
+  fetchBalance: async (id) => {
+    const balance = await api
+      .get<Balance>(`/balances/employee/${id}`)
+      .catch(() => null);
+    set({ currentBalance: balance });
+  },
+
   setCurrent: (employee) => set({ current: employee }),
   setSlots: (slots) => set({ slots }),
-  setPayments: (payments) => set({ payments }),
 }));

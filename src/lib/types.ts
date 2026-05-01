@@ -37,7 +37,6 @@ export type Patient = {
   referral?: { id: string; firstName: string; lastName: string };
   createdAt: string;
   updatedAt: string;
-  balance?: Balance;
   country?: Country;
   city?: LebanonCity;
 };
@@ -49,18 +48,17 @@ export type PatientAllergy = {
   notes?: string;
 };
 
-export type PatientProcedure = {
+export type AppointmentProcedure = {
   id: string;
-  patientId?: string;
+  patientId: string;
   procedureId: string;
-  appointmentId?: string | null;
-  procedureName?: string;
-  status?: string;
+  appointmentId: string;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  procedureName?: string;
   patientName?: string;
-  sessions?: PatientProcedureSession[];
+  appointment?: Appointment;
 };
 
 export type PrescriptionMedicine = {
@@ -130,8 +128,7 @@ export type Appointment = {
   completionNotes?: string;
   createdAt?: string;
   updatedAt?: string;
-  patientProcedure?: PatientProcedure;
-  patientProcedureSession?: PatientProcedureSession;
+  appointmentProcedures?: AppointmentProcedure[];
 };
 
 export type RoomDayCount = {
@@ -162,17 +159,6 @@ export type EmployeeUser = {
   updatedAt: string;
 };
 
-export type EmployeeBalance = {
-  id: string;
-  entityType: string;
-  entityId: string;
-  entityName: string;
-  currencyId: string;
-  amount: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
 export type Employee = {
   id: string;
   userId?: string;
@@ -187,7 +173,6 @@ export type Employee = {
   updatedAt: string;
   salaries: Salary[];
   user?: EmployeeUser;
-  balance: EmployeeBalance[];
 };
 
 export type ScheduleAvailability = {
@@ -199,16 +184,6 @@ export type ScheduleAvailability = {
   effectiveDate?: string;
   createdAt?: string;
   employeeName?: string;
-};
-
-export type ProcedureSession = {
-  id: string;
-  procedureId: string;
-  sessionNumber: number;
-  name: string;
-  description?: string;
-  price: number;
-  createdAt?: string;
 };
 
 export type ProcedureType = {
@@ -243,6 +218,14 @@ export type Procedure = {
   updatedAt: string;
 };
 
+export type ProcedurePrice = {
+  id: string;
+  procedureId: string;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
 export type ProductCategory = {
   id: string;
   name: string;
@@ -260,6 +243,14 @@ export type Product = {
   createdAt: string;
 };
 
+export type ProductPrice = {
+  id: string;
+  productId: string;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
 export type Supplier = {
   id: string;
   name: string;
@@ -269,7 +260,6 @@ export type Supplier = {
   notes: string;
   createdAt: string;
   updatedAt: string;
-  balance?: Balance;
 };
 
 export type Expense = {
@@ -296,6 +286,8 @@ export type Balance = {
   entityName: string;
   currencyId: string;
   amount?: number;
+  totalIn?: number;
+  totalOut?: number;
   createdAt?: string;
   updatedAt?: string;
   recentTransactions?: BalanceTransaction[];
@@ -309,11 +301,21 @@ export type BalanceTransaction = {
   currencyId: string;
   transactionType?: string;
   transactionMethod?: string;
+  sourceType?: string;
+  sourceId?: string;
   description: string;
   createdBy: string;
   createdAt: string;
   fromEntityName: string;
   toEntityName: string;
+};
+
+export type ClientRefundRequest = {
+  patientId: string;
+  amount: number;
+  currencyId: string;
+  transactionMethod?: string;
+  description?: string;
 };
 
 export type InvoiceItem = {
@@ -469,42 +471,6 @@ export type ProductAllergyConflict = {
   allergyId: string;
   allergyName?: string;
   notes?: string;
-};
-
-export type ForecastCategory = {
-  category: string;
-  count: number;
-  revenue: number;
-};
-
-export type ForecastReport = {
-  thisWeek: number;
-  thisMonth: number;
-  nextMonth: number;
-  byCategory: ForecastCategory[];
-};
-
-export type ExpenseBreakdown = {
-  category: string;
-  total: number;
-};
-
-export type ProfitLossReport = {
-  totalRevenue: number;
-  totalExpenses: number;
-  netProfit: number;
-  expenseBreakdown: ExpenseBreakdown[];
-};
-
-export type PatientProcedureSession = {
-  id: string;
-  patientProcedureId: string;
-  procedureSessionId: string;
-  appointmentId?: string | null;
-  status: "pending" | "scheduled" | "completed" | "skipped" | "cancelled";
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type Notification = {

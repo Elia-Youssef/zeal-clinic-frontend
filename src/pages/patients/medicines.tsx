@@ -48,7 +48,7 @@ export default function MedicinesPage() {
       header: "Name",
       render: (m) => <span className="font-medium">{m.name}</span>,
     },
-    { key: "desc", header: "Description", render: (m) => m.description || "—" },
+    { key: "desc", header: "Description", render: (m) => m.description || "---" },
   ];
 
   const actions: RowAction<Medicine>[] = [

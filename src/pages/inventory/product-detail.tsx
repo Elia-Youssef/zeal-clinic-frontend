@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, AlertTriangle, Trash2 } from "lucide-react";
@@ -20,6 +19,7 @@ import type {
   Product,
   ProductAllergyConflict,
   ProductCategory,
+  ProductPrice,
 } from "@/lib/types";
 import { ProductAllergyConflictForm } from "@/components/forms/product-allergy-conflict-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -42,8 +42,10 @@ function ProductDetailContent() {
     [],
   );
   const [loading, setLoading] = useState(true);
+  const [pricingKey, setPricingKey] = useState(0);
   const [conflictsKey, setConflictsKey] = useState(0);
 
+  const bumpPricing = () => setPricingKey((k) => k + 1);
   const bumpConflicts = () => setConflictsKey((k) => k + 1);
 
   /* Edit modal */
@@ -97,6 +99,7 @@ function ProductDetailContent() {
       addAlert("success", "Product updated.");
       setEditOpen(false);
       load();
+      bumpPricing();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     } finally {
@@ -149,11 +152,6 @@ function ProductDetailContent() {
       <PageHeader
         backHref="/inventory"
         title={product.name}
-        badges={
-          product.categoryId ? (
-            <Badge variant="outline">{catMap[product.categoryId] ?? "—"}</Badge>
-          ) : undefined
-        }
         onEdit={can("inventory:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("inventory:delete") ? handleDelete : undefined}
       />
@@ -161,9 +159,9 @@ function ProductDetailContent() {
       {/* Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm">
+        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Unit Price">
             <p className="text-lg font-semibold">
               ${product.unitPrice.toFixed(2)}
@@ -171,15 +169,13 @@ function ProductDetailContent() {
           </DetailField>
           <DetailField label="Stock">{product.quantity}</DetailField>
           <DetailField label="Min Threshold">
-            {product.minThreshold ?? "—"}
+            {product.minThreshold ?? "---"}
           </DetailField>
         </CardContent>
       </Card>
 
-      {/* Allergy conflicts & Invoices */}
-      <div className="flex flex-row gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <DataList<ProductAllergyConflict>
-          className={can("transactions:read") ? "flex-1" : ""}
           title="Allergy Conflicts"
           columns={[
             {
@@ -190,7 +186,7 @@ function ProductDetailContent() {
             {
               header: "Notes",
               key: "notes",
-              render: (i) => i.notes ?? "—",
+              render: (i) => i.notes ?? "---",
             },
           ]}
           actions={
@@ -226,7 +222,6 @@ function ProductDetailContent() {
 
         {can("transactions:read") && (
           <DataList<Invoice>
-            className="flex-1"
             title="Invoices"
             columns={[
               {
@@ -235,13 +230,23 @@ function ProductDetailContent() {
                 render: (i) => `#${i.invoiceNumber}`,
               },
               {
+                header: "Type",
+                key: "type",
+                render: (i) => (
+                  <Badge variant="secondary">
+                    {i.fromEntityId == "self" ? "Sale" : "Purchase"}
+                  </Badge>
+                ),
+              },
+              {
                 header: "Date",
                 key: "date",
-                render: (i) => i.createdAt?.slice(0, 10) ?? "—",
+                render: (i) => i.createdAt?.slice(0, 10) ?? "---",
               },
               {
                 header: "Amount",
                 key: "amount",
+                className: "text-right",
                 render: (i) => `$${i.amount.toFixed(2)}`,
               },
             ]}
@@ -253,6 +258,36 @@ function ProductDetailContent() {
             emptyMessage="No invoices."
           />
         )}
+
+        <DataList<ProductPrice>
+          title="Pricing History"
+          columns={[
+            {
+              header: "",
+              key: "status",
+              className: "w-24",
+              render: (i) => (i.isActive ? <Badge>Current</Badge> : null),
+            },
+            {
+              header: "Price",
+              key: "price",
+              render: (i) => (
+                <span className="font-medium">${i.price.toFixed(2)}</span>
+              ),
+            },
+            {
+              header: "Date",
+              key: "createdAt",
+              render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+            },
+          ]}
+          endpoint={`/products/${id}/prices`}
+          rowKey={(i) => i.id}
+          limit={5}
+          hideSearch
+          emptyMessage="No price history."
+          refreshKey={pricingKey}
+        />
       </div>
 
       {/* Add conflict modal */}

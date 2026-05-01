@@ -51,7 +51,7 @@ export function AnalyticsStatCard<T>({
         ) : (
           <div className={`text-2xl font-bold ${valueClassName ?? ""}`}>
             {value == null
-              ? "—"
+              ? "---"
               : format
                 ? format(value)
                 : value.toLocaleString()}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,24 +7,24 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
-import { transactionTypeOptions } from "@/lib/constants";
-import type { Balance, Supplier } from "@/lib/types";
+import { transactionMethodOptions } from "@/lib/constants";
 
 export function SupplierPaymentForm({
   open,
   onClose,
   onSaved,
-  supplierBalance,
+  defaultSupplierId,
+  defaultSupplierLabel,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
-  supplierBalance?: Balance;
+  defaultSupplierId?: string;
+  defaultSupplierLabel?: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
 
   const [supplierId, setSupplierId] = useState("");
-  const [supplierBalanceId, setSupplierBalanceId] = useState("");
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
@@ -34,38 +33,22 @@ export function SupplierPaymentForm({
 
   useEffect(() => {
     if (!open) return;
-    setSupplierId(supplierBalance?.entityId ?? "");
-    setSupplierBalanceId(supplierBalance?.id ?? "");
+    setSupplierId(defaultSupplierId ?? "");
     setAmount("");
-    setCurrencyId(supplierBalance?.currencyId ?? "");
+    setCurrencyId("");
     setTransactionMethod("cash");
     setDescription("");
-  }, [open, supplierBalance]);
+  }, [open, defaultSupplierId]);
 
-  const handleSupplierChange = async (newId: string) => {
-    setSupplierId(newId);
-    if (!newId) {
-      setSupplierBalanceId("");
-      return;
-    }
-    try {
-      const s = await api.get<Supplier>(`/suppliers/${newId}`);
-      setSupplierBalanceId(s.balance?.id ?? "");
-      if (s.balance?.currencyId) setCurrencyId(s.balance.currencyId);
-    } catch (err) {
-      addAlert("error", getErrorMessage(err));
-    }
-  };
-
-  const canSubmit = !!supplierBalanceId && Number(amount) > 0 && !!currencyId;
+  const canSubmit = !!supplierId && Number(amount) > 0 && !!currencyId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierBalanceId) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     try {
       await api.post("/supplier-payments", {
-        supplierBalanceId,
+        supplierId,
         amount: Number(amount),
         currencyId,
         transactionMethod,
@@ -88,9 +71,17 @@ export function SupplierPaymentForm({
           <label className="text-sm font-medium">Supplier *</label>
           <SearchableDropdown
             value={supplierId}
-            onChange={handleSupplierChange}
+            onChange={setSupplierId}
+            defaultApiOption={
+              defaultSupplierId && defaultSupplierLabel
+                ? { value: defaultSupplierId, label: defaultSupplierLabel }
+                : undefined
+            }
             apiEndpoint="/suppliers/dropdown"
-            mapItem={(s: { id: string; name: string }) => ({ value: s.id, label: s.name })}
+            mapItem={(s: { id: string; name: string }) => ({
+              value: s.id,
+              label: s.name,
+            })}
             placeholder="Select supplier…"
             required
           />
@@ -99,7 +90,14 @@ export function SupplierPaymentForm({
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
-            <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Currency *</label>
@@ -107,7 +105,10 @@ export function SupplierPaymentForm({
               value={currencyId}
               onChange={setCurrencyId}
               apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
+              mapItem={(c: { id: string; name: string }) => ({
+                value: c.id,
+                label: c.name,
+              })}
               placeholder="Select currency…"
               required
               defaultFirst
@@ -118,19 +119,27 @@ export function SupplierPaymentForm({
             <SearchableDropdown
               value={transactionMethod}
               onChange={setTransactionMethod}
-              options={transactionTypeOptions}
+              options={transactionMethodOptions}
               placeholder="Select method…"
+              defaultFirst
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Description</label>
-          <textarea className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
             {submitting ? "Recording…" : "Record Payment"}
           </Button>

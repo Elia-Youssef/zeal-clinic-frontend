@@ -37,7 +37,6 @@ export default function ExpensesPage() {
 
   const handleSaved = (expense: Expense) => {
     setRefreshKey((k) => k + 1);
-    navigate(`/financials/expenses/${expense.id}`);
   };
 
   return (

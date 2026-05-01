@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
-import { transactionTypeOptions } from "@/lib/constants";
+import { transactionMethodOptions } from "@/lib/constants";
 import type { Transaction } from "@/lib/types";
 
 export function ClientPaymentForm({
@@ -69,7 +68,7 @@ export function ClientPaymentFormBody({
     defaultAmount != null ? String(defaultAmount) : "",
   );
   const [currencyId, setCurrencyId] = useState("");
-  const [transactionType, setTransactionType] = useState("payment");
+  const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -78,9 +77,9 @@ export function ClientPaymentFormBody({
     setPatientId(defaultPatientId ?? "");
     setAmount(defaultAmount != null ? String(defaultAmount) : "");
     setCurrencyId("");
-    setTransactionType("payment");
+    setTransactionMethod("cash");
     setDescription("");
-  }, [open]);
+  }, [open, defaultPatientId, defaultAmount]);
 
   const canSubmit = patientId && Number(amount) > 0 && currencyId;
 
@@ -92,7 +91,7 @@ export function ClientPaymentFormBody({
         patientId,
         amount: Number(amount),
         currencyId,
-        transactionType,
+        transactionMethod,
         description: description || undefined,
       });
       addAlert("success", "Client payment recorded.");
@@ -117,7 +116,10 @@ export function ClientPaymentFormBody({
               : undefined
           }
           apiEndpoint="/patients/dropdown"
-          mapItem={(p: { id: string; name: string }) => ({ value: p.id, label: p.name })}
+          mapItem={(p: { id: string; name: string }) => ({
+            value: p.id,
+            label: p.name,
+          })}
           placeholder="Select patient…"
           required
         />
@@ -126,7 +128,14 @@ export function ClientPaymentFormBody({
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Amount *</label>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Currency *</label>
@@ -134,30 +143,41 @@ export function ClientPaymentFormBody({
             value={currencyId}
             onChange={setCurrencyId}
             apiEndpoint="/currencies/dropdown"
-            mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
+            mapItem={(c: { id: string; name: string }) => ({
+              value: c.id,
+              label: c.name,
+            })}
             placeholder="Select currency…"
             required
             defaultFirst
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Transaction Type</label>
+          <label className="text-sm font-medium">Transaction Method</label>
           <SearchableDropdown
-            value={transactionType}
-            onChange={setTransactionType}
-            options={transactionTypeOptions}
+            value={transactionMethod}
+            onChange={setTransactionMethod}
+            options={transactionMethodOptions}
             placeholder="Select type…"
+            defaultFirst
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Description</label>
-        <textarea className={textareaClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea
+          className={textareaClass}
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>{cancelLabel}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {cancelLabel}
+        </Button>
         <Button type="submit" disabled={submitting || !canSubmit}>
           {submitting ? "Recording…" : submitLabel}
         </Button>

@@ -46,9 +46,9 @@ export default function CategoriesPage() {
     {
       key: "parent",
       header: "Parent",
-      render: (c) => c.parent?.name || "—",
+      render: (c) => c.parent?.name || "---",
     },
-    { key: "desc", header: "Description", render: (c) => c.description || "—" },
+    { key: "desc", header: "Description", render: (c) => c.description || "---" },
   ];
 
   const actions: RowAction<ProcedureCategory>[] = [

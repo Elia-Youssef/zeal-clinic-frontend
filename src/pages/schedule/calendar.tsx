@@ -1,5 +1,11 @@
-
-import { Suspense, useCallback, useEffect, useMemo, useState, memo } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  memo,
+} from "react";
 import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -9,7 +15,7 @@ import {
   Loader2,
   RotateCcw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeRange } from "@/lib/utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -194,25 +200,40 @@ function AppointmentCard({
           />
         }
       >
-        <div className="truncate text-xs font-medium px-1 pt-1">
-          {appt.patientName || "Unknown Patient"}
-        </div>
-        {appt.patientProcedure && (
-          <div className="truncate text-xs opacity-80 px-1">
-            {appt.patientProcedure.procedureName}
+        <div className="flex flex-col">
+          <div
+            className={cn(
+              "truncate text-xs font-medium p-1 text-center",
+              style.badge,
+            )}
+          >
+            {appt.patientName || "---"}
           </div>
-        )}
+          <div className="flex flex-col gap-0.5 opacity-80 p-1">
+            {appt.appointmentProcedures?.map((p) =>
+              p.procedureName ? (
+                <Badge variant="secondary" className="text-[0.7em]">
+                  {p.procedureName}
+                </Badge>
+              ) : null,
+            )}
+          </div>
+        </div>
         <div
           className={cn(
-            "text-[10px] font-medium self-end px-1 py-0.5 rounded-tl-sm",
+            "absolute bottom-0 right-0 text-[0.6em] font-medium px-1 py-0.5 rounded-tl-sm",
             style.badge,
           )}
         >
           {appt.status}
         </div>
       </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="space-y-2">
-        <div className="flex items-start justify-between gap-2">
+      <HoverCardContent
+        side="right"
+        align="start"
+        className="space-y-2 min-w-70 min-h-30 w-fit"
+      >
+        <div className="flex flex-1 items-start justify-between gap-2">
           {can("patients:read") ? (
             <Link
               to={`/patients/${appt.patientId}`}
@@ -228,27 +249,23 @@ function AppointmentCard({
           )}
           <Badge className={cn("shrink-0", style.badge)}>{appt.status}</Badge>
         </div>
-        <div className="grid grid-cols-[5rem_1fr] gap-y-1 text-xs">
+        <div className="flex-1 grid grid-cols-[7em_1fr] gap-y-1 text-xs">
           <span className="text-muted-foreground">Time</span>
-          <span>
-            {startTime} – {endTime}
+          <span>{formatTimeRange(appt.startTime, appt.endTime)}</span>
+          <span className="text-muted-foreground">
+            {(appt.appointmentProcedures?.length || 0) > 1
+              ? "Procedures"
+              : "Procedure"}
           </span>
-          {appt.patientProcedure?.procedureName && (
-            <>
-              <span className="text-muted-foreground">Procedure</span>
-              <span className="truncate">
-                {appt.patientProcedure.procedureName}
-              </span>
-            </>
-          )}
-          {appt.notes && (
-            <>
-              <span className="text-muted-foreground">Notes</span>
-              <span className="whitespace-pre-wrap wrap-break-word">
-                {appt.notes}
-              </span>
-            </>
-          )}
+          <div className="flex flex-col gap-0.5">
+            {appt.appointmentProcedures?.map((p) => (
+              <Badge variant="secondary">{p.procedureName || "---"}</Badge>
+            ))}
+          </div>
+          <span className="text-muted-foreground">Notes</span>
+          <span className="whitespace-pre-wrap wrap-break-word">
+            {appt.notes || "---"}
+          </span>
         </div>
       </HoverCardContent>
     </HoverCard>
@@ -360,9 +377,11 @@ function DayView({
         </Badge>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[calc(100vh-14rem)]">
         <div className="min-w-225">
-          <RoomHeaders rooms={rooms} />
+          <div className="sticky top-0 z-11 bg-card">
+            <RoomHeaders rooms={rooms} />
+          </div>
 
           <div
             className="relative grid"
@@ -623,9 +642,11 @@ function CalendarPageContent() {
         patientId: appt.patientId,
         patientLabel: appt.patientName,
         roomId: appt.roomId,
-        procedureId: appt.patientProcedure?.id ?? "",
-        procedureLabel: appt.patientProcedure?.procedureName ?? "",
-        procedureSessionId: appt.patientProcedureSession?.id ?? "",
+        procedures:
+          appt.appointmentProcedures?.map((ap) => ({
+            id: ap.procedureId,
+            label: ap.procedureName ?? "",
+          })) ?? [],
         startTime: appt.startTime.slice(0, 16),
         endTime: appt.endTime.slice(0, 16),
         status: appt.status,

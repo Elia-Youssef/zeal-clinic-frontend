@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,13 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
-import { transactionTypeOptions } from "@/lib/constants";
+import { transactionMethodOptions } from "@/lib/constants";
 
-export type AdjustmentEntityType = "patient" | "supplier" | "employee" | "expense";
+export type AdjustmentEntityType =
+  | "patient"
+  | "supplier"
+  | "employee"
+  | "expense";
 
 const ENDPOINT_MAP: Record<
   AdjustmentEntityType,
@@ -66,7 +69,9 @@ export function BalanceAdjustmentForm({
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
-  const [direction, setDirection] = useState<"incoming" | "outgoing">(defaultDirection);
+  const [direction, setDirection] = useState<"incoming" | "outgoing">(
+    defaultDirection,
+  );
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -102,7 +107,10 @@ export function BalanceAdjustmentForm({
       if (!isWriteOff) payload.transactionMethod = transactionMethod;
 
       await api.post(endpoint, payload);
-      addAlert("success", isWriteOff ? "Write-off created." : "Adjustment created.");
+      addAlert(
+        "success",
+        isWriteOff ? "Write-off created." : "Adjustment created.",
+      );
       onSaved();
       onClose();
     } catch (err) {
@@ -113,9 +121,15 @@ export function BalanceAdjustmentForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isWriteOff ? "New Write-Off" : "New Balance Adjustment"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isWriteOff ? "New Write-Off" : "New Balance Adjustment"}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className={`grid ${isWriteOff ? "grid-cols-3" : "grid-cols-4"} gap-3`}>
+        <div
+          className={`grid ${isWriteOff ? "grid-cols-3" : "grid-cols-4"} gap-3`}
+        >
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
             <Input
@@ -133,7 +147,10 @@ export function BalanceAdjustmentForm({
               value={currencyId}
               onChange={setCurrencyId}
               apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
+              mapItem={(c: { id: string; name: string }) => ({
+                value: c.id,
+                label: c.name,
+              })}
               placeholder="Select currency…"
               required
               defaultFirst
@@ -155,8 +172,9 @@ export function BalanceAdjustmentForm({
               <SearchableDropdown
                 value={transactionMethod}
                 onChange={setTransactionMethod}
-                options={transactionTypeOptions}
+                options={transactionMethodOptions}
                 placeholder="Select method…"
+                defaultFirst
               />
             </div>
           )}
@@ -174,9 +192,15 @@ export function BalanceAdjustmentForm({
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Creating…" : isWriteOff ? "Create Write-Off" : "Create Adjustment"}
+            {submitting
+              ? "Creating…"
+              : isWriteOff
+                ? "Create Write-Off"
+                : "Create Adjustment"}
           </Button>
         </div>
       </form>

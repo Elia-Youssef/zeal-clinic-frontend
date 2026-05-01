@@ -9,6 +9,7 @@ import { AddButton } from "@/components/shared/add-button";
 import { DetailField } from "@/components/shared/detail-field";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
+import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
 import { ExpenseForm } from "@/components/forms/expense-form";
 import { ExpensePaymentForm } from "@/components/forms/expense-payment-form";
 import { BalanceAdjustmentForm } from "@/components/forms/balance-adjustment-form";
@@ -171,7 +172,7 @@ function ExpenseDetailContent() {
         <CardHeader>
           <CardTitle className="text-base">Expense Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm">
+        <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Created">
             {expense.createdAt?.slice(0, 10) ?? "---"}
           </DetailField>
@@ -209,15 +210,19 @@ function ExpenseDetailContent() {
         headerActions={
           can("transactions:write") ? (
             <div className="flex items-center gap-2">
-              <AddButton
-                label="Adjustment"
-                onClick={() => setAdjustmentOpen(true)}
-              />
-              <AddButton
-                label="Write-Off"
-                onClick={() => setWriteOffOpen(true)}
-              />
               <AddButton label="New" onClick={() => setPaymentOpen(true)} />
+              <PaymentActionsMenu
+                actions={[
+                  {
+                    label: "Adjustment",
+                    onClick: () => setAdjustmentOpen(true),
+                  },
+                  {
+                    label: "Write-Off",
+                    onClick: () => setWriteOffOpen(true),
+                  },
+                ]}
+              />
             </div>
           ) : undefined
         }

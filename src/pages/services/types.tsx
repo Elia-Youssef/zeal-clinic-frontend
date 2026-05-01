@@ -43,7 +43,7 @@ export default function TypesPage() {
 
   const columns: Column<ProcedureType>[] = [
     { key: "name", header: "Name", render: (t) => <span className="font-medium">{t.name}</span> },
-    { key: "desc", header: "Description", render: (t) => t.description || "—" },
+    { key: "desc", header: "Description", render: (t) => t.description || "---" },
   ];
 
   const actions: RowAction<ProcedureType>[] = [

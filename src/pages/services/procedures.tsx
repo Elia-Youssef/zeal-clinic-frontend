@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type Column } from "@/components/data/data-table";
@@ -17,24 +16,31 @@ export default function ProceduresPage() {
 
   const columns: Column<Procedure>[] = [
     {
-      key: "name",
-      header: "Name",
-      render: (p) => <span className="font-medium">{p.name}</span>,
+      key: "type",
+      header: "Type",
+      className: "w-36",
+      render: (p) => <Badge variant="secondary">{p.type?.name || "---"}</Badge>,
     },
-    { key: "type", header: "Type", render: (p) => p.type?.name || "—" },
     {
       key: "category",
       header: "Category",
+      className: "w-48",
       render: (p) => {
-        if (!p.category?.name) return "—";
-        const parts: string[] = [];
-        let cat: typeof p.category | undefined = p.category;
-        while (cat) {
-          parts.unshift(cat.name);
-          cat = cat.parent;
-        }
-        return <Badge variant="outline">{parts.join(" > ")}</Badge>;
+        let cat = p.category?.name || "";
+        let parentcat = p.category?.parent?.name || "";
+        if (!cat && !parentcat) return "---";
+        return (
+          <div className="flex flex-row gap-1">
+            {parentcat && <Badge variant="outline">{parentcat}</Badge>}
+            {cat && <Badge variant="outline">{cat}</Badge>}
+          </div>
+        );
       },
+    },
+    {
+      key: "name",
+      header: "Name",
+      render: (p) => <span className="font-medium">{p.name}</span>,
     },
     {
       key: "price",
@@ -42,9 +48,16 @@ export default function ProceduresPage() {
       className: "text-right",
       render: (p) => (
         <span className="font-medium">
-          {p.price != null
-            ? `$${p.price}${p.priceNote ? ` (${p.priceNote})` : ""}`
-            : "—"}
+          {p.price ? <span>${p.price}</span> : null}
+          {p.priceNote && p.price ? (
+            <span className="text-muted-foreground">{" - "}</span>
+          ) : null}
+          {p.priceNote && (
+            <span className="text-muted-foreground">{p.priceNote}</span>
+          )}
+          {!p.priceNote && !p.price ? (
+            <span className="text-muted-foreground">---</span>
+          ) : null}
         </span>
       ),
     },

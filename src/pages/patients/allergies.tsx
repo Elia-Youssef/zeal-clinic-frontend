@@ -48,7 +48,7 @@ export default function AllergiesPage() {
       header: "Name",
       render: (a) => <span className="font-medium">{a.name}</span>,
     },
-    { key: "desc", header: "Description", render: (a) => a.description || "—" },
+    { key: "desc", header: "Description", render: (a) => a.description || "---" },
   ];
 
   const actions: RowAction<Allergy>[] = [

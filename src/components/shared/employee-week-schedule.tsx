@@ -1,6 +1,6 @@
 
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeRange } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScheduleAvailabilityForm } from "@/components/forms/schedule-availability-form";
 import type { ScheduleAvailability } from "@/lib/types";
@@ -194,7 +194,7 @@ export function EmployeeWeekSchedule({
                           }}
                         >
                           <div className="truncate text-xs font-medium">
-                            {s.startTime.slice(0, 5)} – {s.endTime.slice(0, 5)}
+                            {formatTimeRange(s.startTime, s.endTime)}
                           </div>
                         </div>
                       );

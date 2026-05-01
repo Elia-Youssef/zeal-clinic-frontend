@@ -1,5 +1,6 @@
 
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export function DetailField({
   label,
@@ -11,10 +12,12 @@ export function DetailField({
   children: ReactNode;
 }) {
   return (
-    <div className={className}>
-      <span className="text-muted-foreground">{label}</span>
+    <div className={cn("flex flex-col gap-0.5", className)}>
+      <span className="text-xs font-medium tracking-wide text-muted-foreground">
+        {label}
+      </span>
       {typeof children === "string" || typeof children === "number" ? (
-        <p>{children}</p>
+        <p className="text-sm text-foreground">{children}</p>
       ) : (
         children
       )}

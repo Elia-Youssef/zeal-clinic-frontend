@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,9 @@ import type { Procedure } from "@/lib/types";
 type ProcedureFormFields = {
   name: string;
   typeId: string;
+  typeName?: string;
   categoryId: string;
+  categoryName?: string;
   price: string;
   priceNote: string;
   isActive: boolean;
@@ -54,7 +55,9 @@ export function ProcedureForm({
       setForm({
         name: initial.name,
         typeId: initial.typeId ?? "",
+        typeName: initial.type?.name,
         categoryId: initial.categoryId ?? "",
+        categoryName: initial.category?.name,
         price: initial.price?.toString() ?? "",
         priceNote: initial.priceNote ?? "",
         isActive: initial.isActive,
@@ -90,7 +93,10 @@ export function ProcedureForm({
         addAlert("success", "Procedure updated.");
         onSaved();
       } else {
-        const created = await api.post<Record<string, unknown>>("/procedures", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/procedures",
+          payload,
+        );
         addAlert("success", "Procedure created.");
         onSaved(created);
       }
@@ -120,16 +126,6 @@ export function ProcedureForm({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Type</label>
-            <SearchableDropdown
-              value={form.typeId}
-              onChange={(v) => update("typeId", v)}
-              apiEndpoint="/procedure-types/dropdown"
-              mapItem={(t: any) => ({ value: t.id, label: t.name })}
-              placeholder="Select type"
-            />
-          </div>
-          <div className="space-y-1.5">
             <label className="text-sm font-medium">Price</label>
             <Input
               type="number"
@@ -137,39 +133,67 @@ export function ProcedureForm({
               onChange={(e) => update("price", e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Category</label>
-          <SearchableDropdown
-            value={form.categoryId}
-            onChange={(v) => update("categoryId", v)}
-            apiEndpoint="/procedure-categories/dropdown"
-            mapItem={(c: any) => ({
-              value: c.id,
-              label: c.name,
-            })}
-            placeholder="Select category"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Price Note</label>
             <Input
               value={form.priceNote}
               onChange={(e) => update("priceNote", e.target.value)}
-              placeholder="e.g. per session"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Type</label>
+            <SearchableDropdown
+              value={form.typeId}
+              onChange={(v) => update("typeId", v)}
+              apiEndpoint="/procedure-types/dropdown"
+              mapItem={(t: any) => ({ value: t.id, label: t.name })}
+              placeholder="Select type"
+              defaultApiOption={
+                form.typeName
+                  ? { value: form.typeId, label: form.typeName }
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Includes</label>
-            <Input
-              value={form.includes}
-              onChange={(e) => update("includes", e.target.value)}
-              placeholder='e.g. ["Full Face","Underarms"]'
+            <label className="text-sm font-medium">Category</label>
+            <SearchableDropdown
+              value={form.categoryId}
+              onChange={(v) => update("categoryId", v)}
+              apiEndpoint="/procedure-categories/dropdown"
+              mapItem={(c: any) => ({
+                value: c.id,
+                label: c.name,
+              })}
+              placeholder="Select category"
+              defaultApiOption={
+                form.categoryName
+                  ? { value: form.categoryId, label: form.categoryName }
+                  : undefined
+              }
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Includes</label>
+          <Input
+            value={form.includes}
+            onChange={(e) => update("includes", e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Remarks</label>
+          <textarea
+            className={textareaClass}
+            rows={2}
+            value={form.remarks}
+            onChange={(e) => update("remarks", e.target.value)}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -181,16 +205,6 @@ export function ProcedureForm({
           <label htmlFor="proc-isActive" className="text-sm font-medium">
             Active
           </label>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Remarks</label>
-          <textarea
-            className={textareaClass}
-            rows={2}
-            value={form.remarks}
-            onChange={(e) => update("remarks", e.target.value)}
-          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
