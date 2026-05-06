@@ -5,13 +5,16 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Wallet } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { type Column } from "@/components/data/data-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Employee } from "@/lib/types";
 import { EmployeeForm } from "@/components/forms/employee-form";
+import { SalaryPreparationForm } from "@/components/forms/salary-preparation-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
 /* ------------------------------------------------------------------ */
@@ -22,6 +25,7 @@ function TeamContent() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const [formOpen, setFormOpen] = useState(false);
+  const [salaryPrepOpen, setSalaryPrepOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const columns: Column<Employee>[] = [
@@ -68,9 +72,25 @@ function TeamContent() {
         emptySearchMessage="No employees match your search."
         onRowClick={(e) => navigate(`/team/${e.id}`)}
         headerActions={
-          can("team:write") ? (
-            <AddButton label="Add Employee" onClick={() => setFormOpen(true)} />
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {can("transactions:write") && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                onClick={() => setSalaryPrepOpen(true)}
+              >
+                <Wallet className="size-3.5" />
+                Prepare Salaries
+              </Button>
+            )}
+            {can("team:write") && (
+              <AddButton
+                label="Add Employee"
+                onClick={() => setFormOpen(true)}
+              />
+            )}
+          </div>
         }
         refreshKey={refreshKey}
       />
@@ -79,6 +99,11 @@ function TeamContent() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         onSaved={() => setRefreshKey((k) => k + 1)}
+      />
+
+      <SalaryPreparationForm
+        open={salaryPrepOpen}
+        onClose={() => setSalaryPrepOpen(false)}
       />
     </>
   );

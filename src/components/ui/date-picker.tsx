@@ -33,23 +33,26 @@ export function DatePicker({
   onChange,
   placeholder = "Pick a date",
   required,
+  disabled,
   className,
 }: {
   value: string
   onChange: (iso: string) => void
   placeholder?: string
   required?: boolean
+  disabled?: boolean
   className?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = parseISO(value)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger
         render={
           <Button
             variant="outline"
+            disabled={disabled}
             className={cn(
               "w-full justify-start text-left font-normal",
               !value && "text-muted-foreground",

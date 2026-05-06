@@ -51,24 +51,18 @@ export const employeePaymentTypeOptions: DropdownOption[] = [
 export const invoiceItemTypeOptions: DropdownOption[] = [
   { value: "product", label: "Product" },
   { value: "procedure", label: "Procedure" },
-  { value: "discount", label: "Gift Card" },
+  { value: "gift", label: "Gift Card" },
   { value: "other", label: "Other" },
 ];
 
 export const discountTypeOptions: DropdownOption[] = [
   { value: "offer", label: "Offer" },
-  { value: "voucher", label: "Voucher" },
   { value: "gift", label: "Gift" },
 ];
 
 export const discountValueTypeOptions: DropdownOption[] = [
   { value: "percentage", label: "Percentage" },
   { value: "fixed", label: "Fixed" },
-];
-
-export const discountItemTypeOptions: DropdownOption[] = [
-  { value: "procedure", label: "Procedure" },
-  { value: "product", label: "Product" },
 ];
 
 export const appointmentStatuses = [
@@ -159,6 +153,7 @@ export const transactionColors = {
 
 /* ----------------------- Lookup Helpers --------------------------- */
 
+/** Backend convention (matches JS Date.getDay()): 0 = Sunday … 6 = Saturday. */
 const dayOfWeekLabels: Record<number, string> = {
   0: "Sunday",
   1: "Monday",
@@ -167,9 +162,19 @@ const dayOfWeekLabels: Record<number, string> = {
   4: "Thursday",
   5: "Friday",
   6: "Saturday",
-  7: "Sunday",
 };
 
 export function fmtDayOfWeek(day: number): string {
   return dayOfWeekLabels[day] ?? `Day ${day}`;
 }
+
+export const dayOfWeekOptions: DropdownOption[] = [
+  { value: "0", label: "Sunday" },
+  { value: "1", label: "Monday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+];
+

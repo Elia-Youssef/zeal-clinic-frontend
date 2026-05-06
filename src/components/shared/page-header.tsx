@@ -1,4 +1,5 @@
 
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,13 @@ export function PageHeader({
   title,
   onEdit,
   onDelete,
+  extraActions,
 }: {
   backHref?: string;
   title: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  extraActions?: ReactNode;
 }) {
   const navigate = useNavigate();
 
@@ -32,8 +35,9 @@ export function PageHeader({
         </Button>
         <h2 className="text-xl font-semibold">{title}</h2>
       </div>
-      {(onEdit || onDelete) && (
+      {(onEdit || onDelete || extraActions) && (
         <div className="flex gap-2">
+          {extraActions}
           {onEdit && (
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Pencil className="size-4 mr-1" /> Edit

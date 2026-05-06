@@ -178,12 +178,88 @@ export type Employee = {
 export type ScheduleAvailability = {
   id: string;
   employeeId: string;
+  /** 0 = Sunday … 6 = Saturday (JS Date convention). */
   dayOfWeek: number;
   startTime: string;
   endTime: string;
-  effectiveDate?: string;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
   createdAt?: string;
+  updatedAt?: string;
   employeeName?: string;
+};
+
+/** Why a day shows up as off in the projected weekly view. */
+export type EmployeeScheduleOffReason = "" | "holiday" | "vacation" | "no-schedule";
+
+export type EmployeeScheduleShift = {
+  startTime: string;
+  endTime: string;
+};
+
+/**
+ * One day in the projected weekly schedule, computed on the fly from the
+ * weekly template minus holidays and employee vacations. Read-only; to
+ * change a day, edit the template, holiday, or vacation.
+ */
+export type EmployeeScheduleDay = {
+  employeeId: string;
+  employeeName?: string;
+  workDate: string;
+  /** 0 = Sunday … 6 = Saturday. */
+  dayOfWeek: number;
+  shifts: EmployeeScheduleShift[];
+  isOff: boolean;
+  offReason: EmployeeScheduleOffReason;
+  hours: number;
+};
+
+/** Approval status for a vacation request. */
+export type EmployeeVacationStatus = "pending" | "accepted" | "rejected";
+
+export type EmployeeVacation = {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  startDate: string;
+  endDate: string;
+  /** Empty when full-day; both set together for partial-day vacations. */
+  startTime: string;
+  endTime: string;
+  status: EmployeeVacationStatus;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type Holiday = {
+  id: string;
+  name: string;
+  /** Inclusive range. For single-day holidays, endDate equals startDate. */
+  startDate: string;
+  endDate: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SalaryPreparation = {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  periodStart: string;
+  periodEnd: string;
+  salaryId: string;
+  transactionId: string;
+  currencyId: string;
+  baseSalary: number;
+  adjustment: number;
+  preparedAmount: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt?: string;
 };
 
 export type ProcedureType = {
@@ -321,7 +397,7 @@ export type ClientRefundRequest = {
 export type InvoiceItem = {
   id: string;
   invoiceId: string;
-  itemType: "product" | "procedure" | "discount" | "other";
+  itemType: "product" | "procedure" | "gift" | "other";
   itemId: string;
   quantity: number;
   amount: number;
@@ -329,9 +405,8 @@ export type InvoiceItem = {
   notes: string;
   createdAt: string;
   itemName?: string;
-  discountId?: string;
-  discountValue?: number;
-  discountName?: string;
+  giftPatientId?: string | null;
+  giftCode?: string | null;
 };
 
 export type Invoice = {
@@ -340,6 +415,8 @@ export type Invoice = {
   fromBalanceId: string;
   toBalanceId: string;
   amount: number;
+  discountId?: string;
+  discountValue?: number;
   finalAmount: number;
   currencyId: string;
   notes: string;
@@ -400,48 +477,21 @@ export type AuditLogEntry = {
 /*  Discounts                                                          */
 /* ------------------------------------------------------------------ */
 
-export type DiscountItem = {
-  id: string;
-  discountId: string;
-  itemType: "procedure" | "product";
-  itemId: string;
-  createdAt: string;
-  itemName?: string;
-};
-
-export type Voucher = {
-  id: string;
-  discountId: string;
-  code: string;
-  isUsed: number;
-  createdAt: string;
-};
-
 export type Discount = {
   id: string;
   name: string;
   description?: string;
-  discountType: "offer" | "voucher" | "gift";
+  discountType: "offer" | "gift";
   valueType: "percentage" | "fixed";
   value: number;
-  maxUsages?: number | null;
-  currentUsages: number;
+  patientId?: string | null;
+  code?: string | null;
+  redeemedAt?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   isActive: number;
   createdAt: string;
   updatedAt: string;
-  items: DiscountItem[];
-  vouchers: Voucher[];
-};
-
-export type InvoiceItemDiscount = {
-  id: string;
-  invoiceItemId: string;
-  discountId: string;
-  discountValue: number;
-  createdAt: string;
-  discountName?: string;
 };
 
 export type BalanceAdjustment = {

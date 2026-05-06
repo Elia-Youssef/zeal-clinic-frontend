@@ -12,6 +12,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/**
+ * Tracks how many open modals are stacked above this one.
+ * When > 0, the modal hides itself so only the topmost is visible.
+ */
+const ModalDepthContext = React.createContext<{
+  depth: number;
+  register: () => () => void;
+}>({
+  depth: 0,
+  register: () => () => {},
+});
+
 export type ModalStep = {
   id: string;
   title: string;
@@ -65,34 +77,58 @@ export function Modal(props: ModalProps) {
 
   const isWizard = "steps" in props && props.steps !== undefined;
 
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-    >
-      <DialogContent
-        showCloseButton={!hideClose && !headerAction}
-        className="sm:max-w-125"
-      >
-        <DialogHeader className="flex flex-row w-full justify-between items-center">
-          <div>
-            <DialogTitle>{title}</DialogTitle>
-            {description && (
-              <DialogDescription>{description}</DialogDescription>
-            )}
-          </div>
-          {headerAction && <div>{headerAction}</div>}
-        </DialogHeader>
+  const parent = React.useContext(ModalDepthContext);
+  const [childCount, setChildCount] = React.useState(0);
 
-        {isWizard ? (
-          <WizardBody {...(props as WizardProps)} onClose={onClose} />
-        ) : (
-          <SingleBody {...(props as SingleProps)}>{children}</SingleBody>
-        )}
-      </DialogContent>
-    </Dialog>
+  /* Tell our parent we are open, so it hides itself while we're shown. */
+  React.useEffect(() => {
+    if (!open) return;
+    return parent.register();
+  }, [open, parent]);
+
+  const ctx = React.useMemo(
+    () => ({
+      depth: parent.depth + 1,
+      register: () => {
+        setChildCount((c) => c + 1);
+        return () => setChildCount((c) => Math.max(0, c - 1));
+      },
+    }),
+    [parent.depth],
+  );
+
+  const hidden = childCount > 0;
+
+  return (
+    <ModalDepthContext.Provider value={ctx}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+      >
+        <DialogContent
+          showCloseButton={!hideClose && !headerAction}
+          className={cn("sm:max-w-125", hidden && "hidden")}
+        >
+          <DialogHeader className="flex flex-row w-full justify-between items-center">
+            <div>
+              <DialogTitle>{title}</DialogTitle>
+              {description && (
+                <DialogDescription>{description}</DialogDescription>
+              )}
+            </div>
+            {headerAction && <div>{headerAction}</div>}
+          </DialogHeader>
+
+          {isWizard ? (
+            <WizardBody {...(props as WizardProps)} onClose={onClose} />
+          ) : (
+            <SingleBody {...(props as SingleProps)}>{children}</SingleBody>
+          )}
+        </DialogContent>
+      </Dialog>
+    </ModalDepthContext.Provider>
   );
 }
 

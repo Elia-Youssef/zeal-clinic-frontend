@@ -4,22 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
-import { DateInput } from "@/components/shared/date-input";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
-import { discountTypeOptions, discountValueTypeOptions } from "@/lib/constants";
+import { discountValueTypeOptions } from "@/lib/constants";
 import type { Discount } from "@/lib/types";
 import { DatePicker } from "../ui/date-picker";
 
 type Fields = {
   name: string;
   description: string;
-  discountType: string;
   valueType: string;
   value: string;
-  maxUsages: string;
   startDate: string;
   endDate: string;
   isActive: string;
@@ -28,10 +25,8 @@ type Fields = {
 const emptyForm: Fields = {
   name: "",
   description: "",
-  discountType: "offer",
   valueType: "percentage",
   value: "",
-  maxUsages: "",
   startDate: "",
   endDate: "",
   isActive: "1",
@@ -60,10 +55,8 @@ export function DiscountForm({
       setForm({
         name: initial.name,
         description: initial.description ?? "",
-        discountType: initial.discountType,
         valueType: initial.valueType,
         value: String(initial.value),
-        maxUsages: initial.maxUsages != null ? String(initial.maxUsages) : "",
         startDate: initial.startDate?.slice(0, 10) ?? "",
         endDate: initial.endDate?.slice(0, 10) ?? "",
         isActive: String(initial.isActive),
@@ -76,8 +69,7 @@ export function DiscountForm({
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const canSubmit =
-    form.name && form.discountType && form.valueType && Number(form.value) > 0;
+  const canSubmit = form.name && form.valueType && Number(form.value) > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,13 +77,11 @@ export function DiscountForm({
     try {
       const payload: Record<string, unknown> = {
         name: form.name,
-        discountType: form.discountType,
         valueType: form.valueType,
         value: Number(form.value),
         isActive: Number(form.isActive),
       };
       if (form.description) payload.description = form.description;
-      if (form.maxUsages) payload.maxUsages = Number(form.maxUsages);
       if (form.startDate) payload.startDate = toISODate(form.startDate);
       if (form.endDate) payload.endDate = toISODate(form.endDate);
 
@@ -99,6 +89,7 @@ export function DiscountForm({
         await api.put(`/discounts/${initial.id}`, payload);
         addAlert("success", "Discount updated.");
       } else {
+        payload.discountType = "offer";
         await api.post("/discounts", payload);
         addAlert("success", "Discount created.");
       }
@@ -115,7 +106,7 @@ export function DiscountForm({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Discount" : "New Discount"}
+      title={isEdit ? "Edit Discount" : "New Offer"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -137,16 +128,7 @@ export function DiscountForm({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Discount Type *</label>
-            <SearchableDropdown
-              value={form.discountType}
-              onChange={(v) => update("discountType", v)}
-              options={discountTypeOptions}
-              placeholder="Select…"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Value Type *</label>
             <SearchableDropdown
@@ -169,17 +151,7 @@ export function DiscountForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Max Usages</label>
-            <Input
-              type="number"
-              min="0"
-              value={form.maxUsages}
-              onChange={(e) => update("maxUsages", e.target.value)}
-              placeholder="Unlimited"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Date</label>
             <DatePicker

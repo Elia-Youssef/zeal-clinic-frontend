@@ -377,7 +377,7 @@ function DayView({
         </Badge>
       </div>
 
-      <div className="overflow-auto max-h-[calc(100vh-14rem)]">
+      <div className="overflow-auto max-h-[calc(100vh-18.5rem)]">
         <div className="min-w-225">
           <div className="sticky top-0 z-11 bg-card">
             <RoomHeaders rooms={rooms} />

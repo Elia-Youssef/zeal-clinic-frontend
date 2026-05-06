@@ -133,7 +133,7 @@ export function SearchableDropdown({
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative max-w-xs min-w-0", className)}>
       {/* Hidden input for form required validation */}
       {required && (
         <input
@@ -201,7 +201,10 @@ export function SearchableDropdown({
               <button
                 type="button"
                 title="Add new"
-                onClick={() => setAddFormOpen(true)}
+                onClick={() => {
+                  setOpen(false);
+                  setAddFormOpen(true);
+                }}
                 className="flex size-7 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <Plus className="size-3.5" />
@@ -220,7 +223,7 @@ export function SearchableDropdown({
                   type="button"
                   onClick={() => select(opt.value)}
                   className={cn(
-                    "flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
+                    "block w-full truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
                     opt.value === value && "bg-accent font-medium",
                   )}
                 >

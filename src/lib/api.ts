@@ -185,9 +185,29 @@ export const api = {
     });
   },
 
+  /** PATCH request: partially update an existing resource. */
+  patch<T>(endpoint: string, body?: unknown): Promise<T> {
+    return request<T>(endpoint, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+
   /** DELETE request: remove a resource. */
   del<T>(endpoint: string): Promise<T> {
     return request<T>(endpoint, { method: "DELETE" });
+  },
+
+  /**
+   * Call a PDF generation endpoint that returns `{ url: "/files/<name>.pdf" }`
+   * and open the resulting file in a new tab. Files are served at the host
+   * root (not under /api) and require no auth.
+   */
+  async openPdf(endpoint: string): Promise<void> {
+    const { url } = await request<{ url: string }>(endpoint, { method: "GET" });
+    if (typeof window === "undefined") return;
+    const host = BASE_URL.replace(/\/api\/?$/, "");
+    window.open(`${host}${url}`, "_blank", "noopener,noreferrer");
   },
 
   /** Download a binary response as a Blob (e.g. PDF files). */

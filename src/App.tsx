@@ -39,7 +39,9 @@ import ServicesTypesPage from "@/pages/services/types";
 import ServicesCategoriesPage from "@/pages/services/categories";
 import ProcedureDetailPage from "@/pages/services/procedure-detail";
 import TeamPage from "@/pages/team/list";
+import TeamHolidaysPage from "@/pages/team/holidays";
 import TeamDetailPage from "@/pages/team/team-member-detail";
+import TeamTabsLayout from "@/pages/layouts/team-tabs-layout";
 import SettingsTabsLayout from "@/pages/layouts/settings-tabs-layout";
 import SettingsRolesPage from "@/pages/settings/roles";
 import SettingsUsersPage from "@/pages/settings/users";
@@ -339,11 +341,32 @@ function App() {
             <Route
               path="team"
               element={
-                <RequireScopes scopes={["team:read"]}>
-                  <TeamPage />
-                </RequireScopes>
+                <ScopeRedirect
+                  targets={[
+                    { to: "/team/employees", scopes: ["team:read"] },
+                    { to: "/team/holidays", scopes: ["schedule:read"] },
+                  ]}
+                />
               }
             />
+            <Route element={<LayoutRoute layout={TeamTabsLayout} />}>
+              <Route
+                path="team/employees"
+                element={
+                  <RequireScopes scopes={["team:read"]}>
+                    <TeamPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="team/holidays"
+                element={
+                  <RequireScopes scopes={["schedule:read"]}>
+                    <TeamHolidaysPage />
+                  </RequireScopes>
+                }
+              />
+            </Route>
             <Route
               path="team/:id"
               element={

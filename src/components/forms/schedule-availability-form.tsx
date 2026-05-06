@@ -4,22 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import { DatePicker } from "@/components/ui/date-picker";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { dayOfWeekOptions } from "@/lib/constants";
 import type { ScheduleAvailability } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
-
-const dayOptions = [
-  { value: "1", label: "Monday" },
-  { value: "2", label: "Tuesday" },
-  { value: "3", label: "Wednesday" },
-  { value: "4", label: "Thursday" },
-  { value: "5", label: "Friday" },
-  { value: "6", label: "Saturday" },
-  { value: "7", label: "Sunday" },
-];
 
 export function ScheduleAvailabilityForm({
   open,
@@ -36,6 +28,7 @@ export function ScheduleAvailabilityForm({
   onSaved: () => void;
   employeeId: string;
   initial?: ScheduleAvailability | null;
+  /** 0 = Sunday … 6 = Saturday. */
   defaultDayOfWeek?: number;
   defaultStartTime?: string;
   defaultEndTime?: string;
@@ -47,6 +40,7 @@ export function ScheduleAvailabilityForm({
   const [dayOfWeek, setDayOfWeek] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
+  const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,27 +49,32 @@ export function ScheduleAvailabilityForm({
       setDayOfWeek(String(initial.dayOfWeek));
       setStartTime(initial.startTime.slice(0, 5));
       setEndTime(initial.endTime.slice(0, 5));
+      setStartDate(initial.startDate?.slice(0, 10) ?? "");
     } else {
-      setDayOfWeek(defaultDayOfWeek ? String(defaultDayOfWeek) : "");
+      setDayOfWeek(
+        defaultDayOfWeek !== undefined ? String(defaultDayOfWeek) : "",
+      );
       setStartTime(defaultStartTime || "09:00");
       setEndTime(defaultEndTime || "17:00");
+      setStartDate("");
     }
   }, [open, initial, defaultDayOfWeek, defaultStartTime, defaultEndTime]);
 
   const canSubmit =
-    !!dayOfWeek && !!startTime && !!endTime && startTime < endTime;
+    dayOfWeek !== "" && !!startTime && !!endTime && startTime < endTime;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         employeeId,
         dayOfWeek: Number(dayOfWeek),
         startTime,
         endTime,
       };
+      if (startDate) payload.startDate = startDate;
       if (isEdit) {
         await api.put(`/schedule-availability/${initial!.id}`, payload);
         addAlert("success", "Availability slot updated.");
@@ -128,7 +127,7 @@ export function ScheduleAvailabilityForm({
           <SearchableDropdown
             value={dayOfWeek}
             onChange={setDayOfWeek}
-            options={dayOptions}
+            options={dayOfWeekOptions}
             placeholder="Select day…"
             required
           />
@@ -153,9 +152,17 @@ export function ScheduleAvailabilityForm({
             />
           </div>
         </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Effective From</label>
+          <DatePicker value={startDate} onChange={setStartDate} />
+          <p className="text-xs text-muted-foreground">
+            Leave blank to start today. Editing time/day on an active slot
+            archives the previous version.
+          </p>
+        </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          {isEdit && can("team:delete") && (
+          {isEdit && can("schedule:delete") && (
             <Button
               type="button"
               variant="destructive"

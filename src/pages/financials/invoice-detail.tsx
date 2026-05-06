@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,14 @@ import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { Loading } from "@/components/shared/loading";
-import { DataTable, type Column } from "@/components/data/data-table";
+import { DataTable } from "@/components/data/data-table";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
-import type { Invoice, InvoiceItem } from "@/lib/types";
+import type { Invoice } from "@/lib/types";
 
 export default function InvoiceDetailPage() {
   usePageTitle("Invoice");
@@ -31,6 +32,18 @@ export default function InvoiceDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handlePrintPdf = async () => {
+    setPdfLoading(true);
+    try {
+      await api.openPdf(`/invoices/${id}/pdf`);
+    } catch (err) {
+      addAlert("error", getErrorMessage(err, "Failed to generate PDF."));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const load = async () => {
     try {
@@ -97,7 +110,8 @@ export default function InvoiceDetailPage() {
       </p>
     );
 
-  const hasAnyDiscount = invoice.items?.some((i) => i.discountId) ?? false;
+  const hasInvoiceDiscount =
+    !!invoice.discountId && (invoice.discountValue ?? 0) > 0;
   const isClientInvoice = invoice.fromEntityId === "self";
   const otherLabel = isClientInvoice ? "To" : "From";
   const otherEntityId = isClientInvoice
@@ -118,6 +132,19 @@ export default function InvoiceDetailPage() {
         title={`Invoice #${invoice.invoiceNumber}`}
         onEdit={can("transactions:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("transactions:delete") ? handleDelete : undefined}
+        extraActions={
+          can("transactions:read") ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrintPdf}
+              disabled={pdfLoading}
+            >
+              <Printer className="size-4 mr-1" />
+              {pdfLoading ? "Loading…" : "Print PDF"}
+            </Button>
+          ) : undefined
+        }
       />
 
       <Card>
@@ -186,39 +213,9 @@ export default function InvoiceDetailPage() {
               {
                 header: "Amount",
                 key: "amount",
+                className: "text-right",
                 render: (i) => `$${(i.amount ?? 0).toFixed(2)}`,
               },
-              ...(hasAnyDiscount
-                ? ([
-                    {
-                      header: "Discount",
-                      key: "discount",
-                      render: (i: InvoiceItem) =>
-                        i.discountId ? (
-                          <div className="flex flex-col">
-                            <span className="text-xs">
-                              {i.discountName ?? "---"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              -${(i.discountValue ?? 0).toFixed(2)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        ),
-                    },
-                    {
-                      header: "Final",
-                      key: "finalAmount",
-                      className: "text-right",
-                      render: (i: InvoiceItem) => (
-                        <span className="font-medium">
-                          ${(i.finalAmount ?? 0).toFixed(2)}
-                        </span>
-                      ),
-                    },
-                  ] satisfies Column<InvoiceItem>[])
-                : []),
             ]}
             data={invoice.items || []}
             rowKey={(i) => i.id}
@@ -228,7 +225,7 @@ export default function InvoiceDetailPage() {
 
       <Card className="flex flex-col items-end w-fit self-end">
         <CardContent className="flex flex-col items-end gap-2 text-sm w-50">
-          {hasAnyDiscount && (
+          {hasInvoiceDiscount && (
             <>
               <div className="flex flex-row justify-between items-center gap-3 w-full">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -236,12 +233,7 @@ export default function InvoiceDetailPage() {
               </div>
               <div className="flex flex-row justify-between items-center gap-3 w-full">
                 <span className="text-muted-foreground">Discount</span>
-                <span>
-                  -$
-                  {((invoice.amount ?? 0) - (invoice.finalAmount ?? 0)).toFixed(
-                    2,
-                  )}
-                </span>
+                <span>-${(invoice.discountValue ?? 0).toFixed(2)}</span>
               </div>
             </>
           )}

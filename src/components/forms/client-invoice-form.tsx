@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +14,9 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { invoiceItemTypeOptions } from "@/lib/constants";
-import type { Invoice } from "@/lib/types";
+import type { Discount, Invoice } from "@/lib/types";
 import { ProcedureForm } from "./procedure-form";
 import { usePermissions } from "@/hooks/use-permissions";
-
-type DiscountSource = "discount" | "voucher";
-type AppliedValueType = "percentage" | "fixed" | "";
 
 const VOUCHER_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -32,22 +28,20 @@ function randomVoucherCode(length = 10) {
   return out;
 }
 
+type GiftMode = "code" | "patient";
+
 type ItemDraft = {
-  itemType: "product" | "procedure" | "discount" | "other";
+  itemType: "product" | "procedure" | "gift" | "other";
   itemId: string;
   unitPrice: number | null;
   quantity: string;
-  discountedAmount: number;
   amount: string;
   notes: string;
-  discountSource: DiscountSource;
-  discountId: string;
-  voucherId: string;
-  appliedValue: number;
-  appliedValueType: AppliedValueType;
+  // gift-only
+  giftMode: GiftMode;
+  giftCode: string;
+  giftPatientId: string;
   giftName: string;
-  giftDescription: string;
-  voucherCode: string;
 };
 
 const blankItem = (itemType: ItemDraft["itemType"] = "product"): ItemDraft => ({
@@ -55,30 +49,13 @@ const blankItem = (itemType: ItemDraft["itemType"] = "product"): ItemDraft => ({
   itemId: "",
   unitPrice: null,
   quantity: "1",
-  discountedAmount: 0,
   amount: "",
   notes: "",
-  discountSource: "discount",
-  discountId: "",
-  voucherId: "",
-  appliedValue: 0,
-  appliedValueType: "",
+  giftMode: "code",
+  giftCode: "",
+  giftPatientId: "",
   giftName: "",
-  giftDescription: "",
-  voucherCode: "",
 });
-
-const applyDiscount = (
-  gross: number,
-  value: number,
-  valueType: AppliedValueType,
-) => {
-  if (!valueType) return gross;
-  if (valueType === "percentage") {
-    return Math.max(0, gross - gross * (value / 100));
-  }
-  return Math.max(0, gross - value);
-};
 
 export function ClientInvoiceForm({
   open,
@@ -135,51 +112,77 @@ export function ClientInvoiceFormBody({
       : "other";
   const visibleItemTypeOptions = invoiceItemTypeOptions.filter((option) => {
     if (option.value === "product") return can("inventory:read");
-    if (option.value === "procedure" || option.value === "discount") {
-      return can("services:read");
-    }
+    if (option.value === "procedure") return can("services:read");
     return true;
   });
 
   const [patientId, setPatientId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
+  const [discountId, setDiscountId] = useState("");
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountValueType, setDiscountValueType] = useState<
+    "percentage" | "fixed" | ""
+  >("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ItemDraft[]>([
-    blankItem(defaultItemType),
-  ]);
+  const [items, setItems] = useState<ItemDraft[]>([blankItem(defaultItemType)]);
+  const [offerOptions, setOfferOptions] = useState<
+    {
+      value: string;
+      label: string;
+      meta: { value: number; valueType: "percentage" | "fixed" };
+    }[]
+  >([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setPatientId(defaultPatientId ?? "");
     setCurrencyId("");
+    setDiscountId("");
+    setDiscountValue(0);
+    setDiscountValueType("");
     setNotes("");
     setItems([blankItem(defaultItemType)]);
   }, [open, defaultItemType, defaultPatientId]);
+
+  useEffect(() => {
+    if (!open) return;
+    api
+      .get<{ items: Discount[] } | Discount[]>("/discounts?limit=100")
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res.items ?? []);
+        const offers = list
+          .filter((d) => d.discountType === "offer" && !!d.isActive)
+          .map((d) => ({
+            value: d.id,
+            label: `${d.name} (${
+              d.valueType === "percentage"
+                ? `${d.value}%`
+                : `$${d.value.toFixed(2)}`
+            })`,
+            meta: { value: d.value, valueType: d.valueType },
+          }));
+        setOfferOptions(offers);
+      })
+      .catch(() => setOfferOptions([]));
+  }, [open]);
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>
       prev.map((it, i) => {
         if (i !== idx) return it;
         const updated = { ...it, ...patch };
-        const recalcTriggers =
-          "quantity" in patch ||
-          "unitPrice" in patch ||
-          "appliedValue" in patch ||
-          "appliedValueType" in patch ||
-          "discountSource" in patch;
-        if (recalcTriggers && updated.unitPrice != null) {
+        const recalcTriggers = "quantity" in patch || "unitPrice" in patch;
+        if (
+          recalcTriggers &&
+          updated.unitPrice != null &&
+          updated.itemType !== "gift"
+        ) {
           const qty =
             updated.itemType === "procedure"
               ? 1
               : Number(updated.quantity) || 0;
-          const gross = updated.unitPrice * qty;
-          updated.amount = `${gross}`;
-          updated.discountedAmount = applyDiscount(
-            gross,
-            updated.appliedValue,
-            updated.appliedValueType,
-          );
+          updated.amount = `${updated.unitPrice * qty}`;
         }
         return updated;
       }),
@@ -187,17 +190,9 @@ export function ClientInvoiceFormBody({
   };
 
   const handleItemSelected = async (idx: number, itemId: string) => {
-    updateItem(idx, {
-      itemId,
-      unitPrice: null,
-      amount: "",
-      discountId: "",
-      voucherId: "",
-      appliedValue: 0,
-      appliedValueType: "",
-    });
+    updateItem(idx, { itemId, unitPrice: null, amount: "" });
     const type = items[idx].itemType;
-    if (!itemId || type === "other") return;
+    if (!itemId || type === "other" || type === "gift") return;
     try {
       const endpoint =
         type === "product" ? `/products/${itemId}` : `/procedures/${itemId}`;
@@ -215,25 +210,34 @@ export function ClientInvoiceFormBody({
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const total = items.reduce((s, it) => {
-    const v =
-      it.itemType === "discount"
-        ? Number(it.amount)
-        : Number(it.discountedAmount);
-    return s + (v || 0);
-  }, 0);
+  const grossTotal = useMemo(
+    () => items.reduce((s, it) => s + (Number(it.amount) || 0), 0),
+    [items],
+  );
+
+  const computedDiscount = useMemo(() => {
+    if (!discountId || !discountValueType) return 0;
+    const raw =
+      discountValueType === "percentage"
+        ? grossTotal * (discountValue / 100)
+        : discountValue;
+    return Math.min(Math.max(0, raw), grossTotal);
+  }, [discountId, discountValueType, discountValue, grossTotal]);
+
+  const finalTotal = Math.max(0, grossTotal - computedDiscount);
 
   const canSubmit =
     patientId &&
     currencyId &&
     items.length > 0 &&
     items.every((it) => {
-      if (it.itemType === "discount") {
-        return (
-          it.giftName.trim().length > 0 &&
-          Number(it.amount) > 0 &&
-          it.voucherCode.trim().length > 0
-        );
+      if (it.itemType === "gift") {
+        if (Number(it.amount) <= 0) return false;
+        if (it.giftMode === "code") return it.giftCode.trim().length > 0;
+        return it.giftPatientId.length > 0;
+      }
+      if (it.itemType === "other") {
+        return Number(it.amount) > 0;
       }
       return (
         it.itemId &&
@@ -249,19 +253,24 @@ export function ClientInvoiceFormBody({
       const created = await api.post<Invoice>("/client-invoices", {
         patientId,
         currencyId,
+        ...(discountId ? { discountId } : {}),
         notes: notes || undefined,
         items: items.map((it) => {
-          if (it.itemType === "discount") {
+          if (it.itemType === "gift") {
             return {
-              itemType: "discount",
-              quantity: 1,
+              itemType: "gift",
               amount: Number(it.amount),
               ...(it.notes ? { notes: it.notes } : {}),
-              discountName: it.giftName.trim(),
-              ...(it.giftDescription
-                ? { discountDescription: it.giftDescription }
-                : {}),
-              voucherCode: it.voucherCode.trim(),
+              ...(it.giftMode === "code"
+                ? { giftCode: it.giftCode.trim() }
+                : { giftPatientId: it.giftPatientId }),
+            };
+          }
+          if (it.itemType === "other") {
+            return {
+              itemType: "other",
+              amount: Number(it.amount),
+              ...(it.notes ? { notes: it.notes } : {}),
             };
           }
           return {
@@ -270,11 +279,6 @@ export function ClientInvoiceFormBody({
             quantity: it.itemType === "procedure" ? 1 : Number(it.quantity),
             amount: Number(it.amount),
             ...(it.notes ? { notes: it.notes } : {}),
-            ...(it.discountSource === "voucher" && it.voucherId
-              ? { voucherId: it.voucherId }
-              : it.discountSource === "discount" && it.discountId
-                ? { discountId: it.discountId }
-                : {}),
           };
         }),
       });
@@ -289,125 +293,117 @@ export function ClientInvoiceFormBody({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Patient</label>
-            <SearchableDropdown
-              value={patientId}
-              onChange={setPatientId}
-              defaultApiOption={
-                defaultPatientId && defaultPatientLabel
-                  ? { value: defaultPatientId, label: defaultPatientLabel }
-                  : undefined
-              }
-              apiEndpoint="/patients/dropdown"
-              mapItem={(p: { id: string; name: string }) => ({
-                value: p.id,
-                label: p.name,
-              })}
-              placeholder="Select patient…"
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Currency</label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="Select currency…"
-              required
-              defaultFirst
-            />
-          </div>
-        </div>
-
-        {/* Notes */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
-          <textarea
-            className={textareaClass}
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+          <label className="text-sm font-medium">Patient</label>
+          <SearchableDropdown
+            value={patientId}
+            onChange={setPatientId}
+            defaultApiOption={
+              defaultPatientId && defaultPatientLabel
+                ? { value: defaultPatientId, label: defaultPatientLabel }
+                : undefined
+            }
+            apiEndpoint="/patients/dropdown"
+            mapItem={(p: { id: string; name: string }) => ({
+              value: p.id,
+              label: p.name,
+            })}
+            placeholder="Select patient…"
+            required
           />
         </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Currency</label>
+          <SearchableDropdown
+            value={currencyId}
+            onChange={setCurrencyId}
+            apiEndpoint="/currencies/dropdown"
+            mapItem={(c: { id: string; name: string }) => ({
+              value: c.id,
+              label: c.name,
+            })}
+            placeholder="Select currency…"
+            required
+            defaultFirst
+          />
+        </div>
+      </div>
 
-        {/* Items */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Items</label>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setItems((prev) => [...prev, blankItem()])}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Notes</label>
+        <textarea
+          className={textareaClass}
+          rows={2}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+
+      {/* Items */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">Items</label>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setItems((prev) => [...prev, blankItem()])}
+          >
+            <Plus className="size-3.5 mr-1" /> Add Item
+          </Button>
+        </div>
+
+        {items.map((item, idx) => {
+          const isGift = item.itemType === "gift";
+          const isOther = item.itemType === "other";
+          const itemLabel =
+            item.itemType === "product"
+              ? "Product"
+              : item.itemType === "procedure"
+                ? "Procedure"
+                : "Gift Name";
+          return (
+            <div
+              key={idx}
+              className="rounded-lg border border-border p-4 space-y-3"
             >
-              <Plus className="size-3.5 mr-1" /> Add Item
-            </Button>
-          </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Item #{idx + 1}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => removeItem(idx)}
+                  disabled={items.length === 1}
+                  aria-label="Remove item"
+                >
+                  <Trash2 className="size-3.5 text-destructive" />
+                </Button>
+              </div>
 
-          {items.map((item, idx) => {
-            const isGift = item.itemType === "discount";
-            const itemLabel =
-              item.itemType === "product"
-                ? "Product"
-                : item.itemType === "procedure"
-                  ? "Procedure"
-                  : isGift
-                    ? "Gift Name"
-                    : "Description";
-            return (
               <div
-                key={idx}
-                className="rounded-lg border border-border p-4 space-y-3"
+                className={cn(
+                  "grid gap-3",
+                  isOther ? "grid-cols-[160px_1fr]" : "grid-cols-[160px_1fr]",
+                )}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Item #{idx + 1}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => removeItem(idx)}
-                    disabled={items.length === 1}
-                    aria-label="Remove item"
-                  >
-                    <Trash2 className="size-3.5 text-destructive" />
-                  </Button>
+                <div className="space-y-1.5 min-w-0">
+                  <label className="text-sm font-medium">Type</label>
+                  <SearchableDropdown
+                    value={item.itemType}
+                    onChange={(v) =>
+                      updateItem(idx, {
+                        ...blankItem(v as ItemDraft["itemType"]),
+                      })
+                    }
+                    options={visibleItemTypeOptions}
+                    placeholder="Type…"
+                  />
                 </div>
-
-                <div className="grid grid-cols-[160px_1fr] gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Type</label>
-                    <SearchableDropdown
-                      value={item.itemType}
-                      onChange={(v) =>
-                        updateItem(idx, {
-                          itemType: v as ItemDraft["itemType"],
-                          itemId: "",
-                          unitPrice: null,
-                          amount: "",
-                          discountedAmount: 0,
-                          quantity: "1",
-                          discountId: "",
-                          voucherId: "",
-                          appliedValue: 0,
-                          appliedValueType: "",
-                          giftName: "",
-                          giftDescription: "",
-                          voucherCode: "",
-                        })
-                      }
-                      options={visibleItemTypeOptions}
-                      placeholder="Type…"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
+                {!isOther && (
+                  <div className="space-y-1.5 min-w-0">
                     <label className="text-sm font-medium">{itemLabel} *</label>
                     {item.itemType === "product" ? (
                       <SearchableDropdown
@@ -448,7 +444,7 @@ export function ClientInvoiceFormBody({
                             : undefined
                         }
                       />
-                    ) : isGift ? (
+                    ) : (
                       <Input
                         placeholder="e.g. Holiday Gift"
                         value={item.giftName}
@@ -456,45 +452,64 @@ export function ClientInvoiceFormBody({
                           updateItem(idx, { giftName: e.target.value })
                         }
                       />
-                    ) : (
-                      <Input
-                        placeholder="Description"
-                        value={item.itemId}
-                        onChange={(e) =>
-                          updateItem(idx, { itemId: e.target.value })
-                        }
-                      />
                     )}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {isGift && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Description</label>
-                      <textarea
-                        className={textareaClass}
-                        rows={2}
-                        placeholder="Optional"
-                        value={item.giftDescription}
-                        onChange={(e) =>
-                          updateItem(idx, { giftDescription: e.target.value })
+              {isGift && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Gift Type *</label>
+                    <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateItem(idx, {
+                            giftMode: "code",
+                            giftPatientId: "",
+                          })
                         }
-                      />
+                        className={cn(
+                          "rounded px-3 py-1 transition-colors",
+                          item.giftMode === "code"
+                            ? "bg-accent font-medium"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Sell with code
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateItem(idx, {
+                            giftMode: "patient",
+                            giftCode: "",
+                          })
+                        }
+                        className={cn(
+                          "rounded px-3 py-1 transition-colors",
+                          item.giftMode === "patient"
+                            ? "bg-accent font-medium"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Send to patient
+                      </button>
                     </div>
+                  </div>
+                  {item.giftMode === "code" ? (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">
-                        Voucher Code *
-                      </label>
+                      <label className="text-sm font-medium">Code *</label>
                       <div className="flex gap-2">
                         <Input
-                          value={item.voucherCode}
+                          value={item.giftCode}
                           onChange={(e) =>
                             updateItem(idx, {
-                              voucherCode: e.target.value.toUpperCase(),
+                              giftCode: e.target.value.toUpperCase(),
                             })
                           }
-                          placeholder="GIFT2026"
+                          placeholder="GIFT-XXXX"
                           className="flex-1 font-mono"
                         />
                         <Button
@@ -503,213 +518,147 @@ export function ClientInvoiceFormBody({
                           size="icon"
                           title="Generate random code"
                           onClick={() =>
-                            updateItem(idx, { voucherCode: randomVoucherCode() })
+                            updateItem(idx, { giftCode: randomVoucherCode() })
                           }
                         >
                           <Shuffle className="size-4" />
                         </Button>
                       </div>
                     </div>
-                  </>
-                )}
-
-                <div
-                  className={cn(
-                    "grid gap-3",
-                    isGift || item.itemType === "procedure"
-                      ? "grid-cols-[1fr_1.5fr]"
-                      : "grid-cols-[90px_1fr_1.5fr]",
-                  )}
-                >
-                  {!isGift && item.itemType !== "procedure" && (
+                  ) : (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Qty *</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(idx, { quantity: e.target.value })
-                        }
+                      <label className="text-sm font-medium">Recipient *</label>
+                      <SearchableDropdown
+                        value={item.giftPatientId}
+                        onChange={(v) => updateItem(idx, { giftPatientId: v })}
+                        apiEndpoint="/patients/dropdown"
+                        mapItem={(p: { id: string; name: string }) => ({
+                          value: p.id,
+                          label: p.name,
+                        })}
+                        placeholder="Select recipient patient…"
                       />
                     </div>
                   )}
+                </>
+              )}
+
+              <div
+                className={cn(
+                  "grid gap-3",
+                  isGift || item.itemType === "procedure" || isOther
+                    ? "grid-cols-[1fr_1.5fr]"
+                    : "grid-cols-[90px_1fr_1.5fr]",
+                )}
+              >
+                {!isGift && !isOther && item.itemType !== "procedure" && (
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">
-                      {isGift ? "Value *" : "Amount *"}
-                    </label>
-                    <InputGroup>
-                      <InputGroupAddon>$</InputGroupAddon>
-                      <InputGroupInput
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={isGift ? item.amount : item.discountedAmount}
-                        readOnly={!isGift && item.unitPrice != null}
-                        onChange={(e) =>
-                          updateItem(idx, { amount: e.target.value })
-                        }
-                      />
-                    </InputGroup>
-                    {item.itemType === "product" && item.unitPrice != null && (
-                      <p className="text-xs text-muted-foreground">
-                        Unit: ${item.unitPrice.toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Notes</label>
+                    <label className="text-sm font-medium">Qty *</label>
                     <Input
-                      placeholder="Optional"
-                      value={item.notes}
+                      type="number"
+                      min="1"
+                      value={item.quantity}
                       onChange={(e) =>
-                        updateItem(idx, { notes: e.target.value })
+                        updateItem(idx, { quantity: e.target.value })
                       }
                     />
                   </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    {isGift ? "Value *" : "Amount *"}
+                  </label>
+                  <InputGroup>
+                    <InputGroupAddon>$</InputGroupAddon>
+                    <InputGroupInput
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={item.amount}
+                      readOnly={
+                        !isGift &&
+                        !isOther &&
+                        item.unitPrice != null &&
+                        (item.itemType === "product" ||
+                          item.itemType === "procedure")
+                      }
+                      onChange={(e) =>
+                        updateItem(idx, { amount: e.target.value })
+                      }
+                    />
+                  </InputGroup>
+                  {item.itemType === "product" && item.unitPrice != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Unit: ${item.unitPrice.toFixed(2)}
+                    </p>
+                  )}
                 </div>
-
-                {!isGift && (() => {
-                  const isSelectableItem =
-                    !!item.itemId &&
-                    (item.itemType === "product" ||
-                      item.itemType === "procedure");
-                  return (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Discount</label>
-                        <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateItem(idx, {
-                                discountSource: "discount",
-                                voucherId: "",
-                                appliedValue: 0,
-                                appliedValueType: "",
-                              })
-                            }
-                            className={cn(
-                              "rounded px-2 py-0.5 transition-colors",
-                              item.discountSource === "discount"
-                                ? "bg-accent font-medium"
-                                : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            Offer
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateItem(idx, {
-                                discountSource: "voucher",
-                                discountId: "",
-                                appliedValue: 0,
-                                appliedValueType: "",
-                              })
-                            }
-                            className={cn(
-                              "rounded px-2 py-0.5 transition-colors",
-                              item.discountSource === "voucher"
-                                ? "bg-accent font-medium"
-                                : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            Voucher
-                          </button>
-                        </div>
-                      </div>
-                      {item.discountSource === "discount" ? (
-                        <SearchableDropdown
-                          value={item.discountId}
-                          onChange={(v) =>
-                            updateItem(idx, {
-                              discountId: v,
-                              ...(v === ""
-                                ? { appliedValue: 0, appliedValueType: "" }
-                                : {}),
-                            })
-                          }
-                          onSelectItem={(opt) =>
-                            updateItem(idx, {
-                              discountId: opt.value,
-                              appliedValue: (opt.meta?.value as number) ?? 0,
-                              appliedValueType:
-                                (opt.meta?.valueType as AppliedValueType) ??
-                                "",
-                            })
-                          }
-                          apiEndpoint={
-                            isSelectableItem
-                              ? `/items/${item.itemId}/discounts`
-                              : undefined
-                          }
-                          mapItem={(d: {
-                            id: string;
-                            name: string;
-                            value: number;
-                            valueType: "percentage" | "fixed";
-                          }) => ({
-                            value: d.id,
-                            label: `${d.name} (${
-                              d.valueType === "percentage"
-                                ? `${d.value}%`
-                                : `$${d.value.toFixed(2)}`
-                            })`,
-                            meta: { value: d.value, valueType: d.valueType },
-                          })}
-                          options={isSelectableItem ? undefined : []}
-                          placeholder="Select an offer"
-                          disabled={!isSelectableItem}
-                          clearable
-                        />
-                      ) : (
-                        <SearchableDropdown
-                          value={item.voucherId}
-                          onChange={(v) => updateItem(idx, { voucherId: v })}
-                          apiEndpoint={
-                            isSelectableItem
-                              ? `/items/${item.itemId}/vouchers`
-                              : undefined
-                          }
-                          mapItem={(v: {
-                            id: string;
-                            code: string;
-                            discountId: string;
-                            isUsed: number;
-                          }) => ({
-                            value: v.id,
-                            label: v.isUsed ? `${v.code} (used)` : v.code,
-                          })}
-                          options={isSelectableItem ? undefined : []}
-                          placeholder="Select a voucher"
-                          disabled={!isSelectableItem}
-                          clearable
-                        />
-                      )}
-                    </div>
-                  );
-                })()}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Notes</label>
+                  <Input
+                    placeholder="Optional"
+                    value={item.notes}
+                    onChange={(e) => updateItem(idx, { notes: e.target.value })}
+                  />
+                </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Total + Actions */}
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-sm font-medium">
-            Total: ${total.toFixed(2)}
-          </span>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
-            <Button type="submit" disabled={submitting || !canSubmit}>
-              {submitting ? "Creating…" : submitLabel}
-            </Button>
-          </div>
+      {/* Invoice-level discount */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Invoice Discount</label>
+        <SearchableDropdown
+          value={discountId}
+          onChange={(v) => {
+            setDiscountId(v);
+            if (v === "") {
+              setDiscountValue(0);
+              setDiscountValueType("");
+            }
+          }}
+          onSelectItem={(opt) => {
+            setDiscountId(opt.value);
+            setDiscountValue((opt.meta?.value as number) ?? 0);
+            setDiscountValueType(
+              (opt.meta?.valueType as "percentage" | "fixed") ?? "",
+            );
+          }}
+          options={offerOptions}
+          placeholder="No discount"
+          clearable
+        />
+      </div>
+
+      {/* Totals + Actions */}
+      <div className="flex items-end justify-between pt-2">
+        <div className="text-sm space-y-0.5">
+          {computedDiscount > 0 && (
+            <>
+              <div className="flex gap-3">
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span>${grossTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-muted-foreground">Discount:</span>
+                <span>-${computedDiscount.toFixed(2)}</span>
+              </div>
+            </>
+          )}
+          <div className="font-medium">Total: ${finalTotal.toFixed(2)}</div>
         </div>
-      </form>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+          <Button type="submit" disabled={submitting || !canSubmit}>
+            {submitting ? "Creating…" : submitLabel}
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }
