@@ -128,7 +128,7 @@ export function BalanceAdjustmentForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div
-          className={`grid ${isWriteOff ? "grid-cols-3" : "grid-cols-4"} gap-3`}
+          className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-3" : "sm:grid-cols-2 md:grid-cols-4"} gap-3`}
         >
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>

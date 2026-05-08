@@ -40,9 +40,13 @@ export function AnalyticsListCard<T>({
 
   return (
     <Card className="min-w-0">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        {headerAction}
+      <CardHeader className="flex flex-row flex-wrap items-center gap-2">
+        <CardTitle className="min-w-0 flex-1 basis-40">{title}</CardTitle>
+        {headerAction && (
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
+            {headerAction}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {loading ? (

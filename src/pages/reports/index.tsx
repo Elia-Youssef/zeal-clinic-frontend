@@ -186,7 +186,7 @@ function RevenueReport() {
         <div className="flex flex-wrap items-end gap-3">
           <DateField label="From" value={from} onChange={setFrom} />
           <DateField label="To" value={to} onChange={setTo} />
-          <div className="w-48 space-y-1.5">
+          <div className="w-full space-y-1.5 sm:w-48">
             <label className="text-xs font-medium text-muted-foreground">
               Currency
             </label>
@@ -202,7 +202,7 @@ function RevenueReport() {
               clearable
             />
           </div>
-          <div className="w-56 space-y-1.5">
+          <div className="w-full space-y-1.5 sm:w-56">
             <label className="text-xs font-medium text-muted-foreground">
               Group by
             </label>
@@ -212,12 +212,13 @@ function RevenueReport() {
               options={levelOptions}
             />
           </div>
-          <div className="ml-auto">
+          <div className="w-full sm:ml-auto sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePrintPdf}
               disabled={pdfLoading}
+              className="w-full sm:w-auto"
             >
               <Printer className="size-4" />
               {pdfLoading ? "Loading…" : "Print"}
@@ -237,7 +238,8 @@ function RevenueReport() {
             No data for the selected range.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-150 border-collapse text-sm">
             <thead>
               <tr className="border-b-2 border-foreground/80">
                 <th className="px-3 py-2 text-left font-semibold">
@@ -289,6 +291,7 @@ function RevenueReport() {
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </PrintableSheet>
     </>
@@ -365,7 +368,7 @@ function ExpensesReport() {
         <div className="flex flex-wrap items-end gap-3">
           <DateField label="From" value={from} onChange={setFrom} />
           <DateField label="To" value={to} onChange={setTo} />
-          <div className="w-48 space-y-1.5">
+          <div className="w-full space-y-1.5 sm:w-48">
             <label className="text-xs font-medium text-muted-foreground">
               Currency
             </label>
@@ -381,12 +384,13 @@ function ExpensesReport() {
               clearable
             />
           </div>
-          <div className="ml-auto">
+          <div className="w-full sm:ml-auto sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePrintPdf}
               disabled={pdfLoading}
+              className="w-full sm:w-auto"
             >
               <Printer className="size-4" />
               {pdfLoading ? "Loading…" : "Print"}
@@ -406,7 +410,8 @@ function ExpensesReport() {
             No expenses in this range.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-225 border-collapse text-sm">
             <thead>
               <tr className="border-b-2 border-foreground/80">
                 <th className="w-28 px-3 py-2 text-left font-semibold">Date</th>
@@ -481,6 +486,7 @@ function ExpensesReport() {
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </PrintableSheet>
     </>
@@ -501,11 +507,11 @@ function DateField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="w-full space-y-1.5 sm:w-auto">
       <label className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
-      <DatePicker value={value} onChange={onChange} className="w-40" />
+      <DatePicker value={value} onChange={onChange} className="w-full sm:w-40" />
     </div>
   );
 }
@@ -521,7 +527,7 @@ function PrintableSheet({
 }) {
   return (
     <div className="rounded-lg border bg-background shadow-xs print:rounded-none print:border-0 print:shadow-none">
-      <div className="flex items-baseline justify-between gap-4 border-b px-6 py-4 print:px-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-4 sm:px-6 print:px-0">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         {subtitle && (
           <p className="text-sm text-muted-foreground tabular-nums">

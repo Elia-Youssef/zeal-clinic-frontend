@@ -47,14 +47,14 @@ export default function TypesPage() {
   ];
 
   const actions: RowAction<ProcedureType>[] = [
-    ...(can("services:write")
+    ...(can("procedure-types:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
           onClick: (t: ProcedureType) => { setEditing(t); setFormOpen(true); },
         }]
       : []),
-    ...(can("services:delete")
+    ...(can("procedure-types:write")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -74,7 +74,7 @@ export default function TypesPage() {
         rowKey={(t) => t.id}
         emptyMessage="No procedure types defined."
         headerActions={
-          can("services:write") ? (
+          can("procedure-types:write") ? (
             <AddButton label="Add Type" onClick={() => { setEditing(undefined); setFormOpen(true); }} />
           ) : undefined
         }

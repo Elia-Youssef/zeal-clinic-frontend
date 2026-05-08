@@ -28,15 +28,15 @@ export function PageHeader({
   };
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <Button variant="ghost" size="sm" onClick={handleBack}>
           <ArrowLeft className="size-4 mr-1" />
         </Button>
-        <h2 className="text-xl font-semibold">{title}</h2>
+        <h2 className="min-w-0 truncate text-xl font-semibold">{title}</h2>
       </div>
       {(onEdit || onDelete || extraActions) && (
-        <div className="flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           {extraActions}
           {onEdit && (
             <Button variant="outline" size="sm" onClick={onEdit}>

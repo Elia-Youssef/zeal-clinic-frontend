@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -106,6 +107,18 @@ export function DateInput({
     emit(day, month, year, hours, clean);
   };
 
+  const hasValue = !!(day || month || year || hours || minutes);
+  const showClear = !required && hasValue;
+
+  const clear = () => {
+    setDay("");
+    setMonth("");
+    setYear("");
+    setHours("");
+    setMinutes("");
+    onChange("");
+  };
+
   return (
     <div
       className={cn(
@@ -164,6 +177,16 @@ export function DateInput({
             inputMode="numeric"
           />
         </>
+      )}
+      {showClear && (
+        <button
+          type="button"
+          aria-label="Clear date"
+          onClick={clear}
+          className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+        >
+          <X className="size-3.5" />
+        </button>
       )}
     </div>
   );

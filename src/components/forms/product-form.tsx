@@ -31,12 +31,13 @@ export function ProductForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     setName(initial?.name ?? "");
     setCategoryId(initial?.categoryId ?? "");
     setQuantity(initial?.quantity?.toString() ?? "");
     setMinThreshold(initial?.minThreshold?.toString() ?? "");
     setUnitPrice(initial?.unitPrice?.toString() ?? "");
-  }, [initial]);
+  }, [open, initial]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +46,10 @@ export function ProductForm({
       name,
       unitPrice: Number(unitPrice),
     };
-    if (categoryId) payload.categoryId = categoryId;
-    if (quantity) payload.quantity = Number(quantity);
-    if (minThreshold) payload.minThreshold = Number(minThreshold);
+    if (isEdit || categoryId) payload.categoryId = categoryId;
+    if (isEdit || quantity) payload.quantity = quantity ? Number(quantity) : 0;
+    if (isEdit || minThreshold)
+      payload.minThreshold = minThreshold ? Number(minThreshold) : 0;
 
     try {
       if (isEdit) {
@@ -82,7 +84,7 @@ export function ProductForm({
             required
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Category</label>
             <SearchableDropdown
@@ -104,7 +106,7 @@ export function ProductForm({
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Quantity</label>
             <Input

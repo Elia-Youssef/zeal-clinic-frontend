@@ -62,19 +62,24 @@ const navItems = {
       title: "Suppliers",
       href: "/suppliers",
       icon: Truck,
-      scopes: ["inventory:read"],
+      scopes: ["suppliers:read"],
     },
     {
       title: "Financials",
       href: "/financials",
       icon: DollarSign,
-      scopes: ["transactions:read", "services:read"],
+      scopes: [
+        "invoices:read",
+        "expenses:read",
+        "discounts:read",
+        "currencies:read",
+      ],
     },
     {
       title: "Team",
       href: "/team",
       icon: UsersRound,
-      scopes: ["team:read"],
+      scopes: ["employees:read", "hr:read"],
     },
   ],
   Catalog: [
@@ -82,13 +87,17 @@ const navItems = {
       title: "Inventory",
       href: "/inventory",
       icon: Package,
-      scopes: ["inventory:read"],
+      scopes: ["products:read", "product-categories:read"],
     },
     {
       title: "Services",
       href: "/services",
       icon: Briefcase,
-      scopes: ["services:read"],
+      scopes: [
+        "procedures:read",
+        "procedure-types:read",
+        "procedure-categories:read",
+      ],
     },
   ],
   System: [
@@ -102,7 +111,7 @@ const navItems = {
       title: "Settings",
       href: "/settings",
       icon: Settings,
-      scopes: ["roles:read", "team:read"],
+      scopes: ["roles:read", "users:read", "audit:read"],
     },
   ],
 };

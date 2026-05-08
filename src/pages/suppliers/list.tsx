@@ -52,14 +52,14 @@ function SuppliersContent() {
         rowKey={(s) => s.id}
         searchPlaceholder="Search suppliers…"
         emptyMessage={
-          can("inventory:write")
+          can("suppliers:write")
             ? "No suppliers yet. Click Add Supplier to get started."
             : "No suppliers yet."
         }
         emptySearchMessage="No suppliers match your search."
         onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
         headerActions={
-          can("inventory:write") ? (
+          can("suppliers:write") ? (
             <AddButton label="Add Supplier" onClick={() => setFormOpen(true)} />
           ) : undefined
         }

@@ -2,17 +2,17 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { RouteTabs } from "@/components/shared/route-tabs";
 
 const tabs = [
-  { label: "Users", href: "/settings/users", scopes: ["team:read"] },
+  { label: "Users", href: "/settings/users", scopes: ["users:read"] },
   { label: "Roles", href: "/settings/roles", scopes: ["roles:read"] },
   {
     label: "Audit Log",
     href: "/settings/audit-log",
-    scopes: ["roles:read", "team:read"],
+    scopes: ["audit:read"],
   },
   {
     label: "Connection",
     href: "/settings/connection",
-    scopes: ["roles:read", "team:read"],
+    scopes: ["roles:read", "users:read"],
   },
 ];
 

@@ -5,6 +5,7 @@ import { realtimeClient } from "@/lib/realtime/realtime-client";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useNotificationsStore } from "@/lib/stores/notifications-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { useLoadingStore } from "@/lib/stores/loading-store";
 import { useRealtimeStore } from "@/lib/stores/realtime-store";
 import type { Notification } from "@/lib/types";
 
@@ -19,6 +20,7 @@ export function RealtimeSubscriber() {
     const { fetchUnreadCount, addIncoming } = useNotificationsStore.getState();
     const { addAlert } = useAlertStore.getState();
     const { setConnected } = useRealtimeStore.getState();
+    const { refreshAuth } = useAuthStore.getState();
 
     realtimeClient.setListeners({
       onOpen: () => setConnected(true),
@@ -40,6 +42,17 @@ export function RealtimeSubscriber() {
           } catch {
             // Malformed payload: drop it and let the next hello reconcile.
           }
+        },
+        scopes_changed: () => {
+          const loading = useLoadingStore.getState();
+          loading.show("Updating permissions...");
+          refreshAuth()
+            .catch(() => {})
+            .finally(() => {
+              // Defer hide so any RequireScopes-driven redirect from the
+              // updated scopes can settle before the overlay disappears.
+              setTimeout(() => loading.hide(), 50);
+            });
         },
       },
     });

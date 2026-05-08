@@ -66,7 +66,7 @@ export function SalaryAdjustmentForm({
       description="Positive values add to the prepared amount, negative values deduct from it."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <div>
             <span className="text-muted-foreground">Employee: </span>
             <span className="font-medium">

@@ -23,21 +23,23 @@ export function Tabs({
   }
 
   return (
-    <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-      {tabs.map((tab) => (
-        <button
-          key={tab}
-          onClick={() => handleClick(tab)}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            active === tab
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {tab}
-        </button>
-      ))}
+    <div className="-mx-4 max-w-full overflow-x-auto px-4">
+      <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => handleClick(tab)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              active === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

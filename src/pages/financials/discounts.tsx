@@ -91,7 +91,7 @@ export default function DiscountsPage() {
         onRowClick={(d) => navigate(`/financials/discounts/${d.id}`)}
         headerActions={
           <div className="flex gap-2">
-            {can("transactions:write") && (
+            {can("discounts:write") && (
               <Button
                 size="sm"
                 variant="outline"
@@ -101,7 +101,7 @@ export default function DiscountsPage() {
                 <Gift className="size-3.5" /> Redeem Gift
               </Button>
             )}
-            {can("services:write") && (
+            {can("discounts:write") && (
               <AddButton label="Add Offer" onClick={() => setFormOpen(true)} />
             )}
           </div>

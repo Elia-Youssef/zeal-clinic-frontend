@@ -50,7 +50,7 @@ export default function ExpensesPage() {
         searchPlaceholder="Search expenses..."
         emptyMessage="No expenses yet."
         headerActions={
-          can("transactions:write") ? (
+          can("expenses:write") ? (
             <AddButton label="New" onClick={() => setFormOpen(true)} />
           ) : undefined
         }

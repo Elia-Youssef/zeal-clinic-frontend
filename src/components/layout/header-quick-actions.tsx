@@ -32,7 +32,7 @@ type QuickAction = {
 const quickActions: QuickAction[] = [
   { label: "New Patient", icon: UserPlus, form: PatientForm, scopes: ["patients:write"] },
   { label: "New Appointment", icon: CalendarPlus, form: AppointmentForm, scopes: ["appointments:write"] },
-  { label: "New Invoice", icon: FileText, form: ClientInvoiceForm, scopes: ["transactions:write", "patients:read"] },
+  { label: "New Invoice", icon: FileText, form: ClientInvoiceForm, scopes: ["invoices:write", "patients:read"] },
 ];
 
 export function HeaderQuickActions() {

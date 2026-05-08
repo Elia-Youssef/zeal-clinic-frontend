@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -28,11 +28,21 @@ export function ProcedureCategoryForm({
   const [parentId, setParentId] = useState(initial?.parentId ?? "");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    setName(initial?.name ?? "");
+    setDesc(initial?.description ?? "");
+    setParentId(initial?.parentId ?? "");
+  }, [open, initial]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const payload: Record<string, unknown> = { name, description: desc || undefined };
-    if (parentId) payload.parentId = parentId;
+    const payload: Record<string, unknown> = {
+      name,
+      description: isEdit ? desc : desc || undefined,
+    };
+    if (isEdit || parentId) payload.parentId = parentId;
     try {
       if (isEdit) {
         await api.put(`/procedure-categories/${initial.id}`, payload);

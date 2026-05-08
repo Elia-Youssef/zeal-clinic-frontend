@@ -63,7 +63,7 @@ export function EmployeePaymentForm({
   return (
     <Modal open={open} onClose={onClose} title="Record Employee Payment">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
             <Input

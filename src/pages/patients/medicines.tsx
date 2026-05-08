@@ -52,7 +52,7 @@ export default function MedicinesPage() {
   ];
 
   const actions: RowAction<Medicine>[] = [
-    ...(can("patients:write")
+    ...(can("medicines:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
@@ -62,7 +62,7 @@ export default function MedicinesPage() {
           },
         }]
       : []),
-    ...(can("patients:delete")
+    ...(can("medicines:delete")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -82,7 +82,7 @@ export default function MedicinesPage() {
         rowKey={(m) => m.id}
         emptyMessage="No medicines defined."
         headerActions={
-          can("patients:write") ? (
+          can("medicines:write") ? (
             <AddButton
               label="Add Medicine"
               onClick={() => {

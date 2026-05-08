@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useLoadingStore } from "@/lib/stores/loading-store";
 import { useRealtimeStore } from "@/lib/stores/realtime-store";
 import { SCALE_BOUNDS, useUIStore } from "@/lib/stores/ui-store";
 
@@ -43,6 +44,7 @@ export function HeaderUserAvatar() {
   }, [scale]);
 
   const handleLogout = async () => {
+    useLoadingStore.getState().show("Signing out...");
     try {
       await api.post("/auth/logout");
     } catch {

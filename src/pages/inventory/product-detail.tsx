@@ -90,10 +90,10 @@ function ProductDetailContent() {
     const payload: Record<string, unknown> = {
       name,
       unitPrice: Number(unitPrice),
+      categoryId,
+      quantity: quantity ? Number(quantity) : 0,
+      minThreshold: minThreshold ? Number(minThreshold) : 0,
     };
-    if (categoryId) payload.categoryId = categoryId;
-    if (quantity) payload.quantity = Number(quantity);
-    if (minThreshold) payload.minThreshold = Number(minThreshold);
     try {
       await api.put(`/products/${id}`, payload);
       addAlert("success", "Product updated.");
@@ -152,8 +152,8 @@ function ProductDetailContent() {
       <PageHeader
         backHref="/inventory"
         title={product.name}
-        onEdit={can("inventory:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("inventory:delete") ? handleDelete : undefined}
+        onEdit={can("products:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("products:delete") ? handleDelete : undefined}
       />
 
       {/* Details */}
@@ -161,7 +161,7 @@ function ProductDetailContent() {
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Unit Price">
             <p className="text-lg font-semibold">
               ${product.unitPrice.toFixed(2)}
@@ -174,7 +174,7 @@ function ProductDetailContent() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DataList<ProductAllergyConflict>
           title="Allergy Conflicts"
           columns={[
@@ -190,7 +190,7 @@ function ProductDetailContent() {
             },
           ]}
           actions={
-            can("inventory:delete")
+            can("product-allergy-conflicts:write")
               ? [
                   {
                     label: "Delete",
@@ -208,7 +208,7 @@ function ProductDetailContent() {
           refreshKey={conflictsKey}
           emptyMessage="No allergy conflicts."
           headerActions={
-            can("inventory:write") && (
+            can("product-allergy-conflicts:write") && (
               <Button
                 size="sm"
                 className="gap-1"
@@ -220,7 +220,7 @@ function ProductDetailContent() {
           }
         />
 
-        {can("transactions:read") && (
+        {can("invoices:read") && (
           <DataList<Invoice>
             title="Invoices"
             columns={[
@@ -313,7 +313,7 @@ function ProductDetailContent() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Category</label>
               <SearchableDropdown
@@ -335,7 +335,7 @@ function ProductDetailContent() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Quantity</label>
               <Input

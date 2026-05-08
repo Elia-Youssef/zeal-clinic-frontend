@@ -1,6 +1,8 @@
 
+import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useLoadingStore } from "@/lib/stores/loading-store";
 
 type ScopeMode = "any" | "all";
 
@@ -32,8 +34,16 @@ export function RequireScopes({
   fallback?: string;
 }) {
   const { canAny, canAll } = usePermissions();
+  const allowed = hasScopes(scopes, mode, canAny, canAll);
 
-  if (!hasScopes(scopes, mode, canAny, canAll)) {
+  useEffect(() => {
+    if (allowed) return;
+    const { show, hide } = useLoadingStore.getState();
+    show("Redirecting...");
+    return () => hide();
+  }, [allowed]);
+
+  if (!allowed) {
     return <Navigate to={fallback} replace />;
   }
 

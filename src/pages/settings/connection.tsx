@@ -70,7 +70,7 @@ export default function ConnectionPage() {
 
   return (
     <div className="flex items-center justify-around">
-      <Card className="w-100">
+      <Card className="w-full max-w-100">
         <CardHeader>
           <CardTitle>Connect a client</CardTitle>
           <CardDescription>
@@ -95,7 +95,7 @@ export default function ConnectionPage() {
               <p className="text-xs font-medium text-muted-foreground">
                 Server URL
               </p>
-              <code className="flex flex-row items-center justify-between flex-1 rounded-md border border-border bg-muted px-3 gap-4">
+              <code className="flex flex-1 items-center justify-between gap-4 rounded-md border border-border bg-muted px-3">
                 <span className="font-mono text-sm break-all">{data.url}</span>
                 <Button variant="ghost" onClick={handleCopy} className="p-0">
                   {copied ? (

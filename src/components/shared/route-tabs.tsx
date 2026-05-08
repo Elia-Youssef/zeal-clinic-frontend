@@ -26,22 +26,24 @@ export function RouteTabs({
   if (visibleTabs.length === 0) return null
 
   return (
-    <div className="flex justify-center">
-      <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-        {visibleTabs.map((tab) => (
-          <Link
-            key={tab.href}
-            to={tab.href}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              pathname === tab.href
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
+    <div className="-mx-4 overflow-x-auto px-4">
+      <div className="flex justify-center">
+        <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
+          {visibleTabs.map((tab) => (
+            <Link
+              key={tab.href}
+              to={tab.href}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                pathname === tab.href
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +40,7 @@ export function UserForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     if (initial) {
       setForm({
         username: initial.username,
@@ -51,7 +51,7 @@ export function UserForm({
     } else {
       setForm(emptyForm);
     }
-  }, [initial]);
+  }, [open, initial]);
 
   const update = (field: keyof UserFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -91,7 +91,7 @@ export function UserForm({
       title={isEdit ? "Edit User" : "New User"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Username *</label>
             <Input
@@ -110,7 +110,7 @@ export function UserForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Role *</label>
             <SearchableDropdown
@@ -122,15 +122,12 @@ export function UserForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Password {isEdit ? "" : "*"}
-            </label>
+            <label className="text-sm font-medium">Password</label>
             <Input
               type="password"
               value={form.password}
               onChange={(e) => update("password", e.target.value)}
               placeholder={isEdit ? "Leave blank to keep" : ""}
-              required={!isEdit}
             />
           </div>
         </div>

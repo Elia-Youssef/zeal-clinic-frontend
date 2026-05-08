@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,11 +35,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
 
-/* ------------------------------------------------------------------ */
-/*  Page content                                                       */
-/* ------------------------------------------------------------------ */
-
-function EmployeeDetailContent() {
+export default function EmployeeDetailPage() {
+  usePageTitle("Employee");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
@@ -48,15 +45,10 @@ function EmployeeDetailContent() {
 
   const employee = useEmployeesStore((s) => s.current);
   const balance = useEmployeesStore((s) => s.currentBalance);
-  const slots = useEmployeesStore((s) => s.slots);
-  const scheduleDays = useEmployeesStore((s) => s.scheduleDays);
-  const vacations = useEmployeesStore((s) => s.vacations);
   const loading = useEmployeesStore((s) => s.detailLoading);
   const fetchDetail = useEmployeesStore((s) => s.fetchDetail);
   const fetchBalance = useEmployeesStore((s) => s.fetchBalance);
-  const fetchScheduleForWeek = useEmployeesStore((s) => s.fetchScheduleForWeek);
   const setCurrent = useEmployeesStore((s) => s.setCurrent);
-  console.log(balance)
 
   const [editOpen, setEditOpen] = useState(false);
   const [salaryFormOpen, setSalaryFormOpen] = useState(false);
@@ -65,54 +57,23 @@ function EmployeeDetailContent() {
   const [writeOffFormOpen, setWriteOffFormOpen] = useState(false);
   const [paymentsKey, setPaymentsKey] = useState(0);
   const [preparedSalariesKey, setPreparedSalariesKey] = useState(0);
-  const [editingAdjustment, setEditingAdjustment] = useState<SalaryPreparation | null>(
-    null,
-  );
-  /* Sunday-anchored week start used by the schedule grid. */
-  const [weekStart, setWeekStart] = useState<Date>(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - d.getDay());
-    return d;
-  });
+  const [editingAdjustment, setEditingAdjustment] =
+    useState<SalaryPreparation | null>(null);
 
-  const reloadDetails = () => fetchDetail(id);
+  useEffect(() => {
+    fetchDetail(id);
+    return () => setCurrent(null);
+  }, [id]);
+
+  const reloadEmployee = () => fetchDetail(id);
   const bumpPayments = () => {
     setPaymentsKey((k) => k + 1);
     fetchBalance(id);
   };
   const bumpPreparedSalaries = () => {
     setPreparedSalariesKey((k) => k + 1);
-    setPaymentsKey((k) => k + 1);
-    fetchBalance(id);
+    bumpPayments();
   };
-
-  /* Any ISO date inside the visible Sun–Sat window. The backend derives
-   * the week (and the calendar month for monthHours) from this single
-   * date, so we don't need to compute the bounds here. */
-  const weekDateIso = (() => {
-    const y = weekStart.getFullYear();
-    const m = String(weekStart.getMonth() + 1).padStart(2, "0");
-    const day = String(weekStart.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  })();
-
-  const reloadSchedule = () => {
-    reloadDetails();
-    fetchScheduleForWeek(id, weekDateIso);
-  };
-
-  useEffect(() => {
-    fetchDetail(id);
-    return () => {
-      setCurrent(null);
-    };
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-    fetchScheduleForWeek(id, weekDateIso);
-  }, [id, weekDateIso]);
 
   const handleDelete = async () => {
     if (!employee) return;
@@ -185,7 +146,7 @@ function EmployeeDetailContent() {
     try {
       await api.del(`/employee-salaries/${salaryId}`);
       addAlert("success", "Salary deleted.");
-      reloadDetails();
+      reloadEmployee();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -197,7 +158,7 @@ function EmployeeDetailContent() {
   ) => {
     try {
       await api.put(`/employee-salaries/${salaryId}`, { isActive });
-      reloadDetails();
+      reloadEmployee();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
@@ -243,13 +204,13 @@ function EmployeeDetailContent() {
     },
   ];
 
-  const salaryActions: RowAction<Salary>[] = can("team:write")
+  const salaryActions: RowAction<Salary>[] = can("employee-salaries:write")
     ? [
         {
           label: "Toggle Active",
           onClick: (s) => handleToggleSalaryActive(s.id, !s.isActive),
         },
-        ...(can("team:delete")
+        ...(can("employee-salaries:delete")
           ? [
               {
                 label: "Delete",
@@ -267,15 +228,15 @@ function EmployeeDetailContent() {
       <PageHeader
         backHref="/team"
         title={`${employee.firstName} ${employee.lastName}`}
-        onEdit={can("team:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("team:delete") ? handleDelete : undefined}
+        onEdit={can("employees:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("employees:delete") ? handleDelete : undefined}
       />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Contact">{employee.contact}</DetailField>
           <DetailField label="Email">{employee.email || "---"}</DetailField>
           <DetailField label="Date of Birth">
@@ -286,27 +247,22 @@ function EmployeeDetailContent() {
 
       <EmployeeWeekSchedule
         employeeId={id}
-        slots={slots}
-        scheduleDays={scheduleDays}
-        vacations={vacations}
-        weekStart={weekStart}
-        onWeekChange={setWeekStart}
-        onChange={reloadSchedule}
-        canEditGeneral={can("schedule:write")}
-        canRequestVacation={can("schedule:read")}
+        canEditGeneral={can("schedule-availability:write")}
+        canRequestVacation={can("hr:write")}
       />
 
-      {/* Salaries + Payments */}
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row">
         <Card
-          className={`${can("transactions:read") ? "flex-1" : ""} flex flex-col gap-4`}
+          className={`${can("employee-payments:read") ? "flex-1" : ""} flex flex-col gap-4`}
         >
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Salaries</CardTitle>
-            {can("team:write") && (
+          <CardHeader className="flex flex-row flex-wrap items-center gap-2">
+            <CardTitle className="min-w-0 flex-1 basis-32">
+              Salaries
+            </CardTitle>
+            {can("employee-salaries:write") && (
               <Button
                 size="sm"
-                className="gap-1"
+                className="ml-auto gap-1"
                 onClick={() => setSalaryFormOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -329,7 +285,7 @@ function EmployeeDetailContent() {
           </CardContent>
         </Card>
 
-        {can("transactions:read") && (
+        {can("employee-payments:read") && (
           <Card className="flex-1 gap-0">
             {balance && (
               <CardHeader className="pb-4 border-b">
@@ -418,7 +374,7 @@ function EmployeeDetailContent() {
               }
               rowKey={(p) => p.id}
               actions={
-                can("transactions:delete")
+                can("employee-payments:delete")
                   ? [
                       {
                         label: "Delete",
@@ -433,7 +389,7 @@ function EmployeeDetailContent() {
               hideSearch
               refreshKey={paymentsKey}
               headerActions={
-                can("transactions:write") && (
+                can("employee-payments:write") && (
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -513,7 +469,7 @@ function EmployeeDetailContent() {
         ]}
         rowKey={(p) => p.id}
         actions={[
-          ...(can("transactions:write")
+          ...(can("employee-payments:write")
             ? [
                 {
                   label: "Edit Adjustment",
@@ -522,7 +478,7 @@ function EmployeeDetailContent() {
                 },
               ]
             : []),
-          ...(can("transactions:delete")
+          ...(can("employee-payments:delete")
             ? [
                 {
                   label: "Delete",
@@ -589,13 +545,13 @@ function EmployeeDetailContent() {
       <EmployeeForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={reloadDetails}
+        onSaved={reloadEmployee}
         initial={employee}
       />
       <SalaryForm
         open={salaryFormOpen}
         onClose={() => setSalaryFormOpen(false)}
-        onSaved={reloadDetails}
+        onSaved={reloadEmployee}
         employeeId={id}
       />
       <EmployeePaymentForm
@@ -630,13 +586,4 @@ function EmployeeDetailContent() {
       />
     </div>
   );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Page export                                                        */
-/* ------------------------------------------------------------------ */
-
-export default function EmployeeDetailPage() {
-  usePageTitle("Employee");
-  return <EmployeeDetailContent />;
 }

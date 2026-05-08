@@ -82,7 +82,7 @@ export default function InvoicesPage() {
         rowKey={(i) => i.id}
         onRowClick={invoiceRowClick}
         headerActions={
-          can("transactions:write") ? (
+          can("invoices:write") ? (
             entityTab === "Patient" ? (
               can("patients:read") ? (
                 <AddButton
@@ -91,7 +91,7 @@ export default function InvoicesPage() {
                 />
               ) : undefined
             ) : entityTab === "Supplier" ? (
-              can("inventory:read") ? (
+              can("suppliers:read") ? (
                 <AddButton
                   label="New Invoice"
                   onClick={() => setSupplierInvoiceOpen(true)}

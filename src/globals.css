@@ -4,7 +4,8 @@
 @import "@fontsource-variable/geist";
 
 #root {
-  height: 100vmin;
+  min-height: 100svh;
+  height: 100svh;
 }
 
 @custom-variant dark (&:is(.dark *));

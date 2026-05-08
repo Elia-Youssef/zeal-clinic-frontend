@@ -73,7 +73,7 @@ function TeamContent() {
         onRowClick={(e) => navigate(`/team/${e.id}`)}
         headerActions={
           <div className="flex items-center gap-2">
-            {can("transactions:write") && (
+            {can("employee-payments:write") && (
               <Button
                 size="sm"
                 variant="outline"
@@ -84,7 +84,7 @@ function TeamContent() {
                 Prepare Salaries
               </Button>
             )}
-            {can("team:write") && (
+            {can("employees:write") && (
               <AddButton
                 label="Add Employee"
                 onClick={() => setFormOpen(true)}

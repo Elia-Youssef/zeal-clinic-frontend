@@ -110,8 +110,8 @@ function ProcedureDetailContent() {
       <PageHeader
         backHref="/services"
         title={procedure.name}
-        onEdit={can("services:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("services:delete") ? handleDelete : undefined}
+        onEdit={can("procedures:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("procedures:delete") ? handleDelete : undefined}
       />
 
       {/* Details */}
@@ -119,8 +119,8 @@ function ProcedureDetailContent() {
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-          <DetailField label="Price" className="col-span-2">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
+          <DetailField label="Price" className="sm:col-span-2">
             <div>
               {procedure.price ? (
                 <span className="font-semibold">${procedure.price}</span>
@@ -168,7 +168,7 @@ function ProcedureDetailContent() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DataList<ProcedureAllergyConflict>
           className="flex-1"
           title="Allergy Conflicts"
@@ -185,7 +185,7 @@ function ProcedureDetailContent() {
             },
           ]}
           actions={
-            can("services:delete")
+            can("procedure-allergy-conflicts:write")
               ? [
                   {
                     label: "Delete",
@@ -203,7 +203,7 @@ function ProcedureDetailContent() {
           refreshKey={conflictsKey}
           emptyMessage="No allergy conflicts."
           headerActions={
-            can("services:write") && (
+            can("procedure-allergy-conflicts:write") && (
               <Button
                 size="sm"
                 className="gap-1"

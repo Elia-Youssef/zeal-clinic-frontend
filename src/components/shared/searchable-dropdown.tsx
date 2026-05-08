@@ -96,6 +96,10 @@ export function SearchableDropdown({
   /* Auto-select the first available option once, if requested and value is empty */
   const didAutoSelectRef = useRef(false);
   useEffect(() => {
+    if (defaultFirst && !value) didAutoSelectRef.current = false;
+  }, [defaultFirst, value]);
+
+  useEffect(() => {
     if (!defaultFirst || didAutoSelectRef.current) return;
     if (value) {
       didAutoSelectRef.current = true;
@@ -133,7 +137,7 @@ export function SearchableDropdown({
   };
 
   return (
-    <div className={cn("relative max-w-xs min-w-0", className)}>
+    <div className={cn("relative w-full min-w-0", className)}>
       {/* Hidden input for form required validation */}
       {required && (
         <input

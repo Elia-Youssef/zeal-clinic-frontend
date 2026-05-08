@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/shared/loading";
@@ -12,14 +12,11 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useConfirm } from "@/hooks/use-confirm";
 
 function UserDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
-  const confirm = useConfirm();
 
   const user = useUsersStore((s) => s.current);
   const loading = useUsersStore((s) => s.detailLoading);
@@ -36,26 +33,6 @@ function UserDetailContent() {
       setCurrent(null);
     };
   }, [id]);
-
-  const handleDelete = async () => {
-    if (!user) return;
-    if (
-      !(await confirm({
-        title: "Delete user?",
-        description: `Delete user ${user.username}?`,
-        confirmText: "Delete",
-      }))
-    ) {
-      return;
-    }
-    try {
-      await api.del(`/users/${id}`);
-      addAlert("success", "User deleted.");
-      navigate("/settings/users");
-    } catch (err) {
-      addAlert("error", getErrorMessage(err));
-    }
-  };
 
   const handleToggleActive = async () => {
     if (!user) return;
@@ -83,23 +60,22 @@ function UserDetailContent() {
       <PageHeader
         backHref="/settings/users"
         title={user.displayName}
-        onEdit={can("team:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("team:delete") ? handleDelete : undefined}
+        onEdit={can("users:write") ? () => setEditOpen(true) : undefined}
       />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Username">{user.username}</DetailField>
           <DetailField label="Display Name">{user.displayName}</DetailField>
           <DetailField label="Role">{user.role}</DetailField>
           <DetailField label="Status">
             <Badge
               variant={user.isActive ? "default" : "secondary"}
-              className={can("team:write") ? "cursor-pointer" : undefined}
-              onClick={can("team:write") ? handleToggleActive : undefined}
+              className={can("users:write") ? "cursor-pointer" : undefined}
+              onClick={can("users:write") ? handleToggleActive : undefined}
             >
               {user.isActive ? "Active" : "Inactive"}
             </Badge>

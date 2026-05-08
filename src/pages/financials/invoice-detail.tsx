@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Printer } from "lucide-react";
+import { Printer, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
-import type { Invoice } from "@/lib/types";
+import type { Invoice, InvoiceItem } from "@/lib/types";
 
 export default function InvoiceDetailPage() {
   usePageTitle("Invoice");
@@ -33,6 +33,10 @@ export default function InvoiceDetailPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  const [editItem, setEditItem] = useState<InvoiceItem | null>(null);
+  const [itemAmount, setItemAmount] = useState("");
+  const [itemSubmitting, setItemSubmitting] = useState(false);
 
   const handlePrintPdf = async () => {
     setPdfLoading(true);
@@ -84,6 +88,34 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const openItemEdit = (item: InvoiceItem) => {
+    setEditItem(item);
+    setItemAmount(String(item.amount ?? 0));
+  };
+
+  const handleItemUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editItem) return;
+    const amount = parseFloat(itemAmount);
+    if (Number.isNaN(amount)) {
+      addAlert("error", "Enter a valid amount.");
+      return;
+    }
+    setItemSubmitting(true);
+    try {
+      await api.put(`/supplier-invoices/${id}/items/${editItem.id}`, {
+        amount,
+      });
+      addAlert("success", "Item updated.");
+      setEditItem(null);
+      load();
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    } finally {
+      setItemSubmitting(false);
+    }
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invoice) return;
@@ -123,17 +155,17 @@ export default function InvoiceDetailPage() {
   const otherHrefPrefix = isClientInvoice ? "/patients" : "/suppliers";
   const canOpenOtherEntity = isClientInvoice
     ? can("patients:read")
-    : can("inventory:read");
+    : can("suppliers:read");
 
   return (
     <div className="space-y-4 flex flex-col">
       <PageHeader
         backHref="/financials"
         title={`Invoice #${invoice.invoiceNumber}`}
-        onEdit={can("transactions:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("transactions:delete") ? handleDelete : undefined}
+        onEdit={can("invoices:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("invoices:delete") ? handleDelete : undefined}
         extraActions={
-          can("transactions:read") ? (
+          can("invoices:read") ? (
             <Button
               variant="outline"
               size="sm"
@@ -152,7 +184,7 @@ export default function InvoiceDetailPage() {
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label={otherLabel}>
             {otherEntityId && canOpenOtherEntity ? (
               <Link
@@ -170,10 +202,10 @@ export default function InvoiceDetailPage() {
           <DetailField label="Date">
             {invoice.createdAt?.slice(0, 10) ?? "---"}
           </DetailField>
-          <DetailField label="Notes" className="col-span-2">
+          <DetailField label="Notes" className="sm:col-span-2">
             {invoice.notes || "---"}
           </DetailField>
-          <DetailField label="Created By" className="col-span-2">
+          <DetailField label="Created By" className="sm:col-span-2">
             {invoice.createdBy ?? "---"}
           </DetailField>
         </CardContent>
@@ -219,6 +251,17 @@ export default function InvoiceDetailPage() {
             ]}
             data={invoice.items || []}
             rowKey={(i) => i.id}
+            actions={
+              !isClientInvoice && can("invoices:write")
+                ? [
+                    {
+                      label: "Edit Amount",
+                      icon: <Pencil className="size-4" />,
+                      onClick: openItemEdit,
+                    },
+                  ]
+                : undefined
+            }
           />
         </CardContent>
       </Card>
@@ -245,6 +288,38 @@ export default function InvoiceDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Modal
+        open={!!editItem}
+        onClose={() => setEditItem(null)}
+        title="Edit Item Amount"
+      >
+        <form onSubmit={handleItemUpdate} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Amount</label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={itemAmount}
+              onChange={(e) => setItemAmount(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditItem(null)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={itemSubmitting}>
+              {itemSubmitting ? "Saving…" : "Update"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal
         open={editOpen}

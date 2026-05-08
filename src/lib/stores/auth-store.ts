@@ -9,6 +9,12 @@ type LoginResponse = {
   scopes: string[];
 };
 
+type MeResponse = {
+  user: string;
+  role: string;
+  scopes: string[];
+};
+
 type AuthState = {
   token: string;
   isAuthenticated: boolean;
@@ -19,6 +25,7 @@ type AuthState = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   hydrate: () => boolean;
+  refreshAuth: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -52,6 +59,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.removeItem("auth_role");
     sessionStorage.removeItem("auth_scopes");
     set({ token: "", isAuthenticated: false, user: "", role: "", scopes: [] });
+  },
+
+  /**
+   * Refetch the current user's role/scopes from the backend and update
+   * cached state. Used after a `scopes_changed` realtime event.
+   */
+  refreshAuth: async () => {
+    const data = await api.get<MeResponse>("/auth/me");
+    sessionStorage.setItem("auth_user", data.user);
+    sessionStorage.setItem("auth_role", data.role);
+    sessionStorage.setItem("auth_scopes", JSON.stringify(data.scopes));
+    set({ user: data.user, role: data.role, scopes: data.scopes });
   },
 
   /** Read token from sessionStorage on app start. Returns true if a token exists. */

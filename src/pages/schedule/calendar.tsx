@@ -41,7 +41,7 @@ import {
   appointmentStatusStyles,
   defaultAppointmentStatusStyle,
 } from "@/lib/constants";
-import type { Appointment, Room, RoomDayCount } from "@/lib/types";
+import type { Appointment, Holiday, Room, RoomDayCount } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 
 const DAY_START_HOUR = 8; // inclusive: first hour on the grid
@@ -337,12 +337,14 @@ function DayView({
   date,
   rooms,
   appointments,
+  holidays,
   onCellClick,
   onAppointmentClick,
 }: {
   date: Date;
   rooms: Room[];
   appointments: Appointment[];
+  holidays: Holiday[];
   onCellClick: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
 }) {
@@ -362,9 +364,16 @@ function DayView({
     0,
   );
 
+  // The store may carry holidays from neighboring dates after navigation, so
+  // filter to those whose range actually covers the displayed day.
+  const activeHolidays = useMemo(
+    () => holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
+    [holidays, dateStr],
+  );
+
   return (
     <div>
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-semibold">
           {date.toLocaleDateString("en-US", {
             weekday: "long",
@@ -375,9 +384,19 @@ function DayView({
         <Badge variant="secondary">
           {dayCount} appointment{dayCount !== 1 ? "s" : ""}
         </Badge>
+        {activeHolidays.map((h) => (
+          <Badge
+            key={h.id}
+            variant="secondary"
+            className="bg-amber-500/20 text-amber-900 dark:text-amber-200"
+            title={h.notes || h.name}
+          >
+            {h.name}
+          </Badge>
+        ))}
       </div>
 
-      <div className="overflow-auto max-h-[calc(100vh-18.5rem)]">
+      <div className="overflow-auto max-h-[calc(100svh-18.5rem)]">
         <div className="min-w-225">
           <div className="sticky top-0 z-11 bg-card">
             <RoomHeaders rooms={rooms} />
@@ -412,11 +431,13 @@ function WeekView({
   date,
   rooms,
   weekCounts,
+  holidays,
   onDayClick,
 }: {
   date: Date;
   rooms: Room[];
   weekCounts: RoomDayCount[];
+  holidays: Holiday[];
   onDayClick: (day: Date) => void;
 }) {
   const weekDays = SchedUtils.getWeekDays(date);
@@ -431,6 +452,22 @@ function WeekView({
     }
     return map;
   }, [weekCounts]);
+
+  // For each day in the week, collect any holiday whose [startDate, endDate]
+  // range covers it. A multi-day holiday (e.g. Mon–Wed) appears on every day
+  // it spans; single-day holidays appear once.
+  const holidaysByDay = useMemo(() => {
+    const map: Record<string, Holiday[]> = {};
+    for (const h of holidays) {
+      for (const day of weekDays) {
+        const dayStr = SchedUtils.toDateStr(day);
+        if (dayStr >= h.startDate && dayStr <= h.endDate) {
+          (map[dayStr] ??= []).push(h);
+        }
+      }
+    }
+    return map;
+  }, [holidays, weekDays]);
 
   const shortDate = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -467,12 +504,15 @@ function WeekView({
           {weekDays.map((day) => {
             const dayStr = SchedUtils.toDateStr(day);
             const isToday = dayStr === today;
+            const dayHolidays = holidaysByDay[dayStr];
+            const isHoliday = !!dayHolidays?.length;
             return (
               <div
                 key={dayStr}
                 className={cn(
                   "grid border-b border-border",
                   isToday && "bg-primary/10",
+                  isHoliday && "bg-amber-500/10",
                 )}
                 style={{ gridTemplateColumns: weekGridCols }}
               >
@@ -487,6 +527,16 @@ function WeekView({
                   <div className="text-xs text-muted-foreground">
                     {shortDate(day)}
                   </div>
+                  {dayHolidays?.map((h) => (
+                    <Badge
+                      key={h.id}
+                      variant="secondary"
+                      className="mt-1 bg-amber-500/20 text-amber-900 dark:text-amber-200"
+                      title={h.notes || h.name}
+                    >
+                      {h.name}
+                    </Badge>
+                  ))}
                 </div>
                 {rooms.map((room) => {
                   const count = countsByRoom[room.id]?.[dayStr] ?? 0;
@@ -539,7 +589,9 @@ function CalendarPageContent() {
   const rooms = useRoomsStore((s) => s.rooms);
   const fetchRooms = useRoomsStore((s) => s.fetch);
   const appointments = useAppointmentsStore((s) => s.appointments);
+  const dayHolidays = useAppointmentsStore((s) => s.dayHolidays);
   const weekCounts = useAppointmentsStore((s) => s.weekCounts);
+  const weekHolidays = useAppointmentsStore((s) => s.weekHolidays);
   const loading = useAppointmentsStore((s) => s.loading);
   const fetchAppointments = useAppointmentsStore((s) => s.fetchForDates);
   const fetchWeekCounts = useAppointmentsStore((s) => s.fetchWeekCounts);
@@ -659,14 +711,14 @@ function CalendarPageContent() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
+        <CardHeader className="flex flex-row flex-wrap items-center gap-2">
           <Tabs
             tabs={["Day", "Week"]}
             activeTab={view}
             onChange={(tab) => setView(tab as "Day" | "Week")}
           />
 
-          <div className="flex items-center gap-1">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
             {loading && (
               <Loader2 className="size-4 mr-2 animate-spin text-muted-foreground" />
             )}
@@ -740,6 +792,7 @@ function CalendarPageContent() {
                 date={currentDate}
                 rooms={rooms}
                 appointments={appointments}
+                holidays={dayHolidays}
                 onCellClick={handleCellClick}
                 onAppointmentClick={handleAppointmentClick}
               />
@@ -748,6 +801,7 @@ function CalendarPageContent() {
                 date={currentDate}
                 rooms={rooms}
                 weekCounts={weekCounts}
+                holidays={weekHolidays}
                 onDayClick={handleWeekDayClick}
               />
             )}

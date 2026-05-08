@@ -29,16 +29,20 @@ export function CategoryForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     setName(initial?.name ?? "");
     setDesc(initial?.description ?? "");
     setParentId(initial?.parentId ?? "");
-  }, [initial]);
+  }, [open, initial]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const payload: Record<string, unknown> = { name, description: desc || undefined };
-    if (parentId) payload.parentId = parentId;
+    const payload: Record<string, unknown> = {
+      name,
+      description: isEdit ? desc : desc || undefined,
+    };
+    if (isEdit || parentId) payload.parentId = parentId;
     try {
       if (isEdit) {
         await api.put(`/product-categories/${initial.id}`, payload);

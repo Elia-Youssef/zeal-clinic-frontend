@@ -52,14 +52,14 @@ export default function CategoriesPage() {
   ];
 
   const actions: RowAction<ProcedureCategory>[] = [
-    ...(can("services:write")
+    ...(can("procedure-categories:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
           onClick: (c: ProcedureCategory) => { setEditing(c); setFormOpen(true); },
         }]
       : []),
-    ...(can("services:delete")
+    ...(can("procedure-categories:write")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -79,7 +79,7 @@ export default function CategoriesPage() {
         rowKey={(c) => c.id}
         emptyMessage="No procedure categories defined."
         headerActions={
-          can("services:write") ? (
+          can("procedure-categories:write") ? (
             <AddButton label="Add Category" onClick={() => { setEditing(undefined); setFormOpen(true); }} />
           ) : undefined
         }

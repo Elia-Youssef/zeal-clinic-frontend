@@ -51,6 +51,7 @@ export function ProcedureForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     if (initial) {
       setForm({
         name: initial.name,
@@ -67,7 +68,7 @@ export function ProcedureForm({
     } else {
       setForm(emptyForm);
     }
-  }, [initial]);
+  }, [open, initial]);
 
   const update = (field: keyof ProcedureFormFields, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,14 +79,14 @@ export function ProcedureForm({
 
     const payload: Record<string, unknown> = {
       name: form.name,
-      isActive: form.isActive,
       price: form.price ? Number(form.price) : 0,
     };
-    if (form.typeId) payload.typeId = form.typeId;
-    if (form.categoryId) payload.categoryId = form.categoryId;
-    if (form.priceNote) payload.priceNote = form.priceNote;
-    if (form.remarks) payload.remarks = form.remarks;
-    if (form.includes) payload.includes = form.includes;
+    if (isEdit) payload.isActive = form.isActive;
+    if (isEdit || form.typeId) payload.typeId = form.typeId;
+    if (isEdit || form.categoryId) payload.categoryId = form.categoryId;
+    if (isEdit || form.priceNote) payload.priceNote = form.priceNote;
+    if (isEdit || form.remarks) payload.remarks = form.remarks;
+    if (isEdit || form.includes) payload.includes = form.includes;
 
     try {
       if (isEdit) {
@@ -124,7 +125,7 @@ export function ProcedureForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Price</label>
             <Input
@@ -142,7 +143,7 @@ export function ProcedureForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Type</label>
             <SearchableDropdown
@@ -196,16 +197,18 @@ export function ProcedureForm({
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="proc-isActive"
-            checked={form.isActive}
-            onCheckedChange={(value) => update("isActive", value)}
-          />
-          <label htmlFor="proc-isActive" className="text-sm font-medium">
-            Active
-          </label>
-        </div>
+        {isEdit && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="proc-isActive"
+              checked={form.isActive}
+              onCheckedChange={(value) => update("isActive", value)}
+            />
+            <label htmlFor="proc-isActive" className="text-sm font-medium">
+              Active
+            </label>
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>

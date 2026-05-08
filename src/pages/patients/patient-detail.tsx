@@ -127,7 +127,7 @@ function PatientDetailContent() {
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Email">{patient.email || "---"}</DetailField>
           <DetailField label="Contact">{patient.contact}</DetailField>
           <DetailField label="Emergency Contact">
@@ -141,7 +141,7 @@ function PatientDetailContent() {
           <DetailField label="Date of Birth">
             {patient.dateOfBirth?.slice(0, 10) ?? "---"}
           </DetailField>
-          <DetailField className="col-span-2" label="Address">
+          <DetailField className="sm:col-span-2" label="Address">
             <div>
               {[
                 patient.country?.name,
@@ -163,14 +163,14 @@ function PatientDetailContent() {
           <DetailField label="Blood Type">
             {patient.bloodType || "—--"}
           </DetailField>
-          <DetailField className="col-span-3" label="Notes">
+          <DetailField className="sm:col-span-2 md:col-span-3" label="Notes">
             {patient.notes || "---"}
           </DetailField>
         </CardContent>
       </Card>
 
       {/* Allergies & Medicines */}
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row">
         <DataList<PatientAllergy>
           className="flex-1"
           title="Allergies"
@@ -183,7 +183,7 @@ function PatientDetailContent() {
             { header: "Notes", key: "notes", render: (i) => i.notes ?? "---" },
           ]}
           actions={
-            can("patients:delete")
+            can("patient-allergies:write")
               ? [
                   {
                     label: "Delete",
@@ -200,7 +200,7 @@ function PatientDetailContent() {
           refreshKey={allergiesKey}
           hideSearch
           headerActions={
-            can("patients:write") && (
+            can("patient-allergies:write") && (
               <Button
                 size="sm"
                 className="gap-1"
@@ -224,7 +224,7 @@ function PatientDetailContent() {
             { header: "Notes", key: "notes", render: (i) => i.notes ?? "---" },
           ]}
           actions={
-            can("patients:delete")
+            can("patient-medicines:write")
               ? [
                   {
                     label: "Delete",
@@ -241,7 +241,7 @@ function PatientDetailContent() {
           refreshKey={medicinesKey}
           hideSearch
           headerActions={
-            can("patients:write") && (
+            can("patient-medicines:write") && (
               <Button
                 size="sm"
                 className="gap-1"
@@ -254,7 +254,7 @@ function PatientDetailContent() {
         />
       </div>
 
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row">
         {can("appointments:read") && (
           <DataList
             className="flex-1"
@@ -352,7 +352,7 @@ function PatientDetailContent() {
             },
           ]}
           actions={[
-            ...(can("patients:write")
+            ...(can("prescriptions:write")
               ? [
                   {
                     label: "Edit",
@@ -364,7 +364,7 @@ function PatientDetailContent() {
                   },
                 ]
               : []),
-            ...(can("patients:delete")
+            ...(can("prescriptions:delete")
               ? [
                   {
                     label: "Delete",
@@ -382,7 +382,7 @@ function PatientDetailContent() {
           refreshKey={prescriptionsKey}
           hideSearch
           headerActions={
-            can("patients:write") && (
+            can("prescriptions:write") && (
               <Button
                 size="sm"
                 className="gap-1"
@@ -395,8 +395,8 @@ function PatientDetailContent() {
         />
       </div>
 
-      {can("transactions:read") && (
-        <div className="flex flex-row gap-4">
+      {(can("invoices:read") || can("payments:read")) && (
+        <div className="flex flex-col gap-4 lg:flex-row">
           <DataList
             className="flex-1"
             title="Invoices"
@@ -424,7 +424,7 @@ function PatientDetailContent() {
             hideSearch
             onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
             headerActions={
-              can("transactions:write") && (
+              can("invoices:write") && (
                 <Button
                   size="sm"
                   className="gap-1"
@@ -530,7 +530,7 @@ function PatientDetailContent() {
               rowKey={(i: BalanceTransaction) => i.id}
               refreshKey={paymentsKey}
               actions={
-                can("transactions:delete")
+                can("payments:delete")
                   ? [
                       {
                         label: "Delete",
@@ -544,7 +544,7 @@ function PatientDetailContent() {
               limit={5}
               hideSearch
               headerActions={
-                can("transactions:write") && (
+                can("payments:write") && (
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"

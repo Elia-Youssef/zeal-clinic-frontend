@@ -3,8 +3,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { RouteTabs } from "@/components/shared/route-tabs";
 
 const tabs = [
-  { label: "Products", href: "/inventory/products", scopes: ["inventory:read"] },
-  { label: "Categories", href: "/inventory/categories", scopes: ["inventory:read"] },
+  { label: "Products", href: "/inventory/products", scopes: ["products:read"] },
+  { label: "Categories", href: "/inventory/categories", scopes: ["product-categories:read"] },
 ];
 
 export default function InventoryTabsLayout({ children }: { children: React.ReactNode }) {

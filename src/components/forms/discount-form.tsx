@@ -64,7 +64,7 @@ export function DiscountForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open]);
+  }, [open, initial]);
 
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -81,9 +81,11 @@ export function DiscountForm({
         value: Number(form.value),
         isActive: Number(form.isActive),
       };
-      if (form.description) payload.description = form.description;
-      if (form.startDate) payload.startDate = toISODate(form.startDate);
-      if (form.endDate) payload.endDate = toISODate(form.endDate);
+      if (isEdit || form.description) payload.description = form.description;
+      if (isEdit || form.startDate)
+        payload.startDate = form.startDate ? toISODate(form.startDate) : null;
+      if (isEdit || form.endDate)
+        payload.endDate = form.endDate ? toISODate(form.endDate) : null;
 
       if (isEdit) {
         await api.put(`/discounts/${initial.id}`, payload);
@@ -128,7 +130,7 @@ export function DiscountForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Value Type *</label>
             <SearchableDropdown
@@ -151,7 +153,7 @@ export function DiscountForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Date</label>
             <DatePicker

@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -56,10 +57,10 @@ export function EmployeeVacationForm({
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const canManage = can("schedule:write");
-  const canDelete = can("schedule:delete");
+  const canManage = can("hr:write");
+  const canDelete = can("hr:delete");
   // In edit mode the fields are admin-only; in create mode anyone with
-  // schedule:read can submit a request, so the inputs are always editable.
+  // hr:write can submit a request, so the inputs are always editable.
   const fieldsEditable = !isEdit || canManage;
 
   const [startDate, setStartDate] = useState("");
@@ -198,7 +199,7 @@ export function EmployeeVacationForm({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Date *</label>
             <DatePicker
@@ -219,24 +220,50 @@ export function EmployeeVacationForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Time</label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              disabled={!fieldsEditable}
-            />
+            <div className="relative">
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                disabled={!fieldsEditable}
+                className={startTime ? "pr-8" : undefined}
+              />
+              {startTime && fieldsEditable && (
+                <button
+                  type="button"
+                  aria-label="Clear start time"
+                  onClick={() => setStartTime("")}
+                  className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">End Time</label>
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              disabled={!fieldsEditable}
-            />
+            <div className="relative">
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={!fieldsEditable}
+                className={endTime ? "pr-8" : undefined}
+              />
+              {endTime && fieldsEditable && (
+                <button
+                  type="button"
+                  aria-label="Clear end time"
+                  onClick={() => setEndTime("")}
+                  className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">

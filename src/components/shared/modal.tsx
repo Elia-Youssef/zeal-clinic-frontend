@@ -111,14 +111,14 @@ export function Modal(props: ModalProps) {
           showCloseButton={!hideClose && !headerAction}
           className={cn("sm:max-w-125", hidden && "hidden")}
         >
-          <DialogHeader className="flex flex-row w-full justify-between items-center">
-            <div>
-              <DialogTitle>{title}</DialogTitle>
+          <DialogHeader className="flex flex-row w-full justify-between items-center gap-3 min-w-0">
+            <div className="min-w-0">
+              <DialogTitle className="truncate">{title}</DialogTitle>
               {description && (
                 <DialogDescription>{description}</DialogDescription>
               )}
             </div>
-            {headerAction && <div>{headerAction}</div>}
+            {headerAction && <div className="shrink-0">{headerAction}</div>}
           </DialogHeader>
 
           {isWizard ? (
@@ -218,7 +218,7 @@ function StepIndicator({
   onSelect: (idx: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 border-b border-border px-6 py-3">
+    <div className="flex items-center gap-2 border-b border-border px-3 py-3 sm:px-6">
       {steps.map((s, i) => {
         const done = i < current;
         const active = i === current;
@@ -246,7 +246,7 @@ function StepIndicator({
               >
                 {done ? <Check className="size-3" /> : i + 1}
               </span>
-              <span className="font-medium">{s.title}</span>
+              <span className="hidden font-medium sm:inline">{s.title}</span>
             </button>
             {i < steps.length - 1 && <div className="h-px flex-1 bg-border" />}
           </React.Fragment>

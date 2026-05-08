@@ -47,7 +47,7 @@ export function DashboardWrapper({ children }: { children: React.ReactNode }) {
           <SidebarInset className="min-w-0">
             <AppHeader title={title} />
             <div className="flex flex-col items-center w-full min-w-0">
-              <div className="flex-1 p-6 w-[90%] min-w-0 max-w-full">
+              <div className="flex-1 w-full px-4 py-4 min-w-0 max-w-full sm:w-[90%] sm:p-6">
                 {children}
               </div>
             </div>

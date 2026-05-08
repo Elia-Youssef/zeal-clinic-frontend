@@ -44,6 +44,7 @@ import TeamDetailPage from "@/pages/team/team-member-detail";
 import TeamTabsLayout from "@/pages/layouts/team-tabs-layout";
 import SettingsTabsLayout from "@/pages/layouts/settings-tabs-layout";
 import SettingsRolesPage from "@/pages/settings/roles";
+import SettingsRoleDetailPage from "@/pages/settings/role-detail";
 import SettingsUsersPage from "@/pages/settings/users";
 import SettingsAuditLogPage from "@/pages/settings/audit-log";
 import SettingsConnectionPage from "@/pages/settings/connection";
@@ -96,7 +97,7 @@ function App() {
               <Route
                 path="patients/allergies"
                 element={
-                  <RequireScopes scopes={["patients:read"]}>
+                  <RequireScopes scopes={["allergies:read"]}>
                     <PatientsAllergiesPage />
                   </RequireScopes>
                 }
@@ -104,7 +105,7 @@ function App() {
               <Route
                 path="patients/medicines"
                 element={
-                  <RequireScopes scopes={["patients:read"]}>
+                  <RequireScopes scopes={["medicines:read"]}>
                     <PatientsMedicinesPage />
                   </RequireScopes>
                 }
@@ -163,7 +164,8 @@ function App() {
               element={
                 <ScopeRedirect
                   targets={[
-                    { to: "/inventory/products", scopes: ["inventory:read"] },
+                    { to: "/inventory/products", scopes: ["products:read"] },
+                    { to: "/inventory/categories", scopes: ["product-categories:read"] },
                   ]}
                 />
               }
@@ -172,7 +174,7 @@ function App() {
               <Route
                 path="inventory/products"
                 element={
-                  <RequireScopes scopes={["inventory:read"]}>
+                  <RequireScopes scopes={["products:read"]}>
                     <InventoryProductsPage />
                   </RequireScopes>
                 }
@@ -180,7 +182,7 @@ function App() {
               <Route
                 path="inventory/categories"
                 element={
-                  <RequireScopes scopes={["inventory:read"]}>
+                  <RequireScopes scopes={["product-categories:read"]}>
                     <InventoryCategoriesPage />
                   </RequireScopes>
                 }
@@ -189,7 +191,7 @@ function App() {
             <Route
               path="inventory/products/:id"
               element={
-                <RequireScopes scopes={["inventory:read"]}>
+                <RequireScopes scopes={["products:read"]}>
                   <ProductDetailPage />
                 </RequireScopes>
               }
@@ -198,7 +200,7 @@ function App() {
             <Route
               path="suppliers"
               element={
-                <RequireScopes scopes={["inventory:read"]}>
+                <RequireScopes scopes={["suppliers:read"]}>
                   <SuppliersPage />
                 </RequireScopes>
               }
@@ -206,7 +208,7 @@ function App() {
             <Route
               path="suppliers/:id"
               element={
-                <RequireScopes scopes={["inventory:read"]}>
+                <RequireScopes scopes={["suppliers:read"]}>
                   <SupplierDetailPage />
                 </RequireScopes>
               }
@@ -219,9 +221,11 @@ function App() {
                   targets={[
                     {
                       to: "/financials/invoices",
-                      scopes: ["transactions:read"],
+                      scopes: ["invoices:read"],
                     },
-                    { to: "/financials/discounts", scopes: ["services:read"] },
+                    { to: "/financials/expenses", scopes: ["expenses:read"] },
+                    { to: "/financials/discounts", scopes: ["discounts:read"] },
+                    { to: "/financials/currencies", scopes: ["currencies:read"] },
                   ]}
                 />
               }
@@ -230,7 +234,7 @@ function App() {
               <Route
                 path="financials/invoices"
                 element={
-                  <RequireScopes scopes={["transactions:read"]}>
+                  <RequireScopes scopes={["invoices:read"]}>
                     <FinancialsInvoicesPage />
                   </RequireScopes>
                 }
@@ -238,7 +242,7 @@ function App() {
               <Route
                 path="financials/expenses"
                 element={
-                  <RequireScopes scopes={["transactions:read"]}>
+                  <RequireScopes scopes={["expenses:read"]}>
                     <FinancialsExpensesPage />
                   </RequireScopes>
                 }
@@ -246,7 +250,7 @@ function App() {
               {/* <Route
                 path="financials/balances"
                 element={
-                  <RequireScopes scopes={["transactions:read"]}>
+                  <RequireScopes scopes={["balances:read"]}>
                     <FinancialsBalancesPage />
                   </RequireScopes>
                 }
@@ -254,7 +258,7 @@ function App() {
               <Route
                 path="financials/discounts"
                 element={
-                  <RequireScopes scopes={["services:read"]}>
+                  <RequireScopes scopes={["discounts:read"]}>
                     <FinancialsDiscountsPage />
                   </RequireScopes>
                 }
@@ -262,7 +266,7 @@ function App() {
               <Route
                 path="financials/currencies"
                 element={
-                  <RequireScopes scopes={["transactions:read"]}>
+                  <RequireScopes scopes={["currencies:read"]}>
                     <FinancialsCurrenciesPage />
                   </RequireScopes>
                 }
@@ -271,7 +275,7 @@ function App() {
             <Route
               path="financials/invoices/:id"
               element={
-                <RequireScopes scopes={["transactions:read"]}>
+                <RequireScopes scopes={["invoices:read"]}>
                   <InvoiceDetailPage />
                 </RequireScopes>
               }
@@ -279,7 +283,7 @@ function App() {
             <Route
               path="financials/expenses/:id"
               element={
-                <RequireScopes scopes={["transactions:read"]}>
+                <RequireScopes scopes={["expenses:read"]}>
                   <ExpenseDetailPage />
                 </RequireScopes>
               }
@@ -287,7 +291,7 @@ function App() {
             <Route
               path="financials/discounts/:id"
               element={
-                <RequireScopes scopes={["services:read"]}>
+                <RequireScopes scopes={["discounts:read"]}>
                   <DiscountDetailPage />
                 </RequireScopes>
               }
@@ -298,7 +302,9 @@ function App() {
               element={
                 <ScopeRedirect
                   targets={[
-                    { to: "/services/procedures", scopes: ["services:read"] },
+                    { to: "/services/procedures", scopes: ["procedures:read"] },
+                    { to: "/services/types", scopes: ["procedure-types:read"] },
+                    { to: "/services/categories", scopes: ["procedure-categories:read"] },
                   ]}
                 />
               }
@@ -307,7 +313,7 @@ function App() {
               <Route
                 path="services/procedures"
                 element={
-                  <RequireScopes scopes={["services:read"]}>
+                  <RequireScopes scopes={["procedures:read"]}>
                     <ServicesProceduresPage />
                   </RequireScopes>
                 }
@@ -315,7 +321,7 @@ function App() {
               <Route
                 path="services/types"
                 element={
-                  <RequireScopes scopes={["services:read"]}>
+                  <RequireScopes scopes={["procedure-types:read"]}>
                     <ServicesTypesPage />
                   </RequireScopes>
                 }
@@ -323,7 +329,7 @@ function App() {
               <Route
                 path="services/categories"
                 element={
-                  <RequireScopes scopes={["services:read"]}>
+                  <RequireScopes scopes={["procedure-categories:read"]}>
                     <ServicesCategoriesPage />
                   </RequireScopes>
                 }
@@ -332,7 +338,7 @@ function App() {
             <Route
               path="services/procedures/:id"
               element={
-                <RequireScopes scopes={["services:read"]}>
+                <RequireScopes scopes={["procedures:read"]}>
                   <ProcedureDetailPage />
                 </RequireScopes>
               }
@@ -343,8 +349,8 @@ function App() {
               element={
                 <ScopeRedirect
                   targets={[
-                    { to: "/team/employees", scopes: ["team:read"] },
-                    { to: "/team/holidays", scopes: ["schedule:read"] },
+                    { to: "/team/employees", scopes: ["employees:read"] },
+                    { to: "/team/holidays", scopes: ["hr:read"] },
                   ]}
                 />
               }
@@ -353,7 +359,7 @@ function App() {
               <Route
                 path="team/employees"
                 element={
-                  <RequireScopes scopes={["team:read"]}>
+                  <RequireScopes scopes={["employees:read"]}>
                     <TeamPage />
                   </RequireScopes>
                 }
@@ -361,7 +367,7 @@ function App() {
               <Route
                 path="team/holidays"
                 element={
-                  <RequireScopes scopes={["schedule:read"]}>
+                  <RequireScopes scopes={["hr:read"]}>
                     <TeamHolidaysPage />
                   </RequireScopes>
                 }
@@ -370,7 +376,7 @@ function App() {
             <Route
               path="team/:id"
               element={
-                <RequireScopes scopes={["team:read"]}>
+                <RequireScopes scopes={["employees:read"]}>
                   <TeamDetailPage />
                 </RequireScopes>
               }
@@ -381,11 +387,11 @@ function App() {
               element={
                 <ScopeRedirect
                   targets={[
+                    { to: "/settings/users", scopes: ["users:read"] },
                     { to: "/settings/roles", scopes: ["roles:read"] },
-                    { to: "/settings/users", scopes: ["team:read"] },
                     {
                       to: "/settings/audit-log",
-                      scopes: ["roles:read", "team:read"],
+                      scopes: ["audit:read"],
                     },
                   ]}
                 />
@@ -403,7 +409,7 @@ function App() {
               <Route
                 path="settings/users"
                 element={
-                  <RequireScopes scopes={["team:read"]}>
+                  <RequireScopes scopes={["users:read"]}>
                     <SettingsUsersPage />
                   </RequireScopes>
                 }
@@ -411,7 +417,7 @@ function App() {
               <Route
                 path="settings/audit-log"
                 element={
-                  <RequireScopes scopes={["roles:read", "team:read"]}>
+                  <RequireScopes scopes={["audit:read"]}>
                     <SettingsAuditLogPage />
                   </RequireScopes>
                 }
@@ -419,16 +425,24 @@ function App() {
               <Route
                 path="settings/connection"
                 element={
-                  <RequireScopes scopes={["roles:read", "team:read"]}>
+                  <RequireScopes scopes={["roles:read", "users:read"]}>
                     <SettingsConnectionPage />
                   </RequireScopes>
                 }
               />
             </Route>
             <Route
+              path="settings/roles/:name"
+              element={
+                <RequireScopes scopes={["roles:read"]}>
+                  <SettingsRoleDetailPage />
+                </RequireScopes>
+              }
+            />
+            <Route
               path="settings/users/:id"
               element={
-                <RequireScopes scopes={["team:read"]}>
+                <RequireScopes scopes={["users:read"]}>
                   <UserDetailPage />
                 </RequireScopes>
               }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,7 +10,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -39,7 +44,12 @@ type PatientRow = {
   contact?: string;
   email?: string;
 };
-type SupplierRow = { id: string; name?: string; contact?: string; email?: string };
+type SupplierRow = {
+  id: string;
+  name?: string;
+  contact?: string;
+  email?: string;
+};
 type ProcedureRow = { id: string; name?: string; remarks?: string };
 type ProductRow = { id: string; name?: string };
 type EmployeeRow = {
@@ -60,10 +70,10 @@ type SearchResponse = {
 
 const searchCategoryScopes: Record<string, string> = {
   Patients: "patients:read",
-  Employees: "team:read",
-  Suppliers: "inventory:read",
-  Procedures: "services:read",
-  Products: "inventory:read",
+  Employees: "employees:read",
+  Suppliers: "suppliers:read",
+  Procedures: "procedures:read",
+  Products: "products:read",
 };
 
 function joinName(...parts: (string | undefined)[]): string {
@@ -137,6 +147,7 @@ export function HeaderSearch() {
   const [query, setQuery] = useState("");
   const [groups, setGroups] = useState<GlobalSearchGroup[]>([]);
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -168,6 +179,7 @@ export function HeaderSearch() {
 
   const handleSelect = (hit: GlobalSearchHit) => {
     setOpen(false);
+    setMobileOpen(false);
     setQuery("");
     navigate(hit.href);
   };
@@ -175,66 +187,103 @@ export function HeaderSearch() {
   const showDropdown = open && query.trim().length > 0;
   const hasResults = groups.some((g) => g.items.length > 0);
 
-  return (
-    <div ref={containerRef} className="relative hidden sm:block">
-      <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        type="search"
-        placeholder="Search..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => setOpen(true)}
-        className="h-8 w-48 pl-8 lg:w-64 bg-secondary"
-      />
-
-      {showDropdown && (
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-md -translate-x-1/2 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg lg:w-lg">
-          {!hasResults ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">
-              No results
-            </p>
-          ) : (
-            <div className="max-h-112 overflow-auto">
-              {groups
-                .filter((g) => g.items.length > 0)
-                .map((group) => {
-                  const Icon = group.icon;
-                  return (
-                    <div key={group.category}>
-                      <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-muted/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
-                        <Icon className="size-3.5" />
-                        {group.category}
-                      </div>
-                      {group.items.map((hit) => {
-                        const contactLine =
-                          hit.contact && hit.email
-                            ? `${hit.contact} · ${hit.email}`
-                            : hit.contact || hit.email || hit.sublabel;
-                        return (
-                          <button
-                            key={hit.id}
-                            type="button"
-                            onClick={() => handleSelect(hit)}
-                            className={cn(
-                              "flex w-full cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground",
-                            )}
-                          >
-                            <span className="font-medium">{hit.label}</span>
-                            {contactLine && (
-                              <span className="truncate text-xs text-muted-foreground">
-                                {contactLine}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+  const results = !hasResults ? (
+    <p className="p-6 text-center text-sm text-muted-foreground">No results</p>
+  ) : (
+    <div className="max-h-112 overflow-auto">
+      {groups
+        .filter((g) => g.items.length > 0)
+        .map((group) => {
+          const Icon = group.icon;
+          return (
+            <div key={group.category}>
+              <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-muted/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+                <Icon className="size-3.5" />
+                {group.category}
+              </div>
+              {group.items.map((hit) => {
+                const contactLine =
+                  hit.contact && hit.email
+                    ? `${hit.contact} - ${hit.email}`
+                    : hit.contact || hit.email || hit.sublabel;
+                return (
+                  <button
+                    key={hit.id}
+                    type="button"
+                    onClick={() => handleSelect(hit)}
+                    className={cn(
+                      "flex w-full cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground",
+                    )}
+                  >
+                    <span className="font-medium">{hit.label}</span>
+                    {contactLine && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {contactLine}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          )}
-        </div>
-      )}
+          );
+        })}
     </div>
+  );
+
+  return (
+    <>
+      <div ref={containerRef} className="relative hidden sm:block">
+        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setOpen(true)}
+          className="h-8 w-48 pl-8 bg-secondary lg:w-64"
+        />
+
+        {showDropdown && (
+          <div className="absolute left-1/2 top-full z-50 mt-2 w-md -translate-x-1/2 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg lg:w-lg">
+            {results}
+          </div>
+        )}
+      </div>
+
+      <Popover
+        open={mobileOpen}
+        onOpenChange={(next) => {
+          setMobileOpen(next);
+          setOpen(next);
+        }}
+      >
+        <PopoverTrigger
+          render={
+            <Button variant="ghost" size="icon" className="size-8 sm:hidden">
+              <Search className="size-4" />
+              <span className="sr-only">Search</span>
+            </Button>
+          }
+        />
+        <PopoverContent
+          align="end"
+          className="w-[calc(100vw-2rem)] overflow-hidden p-0 sm:hidden"
+        >
+          <div className="relative border-b p-3">
+            <Search className="absolute left-5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              type="search"
+              placeholder="Search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setOpen(true)}
+              className="h-9 pl-8 bg-secondary"
+            />
+          </div>
+          {query.trim().length > 0 && results}
+        </PopoverContent>
+      </Popover>
+    </>
   );
 }

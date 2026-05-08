@@ -12,6 +12,8 @@
  *   const created  = await api.post<Patient>("/patients", body);
  */
 
+import { useLoadingStore } from "@/lib/stores/loading-store";
+
 /* ------------------------------------------------------------------ */
 /*  Configuration                                                      */
 /* ------------------------------------------------------------------ */
@@ -100,6 +102,7 @@ async function request<T>(
   /* Handle auth / authorization redirects */
   if (res.status === 401) {
     if (typeof window !== "undefined") {
+      useLoadingStore.getState().show("Session expired...");
       clearAuthSession();
       window.location.href = "/";
     }
@@ -107,6 +110,7 @@ async function request<T>(
   }
   if (res.status === 403) {
     if (typeof window !== "undefined") {
+      useLoadingStore.getState().show("Redirecting...");
       window.location.href = "/dashboard";
     }
     throw new ApiError("Access denied", 403);
@@ -218,13 +222,17 @@ export const api = {
     const res = await fetch(`${BASE_URL}${endpoint}`, { headers });
     if (res.status === 401) {
       if (typeof window !== "undefined") {
+        useLoadingStore.getState().show("Session expired...");
         clearAuthSession();
         window.location.href = "/";
       }
       throw new ApiError("Session expired", 401);
     }
     if (res.status === 403) {
-      if (typeof window !== "undefined") window.location.href = "/dashboard";
+      if (typeof window !== "undefined") {
+        useLoadingStore.getState().show("Redirecting...");
+        window.location.href = "/dashboard";
+      }
       throw new ApiError("Access denied", 403);
     }
     if (!res.ok) throw new ApiError(res.statusText, res.status);

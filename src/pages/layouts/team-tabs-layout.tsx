@@ -3,8 +3,8 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { RouteTabs } from "@/components/shared/route-tabs";
 
 const tabs = [
-  { label: "Employees", href: "/team/employees", scopes: ["team:read"] },
-  { label: "Holidays", href: "/team/holidays", scopes: ["schedule:read"] },
+  { label: "Employees", href: "/team/employees", scopes: ["employees:read"] },
+  { label: "Holidays", href: "/team/holidays", scopes: ["hr:read"] },
 ];
 
 export default function TeamTabsLayout({

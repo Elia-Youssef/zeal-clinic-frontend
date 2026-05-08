@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,6 +27,13 @@ export function RoomForm({
   const [type, setType] = useState<string>(initial?.type ?? "General");
   const [isAvailable, setIsAvailable] = useState(initial?.isAvailable ?? true);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(initial?.name ?? "");
+    setType(initial?.type ?? "General");
+    setIsAvailable(initial?.isAvailable ?? true);
+  }, [open, initial]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

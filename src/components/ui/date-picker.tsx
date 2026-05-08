@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -45,39 +45,64 @@ export function DatePicker({
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = parseISO(value)
+  const showClear = !required && !!value && !disabled
 
   return (
-    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            disabled={disabled}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !value && "text-muted-foreground",
-              className,
-            )}
+    <div className={cn("relative w-full", className)}>
+      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              disabled={disabled}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !value && "text-muted-foreground",
+                showClear && "pr-8",
+              )}
+            />
+          }
+        >
+          <CalendarIcon className="size-4 text-muted-foreground" />
+          {value ? formatDisplay(selected) : placeholder}
+          {required && !value && <span className="sr-only">(required)</span>}
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(date) => {
+              if (date) {
+                onChange(toISO(date))
+                setOpen(false)
+              }
+            }}
+            defaultMonth={selected}
           />
-        }
-      >
-        <CalendarIcon className="size-4 text-muted-foreground" />
-        {value ? formatDisplay(selected) : placeholder}
-        {required && !value && <span className="sr-only">(required)</span>}
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={selected}
-          onSelect={(date) => {
-            if (date) {
-              onChange(toISO(date))
-              setOpen(false)
+        </PopoverContent>
+      </Popover>
+      {showClear && (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label="Clear date"
+          onClick={(e) => {
+            e.stopPropagation()
+            onChange("")
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              e.stopPropagation()
+              onChange("")
             }
           }}
-          defaultMonth={selected}
-        />
-      </PopoverContent>
-    </Popover>
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+        >
+          <X className="size-3.5" />
+        </span>
+      )}
+    </div>
   )
 }

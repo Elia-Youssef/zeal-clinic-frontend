@@ -52,7 +52,7 @@ export default function AllergiesPage() {
   ];
 
   const actions: RowAction<Allergy>[] = [
-    ...(can("patients:write")
+    ...(can("allergies:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
@@ -62,7 +62,7 @@ export default function AllergiesPage() {
           },
         }]
       : []),
-    ...(can("patients:delete")
+    ...(can("allergies:delete")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -82,7 +82,7 @@ export default function AllergiesPage() {
         rowKey={(a) => a.id}
         emptyMessage="No allergies defined."
         headerActions={
-          can("patients:write") ? (
+          can("allergies:write") ? (
             <AddButton
               label="Add Allergy"
               onClick={() => {

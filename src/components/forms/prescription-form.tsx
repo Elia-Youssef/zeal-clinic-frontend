@@ -119,7 +119,7 @@ export function PrescriptionForm({
       title={isEdit ? "Edit Prescription" : "New Prescription"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Date *</label>
             <DatePicker
@@ -153,7 +153,7 @@ export function PrescriptionForm({
             {medicines.map((med, idx) => (
               <div
                 key={idx}
-                className="grid grid-cols-[2fr_2fr_1fr_auto] gap-2 items-end"
+                className="grid grid-cols-1 gap-2 sm:grid-cols-[2fr_2fr_1fr_auto] sm:items-end"
               >
                 <SearchableDropdown
                   value={med.medicineId}
@@ -236,7 +236,7 @@ export function PrescriptionForm({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>

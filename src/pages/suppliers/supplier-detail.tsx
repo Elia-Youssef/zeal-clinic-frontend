@@ -116,8 +116,8 @@ function SupplierDetailContent() {
       <PageHeader
         backHref="/suppliers"
         title={supplier.name}
-        onEdit={can("inventory:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("inventory:delete") ? handleDelete : undefined}
+        onEdit={can("suppliers:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("suppliers:delete") ? handleDelete : undefined}
       />
 
       {/* Details */}
@@ -125,19 +125,19 @@ function SupplierDetailContent() {
         <CardHeader>
           <CardTitle className="text-base">Supplier Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Email">{supplier.email || "---"}</DetailField>
           <DetailField label="Contact">{supplier.contact || "---"}</DetailField>
           <DetailField label="Address">{supplier.address || "---"}</DetailField>
-          <DetailField label="Notes" className="col-span-3">
+          <DetailField label="Notes" className="sm:col-span-2 md:col-span-3">
             {supplier.notes || "---"}
           </DetailField>
         </CardContent>
       </Card>
 
       {/* Invoices & Payments */}
-      {can("transactions:read") && (
-        <div className="flex flex-row gap-4">
+      {(can("invoices:read") || can("payments:read")) && (
+        <div className="flex flex-col gap-4 lg:flex-row">
           <DataList<Invoice>
             className="flex-1"
             title="Invoices"
@@ -165,7 +165,7 @@ function SupplierDetailContent() {
             refreshKey={invoicesKey}
             onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
             headerActions={
-              can("transactions:write") && (
+              can("invoices:write") && (
                 <Button
                   size="sm"
                   className="gap-1"
@@ -271,7 +271,7 @@ function SupplierDetailContent() {
               endpoint={`/suppliers/${id}/payments`}
               rowKey={(i) => i.id}
               actions={
-                can("transactions:delete")
+                can("payments:delete")
                   ? [
                       {
                         label: "Delete",
@@ -286,7 +286,7 @@ function SupplierDetailContent() {
               hideSearch
               refreshKey={paymentsKey}
               headerActions={
-                can("transactions:write") && (
+                can("payments:write") && (
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"

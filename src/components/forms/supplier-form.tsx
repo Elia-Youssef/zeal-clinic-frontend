@@ -43,6 +43,7 @@ export function SupplierForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     if (initial) {
       setForm({
         name: initial.name,
@@ -54,7 +55,7 @@ export function SupplierForm({
     } else {
       setForm(emptyForm);
     }
-  }, [initial]);
+  }, [open, initial]);
 
   const update = (field: keyof SupplierFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -66,10 +67,10 @@ export function SupplierForm({
     const payload: Record<string, unknown> = {
       name: form.name,
     };
-    if (form.contact) payload.contact = form.contact;
-    if (form.email) payload.email = form.email;
-    if (form.address) payload.address = form.address;
-    if (form.notes) payload.notes = form.notes;
+    if (isEdit || form.contact) payload.contact = form.contact;
+    if (isEdit || form.email) payload.email = form.email;
+    if (isEdit || form.address) payload.address = form.address;
+    if (isEdit || form.notes) payload.notes = form.notes;
 
     try {
       if (isEdit) {
@@ -106,7 +107,7 @@ export function SupplierForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Contact</label>
             <Input

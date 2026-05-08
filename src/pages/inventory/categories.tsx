@@ -61,7 +61,7 @@ export default function CategoriesPage() {
   ];
 
   const catActions: RowAction<ProductCategory>[] = [
-    ...(can("inventory:write")
+    ...(can("product-categories:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
@@ -71,7 +71,7 @@ export default function CategoriesPage() {
           },
         }]
       : []),
-    ...(can("inventory:delete")
+    ...(can("product-categories:delete")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -91,7 +91,7 @@ export default function CategoriesPage() {
         rowKey={(c) => c.id}
         emptyMessage="No categories yet."
         headerActions={
-          can("inventory:write") ? (
+          can("product-categories:write") ? (
             <AddButton
               label="Add Category"
               onClick={() => {

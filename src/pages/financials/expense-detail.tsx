@@ -164,8 +164,8 @@ function ExpenseDetailContent() {
       <PageHeader
         backHref="/financials/expenses"
         title={expense.name}
-        onEdit={can("transactions:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("transactions:delete") ? handleDelete : undefined}
+        onEdit={can("expenses:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("expenses:delete") ? handleDelete : undefined}
       />
 
       <Card>
@@ -186,7 +186,7 @@ function ExpenseDetailContent() {
         columns={paymentColumns}
         rowKey={(t) => t.id}
         actions={
-          can("transactions:delete")
+          can("payments:delete")
             ? [
                 {
                   label: "Delete",
@@ -208,7 +208,7 @@ function ExpenseDetailContent() {
             : undefined
         }
         headerActions={
-          can("transactions:write") ? (
+          can("payments:write") ? (
             <div className="flex items-center gap-2">
               <AddButton label="New" onClick={() => setPaymentOpen(true)} />
               <PaymentActionsMenu

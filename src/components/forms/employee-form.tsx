@@ -56,6 +56,7 @@ export function EmployeeForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     if (initial) {
       setForm({
         firstName: initial.firstName,
@@ -74,7 +75,7 @@ export function EmployeeForm({
       setForm(emptyForm);
       setCreateUser(false);
     }
-  }, [initial]);
+  }, [open, initial]);
 
   const update = (field: keyof EmployeeFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -90,8 +91,9 @@ export function EmployeeForm({
       contact: form.contact,
       employmentType: form.employmentType,
     };
-    if (form.email) payload.email = form.email;
-    if (form.dateOfBirth) payload.dateOfBirth = toISODate(form.dateOfBirth);
+    if (isEdit || form.email) payload.email = form.email;
+    if (isEdit || form.dateOfBirth)
+      payload.dateOfBirth = form.dateOfBirth ? toISODate(form.dateOfBirth) : "";
     if (!isEdit && createUser) {
       payload.username = form.username;
       payload.password = form.password;
@@ -122,7 +124,7 @@ export function EmployeeForm({
       title={isEdit ? "Edit Employee" : "New Employee"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">First Name *</label>
             <Input
@@ -141,7 +143,7 @@ export function EmployeeForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Role *</label>
             <Input
@@ -163,7 +165,7 @@ export function EmployeeForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Contact *</label>
             <Input
@@ -208,7 +210,7 @@ export function EmployeeForm({
             </div>
 
             {createUser && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Username *</label>
                   <Input

@@ -1,10 +1,21 @@
 import { create } from "zustand";
 import { api, type Paginated } from "@/lib/api";
-import type { Appointment, RoomDayCount } from "@/lib/types";
+import type { Appointment, Holiday, RoomDayCount } from "@/lib/types";
+
+type DayAppointmentsResponse = Paginated<Appointment> & {
+  holidays: Holiday[];
+};
+
+type WeekCountsResponse = {
+  rooms: RoomDayCount[];
+  holidays: Holiday[];
+};
 
 type AppointmentsState = {
   appointments: Appointment[];
+  dayHolidays: Holiday[];
   weekCounts: RoomDayCount[];
+  weekHolidays: Holiday[];
   loading: boolean;
   fetchForDates: (dates: string[]) => Promise<void>;
   fetchWeekCounts: (date: string) => Promise<void>;
@@ -12,7 +23,9 @@ type AppointmentsState = {
 
 export const useAppointmentsStore = create<AppointmentsState>((set) => ({
   appointments: [],
+  dayHolidays: [],
   weekCounts: [],
+  weekHolidays: [],
   loading: true,
 
   fetchForDates: async (dates) => {
@@ -29,7 +42,7 @@ export const useAppointmentsStore = create<AppointmentsState>((set) => ({
     try {
       const responses = await Promise.all(
         uniqueDates.map((date) =>
-          api.get<Paginated<Appointment>>(`/appointments?date=${date}`),
+          api.get<DayAppointmentsResponse>(`/appointments?date=${date}`),
         ),
       );
       // Keep the merged list stable so the calendar rendering stays predictable
@@ -37,21 +50,32 @@ export const useAppointmentsStore = create<AppointmentsState>((set) => ({
       const appointments = responses
         .flatMap((res) => res.items)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
-      set({ appointments });
+      // Each response carries holidays for its specific date; merge across
+      // dates and dedupe by id so a multi-day holiday isn't duplicated.
+      const seen = new Set<string>();
+      const dayHolidays: Holiday[] = [];
+      for (const res of responses) {
+        for (const h of res.holidays) {
+          if (seen.has(h.id)) continue;
+          seen.add(h.id);
+          dayHolidays.push(h);
+        }
+      }
+      set({ appointments, dayHolidays });
     } finally {
       set({ loading: false });
     }
   },
 
   fetchWeekCounts: async (date) => {
-    // Week view only needs per-room/per-day counts. The server resolves the
-    // Mon–Sun window containing `date` and returns sparse day maps.
+    // Week view needs per-room/per-day counts plus any holidays intersecting
+    // the Mon–Sun window containing `date`. Server returns both in one call.
     set({ loading: true });
     try {
-      const weekCounts = await api.get<RoomDayCount[]>(
+      const { rooms, holidays } = await api.get<WeekCountsResponse>(
         `/appointments/count-per-room?date=${date}`,
       );
-      set({ weekCounts });
+      set({ weekCounts: rooms, weekHolidays: holidays });
     } finally {
       set({ loading: false });
     }

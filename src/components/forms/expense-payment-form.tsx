@@ -31,6 +31,7 @@ export function ExpensePaymentForm({
   useEffect(() => {
     if (!open) return;
     setAmount("");
+    setCurrencyId("");
     setTransactionMethod("cash");
     setDescription("");
   }, [open]);
@@ -64,7 +65,7 @@ export function ExpensePaymentForm({
   return (
     <Modal open={open} onClose={onClose} title="New Expense Payment">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
             <Input

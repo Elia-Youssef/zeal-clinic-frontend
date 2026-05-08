@@ -143,7 +143,7 @@ export function SalaryPreparationForm({
     >
       {!result ? (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Period Start *</label>
               <DatePicker
@@ -187,13 +187,13 @@ export function SalaryPreparationForm({
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <div>
               <span className="text-muted-foreground">Period: </span>
               {periodStart} → {periodEnd}
             </div>
             {notes && (
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <span className="text-muted-foreground">Notes: </span>
                 {notes}
               </div>

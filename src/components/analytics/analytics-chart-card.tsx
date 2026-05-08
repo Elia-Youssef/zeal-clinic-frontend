@@ -82,6 +82,7 @@ export function AnalyticsChartCard({
   );
 
   const label = valueLabel ?? defaultLabel(metric);
+  const chartMinWidth = data ? Math.max(640, data.length * 48) : 640;
 
   const config: ChartConfig = {
     value: { label, color },
@@ -102,9 +103,15 @@ export function AnalyticsChartCard({
             No data for this range.
           </p>
         ) : (
-          <ChartContainer config={config} className="h-64 w-full">
-            {renderChart(kind, data, color, formatValue)}
-          </ChartContainer>
+          <div className="-mx-2 overflow-x-auto px-2">
+            <ChartContainer
+              config={config}
+              className="h-64 w-full"
+              style={{ minWidth: chartMinWidth }}
+            >
+              {renderChart(kind, data, color, formatValue)}
+            </ChartContainer>
+          </div>
         )}
       </CardContent>
     </Card>

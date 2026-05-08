@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -26,10 +26,16 @@ export function MedicineForm({
   const [desc, setDesc] = useState(initial?.description ?? "");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    setName(initial?.name ?? "");
+    setDesc(initial?.description ?? "");
+  }, [open, initial]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const payload = { name, description: desc || undefined };
+    const payload = { name, description: isEdit ? desc : desc || undefined };
     try {
       if (isEdit) {
         await api.put(`/medicines/${initial.id}`, payload);

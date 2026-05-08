@@ -100,24 +100,26 @@ function DiscountDetailContent() {
       <PageHeader
         backHref="/financials/discounts"
         title={discount.name}
-        onEdit={can("services:write") ? () => setEditOpen(true) : undefined}
-        onDelete={can("services:delete") ? handleDelete : undefined}
+        onEdit={can("discounts:write") ? () => setEditOpen(true) : undefined}
+        onDelete={can("discounts:delete") ? handleDelete : undefined}
       />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-semibold">Details</CardTitle>
-          {isRedeemable && can("transactions:write") && (
+        <CardHeader className="flex flex-row flex-wrap items-center gap-2">
+          <CardTitle className="min-w-0 flex-1 basis-32 text-base font-semibold">
+            Details
+          </CardTitle>
+          {isRedeemable && can("discounts:write") && (
             <Button
               size="sm"
-              className="gap-1"
+              className="ml-auto gap-1"
               onClick={() => setRedeemOpen(true)}
             >
               <Gift className="size-3.5" /> Redeem
             </Button>
           )}
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Type" className="capitalize">
             {discount.discountType}
           </DetailField>
@@ -175,7 +177,7 @@ function DiscountDetailContent() {
           <DetailField label="Created">
             {discount.createdAt?.slice(0, 10) ?? "---"}
           </DetailField>
-          <DetailField label="Description" className="col-span-3">
+          <DetailField label="Description" className="sm:col-span-2 md:col-span-3">
             {discount.description || "---"}
           </DetailField>
         </CardContent>

@@ -74,7 +74,18 @@ export function PatientForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     if (initial) {
+      const hasLebanonCity = !!initial.cityId;
+      const cityName = initial.city
+        ? [
+            initial.city.governorate,
+            initial.city.district,
+            initial.city.name,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : "";
       setForm({
         firstName: initial.firstName,
         lastName: initial.lastName,
@@ -91,17 +102,18 @@ export function PatientForm({
         countryId: initial.countryId ?? "",
         countryName: initial.country?.name ?? "",
         cityId: initial.cityId ?? "",
-        cityName: `${initial?.city?.governorate}, ${initial?.city?.district}, ${initial?.city?.name}`,
+        cityName,
         address: initial.address ?? "",
         notes: initial.notes ?? "",
         referralId: initial.referralId ?? "",
         referralSource: initial.referralSource ?? "",
       });
-      setIsLebanon(initial.country?.name === "Lebanon");
+      setIsLebanon(hasLebanonCity || initial.country?.name === "Lebanon");
     } else {
       setForm(emptyForm);
+      setIsLebanon(false);
     }
-  }, [initial]);
+  }, [open, initial]);
 
   const update = (field: keyof PatientFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -119,19 +131,19 @@ export function PatientForm({
       cityId: isLebanon ? form.cityId : "",
       countryId: form.countryId,
     };
-    if (form.middleName) payload.middleName = form.middleName;
-    if (form.email) payload.email = form.email;
-    if (form.emergencyContactName)
+    if (isEdit || form.middleName) payload.middleName = form.middleName;
+    if (isEdit || form.email) payload.email = form.email;
+    if (isEdit || form.emergencyContactName)
       payload.emergencyContactName = form.emergencyContactName;
-    if (form.emergencyContactPhone)
+    if (isEdit || form.emergencyContactPhone)
       payload.emergencyContactPhone = form.emergencyContactPhone;
-    if (form.weight) payload.weight = Number(form.weight);
-    if (form.height) payload.height = Number(form.height);
-    if (form.bloodType) payload.bloodType = form.bloodType;
-    if (form.address) payload.address = form.address;
-    if (form.notes) payload.notes = form.notes;
-    if (form.referralId) payload.referralId = form.referralId;
-    if (form.referralSource) payload.referralSource = form.referralSource;
+    if (isEdit || form.weight) payload.weight = form.weight ? Number(form.weight) : 0;
+    if (isEdit || form.height) payload.height = form.height ? Number(form.height) : 0;
+    if (isEdit || form.bloodType) payload.bloodType = form.bloodType;
+    if (isEdit || form.address) payload.address = form.address;
+    if (isEdit || form.notes) payload.notes = form.notes;
+    if (isEdit || form.referralId) payload.referralId = form.referralId;
+    if (isEdit || form.referralSource) payload.referralSource = form.referralSource;
 
     try {
       if (isEdit) {
@@ -161,7 +173,7 @@ export function PatientForm({
       title={isEdit ? "Edit Patient" : "New Patient"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">First Name *</label>
             <Input
@@ -187,7 +199,7 @@ export function PatientForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Gender *</label>
             <SearchableDropdown
@@ -208,7 +220,7 @@ export function PatientForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Contact *</label>
             <Input
@@ -228,7 +240,7 @@ export function PatientForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
               Emergency Contact Name
@@ -249,7 +261,7 @@ export function PatientForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Weight (kg)</label>
             <Input
@@ -281,7 +293,7 @@ export function PatientForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Country</label>
             <SearchableDropdown
@@ -295,8 +307,13 @@ export function PatientForm({
               onChange={(v) => update("countryId", v)}
               mapItem={(item) => ({ value: item.id, label: item.name })}
               onSelectItem={(i) => {
-                setIsLebanon(i.label === "Lebanon");
+                const selectedLebanon = i.label === "Lebanon";
+                setIsLebanon(selectedLebanon);
                 update("countryName", i.label);
+                if (!selectedLebanon) {
+                  update("cityId", "");
+                  update("cityName", "");
+                }
               }}
             />
           </div>
@@ -338,7 +355,7 @@ export function PatientForm({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Referred By</label>
             <SearchableDropdown

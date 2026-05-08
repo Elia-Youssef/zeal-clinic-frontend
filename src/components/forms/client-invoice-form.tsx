@@ -105,14 +105,14 @@ export function ClientInvoiceFormBody({
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
-  const defaultItemType: ItemDraft["itemType"] = can("inventory:read")
+  const defaultItemType: ItemDraft["itemType"] = can("products:read")
     ? "product"
-    : can("services:read")
+    : can("procedures:read")
       ? "procedure"
       : "other";
   const visibleItemTypeOptions = invoiceItemTypeOptions.filter((option) => {
-    if (option.value === "product") return can("inventory:read");
-    if (option.value === "procedure") return can("services:read");
+    if (option.value === "product") return can("products:read");
+    if (option.value === "procedure") return can("procedures:read");
     return true;
   });
 
@@ -293,7 +293,7 @@ export function ClientInvoiceFormBody({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Patient</label>
           <SearchableDropdown
@@ -386,7 +386,9 @@ export function ClientInvoiceFormBody({
               <div
                 className={cn(
                   "grid gap-3",
-                  isOther ? "grid-cols-[160px_1fr]" : "grid-cols-[160px_1fr]",
+                  isOther
+                    ? "grid-cols-1 sm:grid-cols-[160px_1fr]"
+                    : "grid-cols-1 sm:grid-cols-[160px_1fr]",
                 )}
               >
                 <div className="space-y-1.5 min-w-0">
@@ -427,7 +429,7 @@ export function ClientInvoiceFormBody({
                         })}
                         placeholder="Select procedure…"
                         renderAddForm={
-                          can("services:write")
+                          can("procedures:write")
                             ? ({ open, onClose, onCreated }) => (
                                 <ProcedureForm
                                   open={open}
@@ -547,8 +549,8 @@ export function ClientInvoiceFormBody({
                 className={cn(
                   "grid gap-3",
                   isGift || item.itemType === "procedure" || isOther
-                    ? "grid-cols-[1fr_1.5fr]"
-                    : "grid-cols-[90px_1fr_1.5fr]",
+                    ? "grid-cols-1 sm:grid-cols-[1fr_1.5fr]"
+                    : "grid-cols-1 sm:grid-cols-[90px_1fr_1.5fr]",
                 )}
               >
                 {!isGift && !isOther && item.itemType !== "procedure" && (
@@ -634,7 +636,7 @@ export function ClientInvoiceFormBody({
       </div>
 
       {/* Totals + Actions */}
-      <div className="flex items-end justify-between pt-2">
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="text-sm space-y-0.5">
           {computedDiscount > 0 && (
             <>
@@ -650,7 +652,7 @@ export function ClientInvoiceFormBody({
           )}
           <div className="font-medium">Total: ${finalTotal.toFixed(2)}</div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <Button type="button" variant="outline" onClick={onCancel}>
             {cancelLabel}
           </Button>

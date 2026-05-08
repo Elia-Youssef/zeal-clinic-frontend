@@ -132,7 +132,7 @@ export function ScheduleAvailabilityForm({
             required
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Time *</label>
             <Input
@@ -162,7 +162,7 @@ export function ScheduleAvailabilityForm({
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          {isEdit && can("schedule:delete") && (
+          {isEdit && can("schedule-availability:delete") && (
             <Button
               type="button"
               variant="destructive"

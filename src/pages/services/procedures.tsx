@@ -75,7 +75,7 @@ export default function ProceduresPage() {
         emptySearchMessage="No procedures match your search."
         onRowClick={(p) => navigate(`/services/procedures/${p.id}`)}
         headerActions={
-          can("services:write") ? (
+          can("procedures:write") ? (
             <AddButton
               label="Add Procedure"
               onClick={() => setFormOpen(true)}

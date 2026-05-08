@@ -84,9 +84,7 @@ export function SupplierInvoiceForm({
     supplierId &&
     currencyId &&
     items.length > 0 &&
-    items.every(
-      (it) => it.itemId && Number(it.quantity) > 0 && Number(it.amount) > 0,
-    );
+    items.every((it) => it.itemId && Number(it.quantity) > 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +115,7 @@ export function SupplierInvoiceForm({
   return (
     <Modal open={open} onClose={onClose} title="New Supplier Invoice">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Supplier *</label>
             <SearchableDropdown
@@ -184,7 +182,7 @@ export function SupplierInvoiceForm({
               key={idx}
               className="rounded-md border border-border p-3 space-y-2"
             >
-              <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
                     Product *
@@ -199,7 +197,7 @@ export function SupplierInvoiceForm({
                     })}
                     placeholder="Select product…"
                     renderAddForm={
-                      can("inventory:write")
+                      can("products:write")
                         ? ({ open, onClose, onCreated }) => (
                             <ProductForm
                               open={open}
@@ -227,7 +225,7 @@ export function SupplierInvoiceForm({
                   <Trash2 className="size-3.5 text-destructive" />
                 </Button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Qty *</label>
                   <Input
@@ -241,7 +239,7 @@ export function SupplierInvoiceForm({
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Amount *
+                    Amount
                   </label>
                   <Input
                     type="number"
@@ -269,11 +267,11 @@ export function SupplierInvoiceForm({
         </div>
 
         {/* Total + Actions */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium">
             Total: ${total.toFixed(2)}
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

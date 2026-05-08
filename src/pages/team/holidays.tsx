@@ -87,7 +87,7 @@ function HolidaysContent() {
     },
   ];
 
-  const actions: RowAction<Holiday>[] = can("schedule:delete")
+  const actions: RowAction<Holiday>[] = can("hr:delete")
     ? [
         {
           label: "Delete",
@@ -108,10 +108,10 @@ function HolidaysContent() {
         searchPlaceholder="Search holidays…"
         emptyMessage="No holidays yet."
         emptySearchMessage="No holidays match your search."
-        onRowClick={can("schedule:write") ? openEdit : undefined}
+        onRowClick={can("hr:write") ? openEdit : undefined}
         actions={actions}
         headerActions={
-          can("schedule:write") ? (
+          can("hr:write") ? (
             <AddButton label="Add Holiday" onClick={openCreate} />
           ) : undefined
         }

@@ -169,7 +169,7 @@ export function AppointmentForm({
   const canWriteAppointments = can("appointments:write");
   const canDeleteAppointments = can("appointments:delete");
   const canWritePatients = can("patients:write");
-  const canWriteTransactions = can("transactions:write");
+  const canWriteTransactions = can("invoices:write");
   const isEdit = !!initialData?.id;
   const currentStatus = initialData?.status ?? "Scheduled";
   const initialPage: Page = readOnly && isEdit ? "view" : "main";
@@ -455,13 +455,13 @@ function CompleteSummary({
           <CheckCircle2 className="size-4 text-status-completed" />
           Appointment completed
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Patient">
             {initialData.patientLabel || "---"}
           </DetailField>
           <DetailField label="Room">{roomLabel}</DetailField>
 
-          <DetailField className="col-span-2" label="Procedures">
+          <DetailField className="sm:col-span-2" label="Procedures">
             {initialData.procedures?.map((p) =>
               p.label ? (
                 <Badge variant="secondary" className="text-xs">
@@ -472,7 +472,7 @@ function CompleteSummary({
           </DetailField>
           <DetailField label="Date">{date}</DetailField>
           <DetailField label="Time">{timeRange}</DetailField>
-          <DetailField className="col-span-2" label="Completion Notes">
+          <DetailField className="sm:col-span-2" label="Completion Notes">
             <p className="whitespace-pre-wrap">{notes || "---"}</p>
           </DetailField>
         </div>
@@ -513,7 +513,7 @@ function InvoiceSummary({
           )}
         </div>
         {invoice && (
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <DetailField label="Invoice #">{invoice.invoiceNumber}</DetailField>
             <DetailField label="Total">
               ${invoice.finalAmount.toFixed(2)}
@@ -559,12 +559,12 @@ function ViewPage({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
         <DetailField label="Patient">
           {initialData.patientLabel || "---"}
         </DetailField>
         <DetailField label="Room">{roomLabel}</DetailField>
-        <DetailField className="col-span-2" label="Procedures">
+        <DetailField className="sm:col-span-2" label="Procedures">
           {initialData.procedures?.map((p) =>
             p.label ? (
               <Badge variant="secondary" className="text-xs">
@@ -575,7 +575,7 @@ function ViewPage({
         </DetailField>
         <DetailField label="Date">{date}</DetailField>
         <DetailField label="Time">{timeRange}</DetailField>
-        <DetailField className="col-span-2" label="Notes">
+        <DetailField className="sm:col-span-2" label="Notes">
           <p className="whitespace-pre-wrap">{initialData.notes || "---"}</p>
         </DetailField>
       </div>
@@ -648,6 +648,12 @@ function MainPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (form.procedures.length === 0) {
+      addAlert("error", "At least one procedure is required.");
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -754,7 +760,7 @@ function MainPage({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Procedures</label>
+        <label className="text-sm font-medium">Procedures *</label>
         {form.procedures.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {form.procedures.map((p) => (
@@ -790,7 +796,7 @@ function MainPage({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Date *</label>
           <DatePicker

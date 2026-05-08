@@ -53,7 +53,7 @@ export default function CurrenciesPage() {
   ];
 
   const curActions: RowAction<Currency>[] = [
-    ...(can("transactions:write")
+    ...(can("currencies:write")
       ? [{
           label: "Edit",
           icon: <Pencil className="size-3.5" />,
@@ -63,7 +63,7 @@ export default function CurrenciesPage() {
           },
         }]
       : []),
-    ...(can("transactions:delete")
+    ...(can("currencies:delete")
       ? [{
           label: "Delete",
           icon: <Trash2 className="size-3.5" />,
@@ -82,7 +82,7 @@ export default function CurrenciesPage() {
         actions={curActions}
         rowKey={(c) => c.id}
         headerActions={
-          can("transactions:write") ? (
+          can("currencies:write") ? (
             <AddButton
               label="Add"
               onClick={() => {

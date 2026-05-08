@@ -56,7 +56,7 @@ function UsersContent() {
         emptySearchMessage="No users match your search."
         onRowClick={(u) => navigate(`/settings/users/${u.id}`)}
         headerActions={
-          can("team:write") ? (
+          can("users:write") ? (
             <AddButton label="Add User" onClick={() => setFormOpen(true)} />
           ) : undefined
         }

@@ -75,7 +75,7 @@ export default function ProductsPage() {
         emptySearchMessage="No products match."
         onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
         headerActions={
-          can("inventory:write") ? (
+          can("products:write") ? (
             <AddButton
               label="Add Product"
               onClick={() => setProdFormOpen(true)}

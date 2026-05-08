@@ -126,7 +126,7 @@ function DashboardContent() {
     <div className="space-y-6">
       {/* Primary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {can("patients:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Total Patients"
             endpoint="/analytics/patients/total"
@@ -134,7 +134,7 @@ function DashboardContent() {
             extract={(d) => d.total}
           />
         )}
-        {can("transactions:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Monthly Revenue"
             endpoint="/analytics/revenue/this-month"
@@ -144,7 +144,7 @@ function DashboardContent() {
             valueClassName={transactionColors.inflow}
           />
         )}
-        {can("transactions:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Monthly Expenses"
             endpoint="/analytics/expenses/this-month"
@@ -154,7 +154,7 @@ function DashboardContent() {
             valueClassName={transactionColors.outflow}
           />
         )}
-        {can("inventory:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Low Stock Alerts"
             endpoint="/analytics/inventory/low-stock"
@@ -167,7 +167,7 @@ function DashboardContent() {
 
       {/* Secondary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {can("patients:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="New Patients (month)"
             endpoint="/analytics/patients/new-this-month"
@@ -175,7 +175,7 @@ function DashboardContent() {
             extract={(d) => d.total}
           />
         )}
-        {can("services:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Procedures (month)"
             endpoint="/analytics/procedures/completed-this-month"
@@ -183,7 +183,7 @@ function DashboardContent() {
             extract={(d) => d.total}
           />
         )}
-        {can("transactions:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
             title="Outstanding Receivables"
             endpoint="/analytics/revenue/outstanding"
@@ -192,7 +192,7 @@ function DashboardContent() {
             format={currency}
           />
         )}
-        {can("appointments:read") && (
+        {can("analytics:read") && (
           <AnalyticsStatCard<CancellationRate>
             title="Cancellation Rate (month)"
             endpoint="/analytics/appointments/cancellation-rate"
@@ -205,7 +205,7 @@ function DashboardContent() {
       </div>
 
       {/* Revenue trend (last 30 days) */}
-      {can("transactions:read") && (
+      {can("analytics:read") && (
         <AnalyticsChartCard
           title="Revenue — last 30 days"
           metric="revenue"
@@ -217,7 +217,7 @@ function DashboardContent() {
 
       {/* Recent lists */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {can("appointments:read") && (
+        {can("analytics:read") && (
           <AnalyticsListCard<Appointment>
             title="Today's Appointments"
             endpoint="/analytics/appointments/recent-today?limit=5"
@@ -227,7 +227,7 @@ function DashboardContent() {
           />
         )}
 
-        {can("transactions:read") && (
+        {can("analytics:read") && (
           <AnalyticsListCard<BalanceTransaction>
             title="Recent Transactions"
             endpoint="/analytics/transactions/recent?limit=5"
@@ -239,7 +239,7 @@ function DashboardContent() {
       </div>
 
       {/* Top procedures this month */}
-      {can("services:read") && (
+      {can("analytics:read") && (
         <AnalyticsListCard<TopProcedure>
           title="Top Procedures (month)"
           endpoint="/analytics/procedures/top?limit=5"

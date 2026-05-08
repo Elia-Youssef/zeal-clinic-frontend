@@ -28,11 +28,12 @@ export function CurrencyForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
     setCode(initial?.code ?? "");
     setName(initial?.name ?? "");
     setSymbol(initial?.symbol ?? "");
     setExchangeRate(initial?.exchangeRate?.toString() ?? "");
-  }, [initial]);
+  }, [open, initial]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

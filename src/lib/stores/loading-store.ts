@@ -10,7 +10,7 @@ type LoadingState = {
 
 export const useLoadingStore = create<LoadingState>((set) => ({
   count: 1,
-  message: "",
+  message: "Loading...",
   show: (message = "") =>
     set((s) => ({
       count: s.count + 1,

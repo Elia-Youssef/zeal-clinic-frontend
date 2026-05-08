@@ -113,18 +113,26 @@ export function DataList<T>({
   return (
     <Card className={"flex flex-col gap-4 min-w-0 " + className}>
       {hasHeader && (
-        <CardHeader className="flex flex-row items-center justify-between">
-          {title && <CardTitle className="font-semibold">{title}</CardTitle>}
-          <div className="flex items-center justify-end gap-2">
+        <CardHeader className="flex flex-row flex-wrap items-center gap-3">
+          {title && (
+            <CardTitle className="min-w-0 flex-1 basis-40 font-semibold">
+              {title}
+            </CardTitle>
+          )}
+          <div className="ml-auto flex max-w-full flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
             {!hideSearch && (
-              <SearchBar
-                value={filterInput}
-                onChange={setFilterInput}
-                placeholder={searchPlaceholder}
-              />
+              <div className="min-w-48 flex-1 sm:w-56 sm:flex-initial">
+                <SearchBar
+                  value={filterInput}
+                  onChange={setFilterInput}
+                  placeholder={searchPlaceholder}
+                />
+              </div>
             )}
             {headerActions && (
-              <div className="flex items-center gap-2">{headerActions}</div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {headerActions}
+              </div>
             )}
           </div>
         </CardHeader>

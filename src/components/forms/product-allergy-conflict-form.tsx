@@ -60,7 +60,7 @@ export function ProductAllergyConflictForm({
             mapItem={(a: any) => ({ value: a.id, label: a.name })}
             placeholder="Select…"
             renderAddForm={
-              can("patients:write")
+              can("allergies:write")
                 ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
                     <AllergyForm
                       open={addOpen}

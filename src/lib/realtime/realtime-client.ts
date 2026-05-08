@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/api";
+import { api, BASE_URL } from "@/lib/api";
 
 type EventHandler = (event: MessageEvent) => void;
 
@@ -74,6 +74,10 @@ class RealtimeClient {
       if (source.readyState === EventSource.CLOSED) {
         source.close();
         if (this.source === source) this.source = null;
+        // EventSource hides HTTP status: probe an auth endpoint so api.ts
+        // can clear the session and redirect on 401. On any other outcome
+        // we fall through to reconnect.
+        api.get("/auth/verify").catch(() => {});
         this.scheduleReconnect();
       }
       // CONNECTING state means the browser is already retrying, so let it.
