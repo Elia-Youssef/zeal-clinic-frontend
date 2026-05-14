@@ -12,11 +12,6 @@ export function getErrorMessage(
   return err instanceof Error ? err.message : fallback;
 }
 
-/**
- * Format a 24h time string into 12h "h:mm AM/PM" form.
- * Accepts "HH:mm", "HH:mm:ss", or ISO datetime "YYYY-MM-DDTHH:mm[:ss]".
- * Returns "---" when input is empty or unparseable.
- */
 export function formatTime(input: string | null | undefined): string {
   if (!input) return "---";
   const match = input.match(/(\d{1,2}):(\d{2})/);
@@ -28,7 +23,6 @@ export function formatTime(input: string | null | undefined): string {
   return `${h12}:${match[2]} ${period}`;
 }
 
-/** Format a start/end pair as "h:mm AM/PM - h:mm AM/PM". */
 export function formatTimeRange(
   start: string | null | undefined,
   end: string | null | undefined,

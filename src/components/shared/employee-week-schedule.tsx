@@ -46,8 +46,6 @@ const offReasonLabel: Record<string, string> = {
   "no-schedule": "Off",
 };
 
-/* ---------------- helpers ---------------- */
-
 const pad = (n: number) => String(n).padStart(2, "0");
 const hourToTime = (h: number) => `${pad(h)}:00`;
 const formatHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`;
@@ -71,8 +69,6 @@ function toIsoDate(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/* ---------------- types ---------------- */
-
 type ScheduleResponse = {
   days: EmployeeScheduleDay[];
   templates: ScheduleAvailability[];
@@ -91,8 +87,6 @@ type VacForm =
 
 const closedGen: GenForm = { open: false };
 const closedVac: VacForm = { open: false };
-
-/* ---------------- main ---------------- */
 
 export function EmployeeWeekSchedule({
   employeeId,
@@ -149,8 +143,7 @@ export function EmployeeWeekSchedule({
     return map;
   }, [data.days]);
 
-  /* Multi-day vacations appear on every day they cover so users can edit
-   * them from any of those days. */
+  // Multi-day vacations can be edited from any covered day.
   const vacationsByDate = useMemo(() => {
     const map: Record<string, EmployeeVacation[]> = {};
     for (const v of data.vacations) {
@@ -174,8 +167,8 @@ export function EmployeeWeekSchedule({
     const last = weekDates[6]?.date;
     if (!first || !last) return "";
     const fmt = (d: Date) =>
-      d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    return `${fmt(first)} – ${fmt(last)}, ${last.getFullYear()}`;
+      d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    return `${fmt(first)} - ${fmt(last)} ${last.getFullYear()}`;
   }, [weekDates]);
 
   const openAddSlot = (dayOfWeek: number, hour: number) => {
@@ -364,8 +357,6 @@ export function EmployeeWeekSchedule({
   );
 }
 
-/* ---------------- subcomponents ---------------- */
-
 function Legend() {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -466,8 +457,7 @@ function DayColumn({
         />
       ))}
 
-      {/* Projected working shifts. Clicking opens the underlying template
-       * slot for editing when one can be matched. */}
+      {/* Clicking a projected shift edits its matching template slot. */}
       {showShifts &&
         projected!.shifts.map((shift, i) => {
           const startDec = timeToDecimal(shift.startTime);
@@ -507,8 +497,7 @@ function DayColumn({
           );
         })}
 
-      {/* Off-day banner. Skipped for "vacation" because the vacation marker below
-       * already conveys the same info. */}
+      {/* Vacation markers already show vacation off-days. */}
       {offReason && offReason !== "vacation" && (
         <div
           className={cn(
@@ -525,8 +514,7 @@ function DayColumn({
         </div>
       )}
 
-      {/* Vacation markers, clickable to edit. Pending = dashed border,
-       * rejected = greyed out, accepted uses the standard vacation style. */}
+      {/* Pending/rejected vacations get distinct styling. */}
       {vacations.map((v) => {
         const hasTimes = !!v.startTime && !!v.endTime;
         const startDec = hasTimes ? timeToDecimal(v.startTime) : DAY_START;

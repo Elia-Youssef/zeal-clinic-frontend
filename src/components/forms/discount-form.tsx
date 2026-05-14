@@ -40,7 +40,7 @@ export function DiscountForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: Discount;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
@@ -90,12 +90,16 @@ export function DiscountForm({
       if (isEdit) {
         await api.put(`/discounts/${initial.id}`, payload);
         addAlert("success", "Discount updated.");
+        onSaved();
       } else {
         payload.discountType = "offer";
-        await api.post("/discounts", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/discounts",
+          payload,
+        );
         addAlert("success", "Discount created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));

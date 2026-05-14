@@ -10,6 +10,7 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { genderOptions, bloodTypeOptions } from "@/lib/constants";
 import type { Patient } from "@/lib/types";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type PatientFormFields = {
   firstName: string;
@@ -68,6 +69,7 @@ export function PatientForm({
 }) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
 
   const [form, setForm] = useState<PatientFormFields>(emptyForm);
   const [isLebanon, setIsLebanon] = useState(false);
@@ -364,6 +366,26 @@ export function PatientForm({
               onChange={(v) => update("referralId", v)}
               mapItem={(item) => ({ value: item.id, label: item.name })}
               placeholder="Select patient…"
+              renderAddForm={
+                can("patients:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <PatientForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            onCreated(
+                              String(created.id),
+                              `${created.firstName ?? ""} ${
+                                created.lastName ?? ""
+                              }`.trim(),
+                            );
+                          }
+                        }}
+                      />
+                    )
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-1.5">

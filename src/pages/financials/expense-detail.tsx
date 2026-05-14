@@ -106,6 +106,8 @@ function ExpenseDetailContent() {
       key: "date",
       header: "Date",
       className: "w-32",
+      sortable: true,
+      sortKey: "createdAt",
       render: (t) => t.createdAt?.slice(0, 10) ?? "---",
     },
     {
@@ -137,6 +139,8 @@ function ExpenseDetailContent() {
       key: "amount",
       header: "Amount",
       className: "w-32 text-right",
+      sortable: true,
+      sortKey: "amount",
       render: (t) => {
         const isInflow = !!expenseName && t.fromEntityName === expenseName;
         return (

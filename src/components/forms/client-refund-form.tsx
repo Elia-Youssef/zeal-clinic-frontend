@@ -9,6 +9,8 @@ import { transactionMethodOptions } from "@/lib/constants";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { BalanceTransaction, ClientRefundRequest } from "@/lib/types";
+import { PatientForm } from "./patient-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function ClientRefundForm({
   open,
@@ -28,6 +30,7 @@ export function ClientRefundForm({
   defaultCurrencyId?: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [patientId, setPatientId] = useState("");
   const [amount, setAmount] = useState("");
   const [currencyId, setCurrencyId] = useState("");
@@ -92,6 +95,26 @@ export function ClientRefundForm({
             })}
             placeholder="Select patient..."
             required
+            renderAddForm={
+              can("patients:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <PatientForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim(),
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
 

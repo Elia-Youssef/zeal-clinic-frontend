@@ -1,9 +1,3 @@
-/**
- * Holidays page: manages clinic-wide holidays. Holidays mark the clinic
- * closed for the day; the projected employee schedule view treats those
- * dates as off automatically. Lives under the Team section.
- */
-
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -70,6 +64,8 @@ function HolidaysContent() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (h) => <span className="font-medium">{h.name}</span>,
     },
     {

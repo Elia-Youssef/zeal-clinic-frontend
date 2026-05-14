@@ -1,4 +1,3 @@
-
 import { type Column } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,8 @@ const columns: Column<AuditLogEntry>[] = [
     key: "time",
     header: "Time",
     className: "w-40",
+    sortable: true,
+    sortKey: "createdAt",
     render: (e) => (
       <span className="text-xs">
         {e.createdAt?.slice(0, 19).replace("T", " ")}
@@ -23,7 +24,9 @@ const columns: Column<AuditLogEntry>[] = [
   },
   {
     key: "user",
-    header: "User",
+    header: "Staff",
+    sortable: true,
+    sortKey: "userName",
     render: (e) => <span className="font-medium">{e.userName}</span>,
   },
   {
@@ -34,6 +37,8 @@ const columns: Column<AuditLogEntry>[] = [
   {
     key: "action",
     header: "Action",
+    sortable: true,
+    sortKey: "action",
     render: (e) => (
       <Badge variant="outline" className={actionClasses[e.action]}>
         {e.action}

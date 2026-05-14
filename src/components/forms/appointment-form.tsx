@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   XCircle,
   Check,
+  AlertTriangle,
   ExternalLink,
   X,
   type LucideIcon,
@@ -39,6 +40,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
+import { RoomForm } from "./room-form";
+import { ProcedureForm } from "./procedure-form";
 
 export type AppointmentProcedureSelection = {
   id: string;
@@ -147,6 +150,26 @@ const mergeInitial = (
   };
 };
 
+function isPastStartTime(date: string, startTime: string) {
+  if (!date || !startTime) return false;
+  const start = new Date(`${date}T${startTime}`);
+  return !Number.isNaN(start.getTime()) && start.getTime() < Date.now();
+}
+
+function timeDiffMinutes(startTime: string, endTime: string) {
+  if (!startTime || !endTime) return 0;
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+  if (
+    [startHour, startMinute, endHour, endMinute].some((part) =>
+      Number.isNaN(part),
+    )
+  ) {
+    return 0;
+  }
+  return endHour * 60 + endMinute - (startHour * 60 + startMinute);
+}
+
 export function AppointmentForm({
   open,
   onClose,
@@ -160,15 +183,17 @@ export function AppointmentForm({
   appointmentData?: Appointment;
   initialData?: Partial<AppointmentFormData>;
   onSaved?: () => void;
-  /** Open in read-only view mode (only meaningful when editing an existing appointment). */
+  /** Read-only mode for existing appointments. */
   readOnly?: boolean;
-  /** When provided, the view mode shows an "Open in Schedule" button. */
+  /** Shows "Open in Schedule" in read-only mode. */
   onOpenInSchedule?: () => void;
 }) {
   const { can } = usePermissions();
   const canWriteAppointments = can("appointments:write");
   const canDeleteAppointments = can("appointments:delete");
   const canWritePatients = can("patients:write");
+  const canWriteRooms = can("rooms:write");
+  const canWriteProcedures = can("procedures:write");
   const canWriteTransactions = can("invoices:write");
   const isEdit = !!initialData?.id;
   const currentStatus = initialData?.status ?? "Scheduled";
@@ -269,6 +294,8 @@ export function AppointmentForm({
           onSaved={handleSaved}
           canDelete={canDeleteAppointments}
           canCreatePatient={canWritePatients}
+          canCreateRoom={canWriteRooms}
+          canCreateProcedure={canWriteProcedures}
         />
       )}
       {page === "cancel" && isEdit && (
@@ -295,7 +322,7 @@ export function AppointmentForm({
             onSelect={(s) => setViewingStage(s === wizardStage ? null : s)}
           />
 
-          {/* Summaries of already-submitted stages (read-only reference) */}
+          {/* Submitted-stage summaries. */}
           {shownStage === "complete" && wizardStage !== "complete" && (
             <CompleteSummary
               initialData={initialData ?? {}}
@@ -310,8 +337,7 @@ export function AppointmentForm({
             />
           )}
 
-          {/* Current-stage forms, kept mounted so in-progress state
-              isn't lost when navigating back to view prior summaries. */}
+          {/* Keep stage forms mounted so draft state survives navigation. */}
           {wizardStage === "complete" && (
             <div className={cn(shownStage !== "complete" && "hidden")}>
               <CompletePage
@@ -355,8 +381,6 @@ export function AppointmentForm({
     </Modal>
   );
 }
-
-/* Wizard indicator */
 
 function StageIndicator({
   current,
@@ -424,8 +448,6 @@ function StageIndicator({
     </div>
   );
 }
-
-/* Wizard summaries (read-only reference views) */
 
 function CompleteSummary({
   initialData,
@@ -532,8 +554,6 @@ function InvoiceSummary({
   );
 }
 
-/* View: read-only */
-
 function ViewPage({
   initialData,
   onEdit,
@@ -604,8 +624,6 @@ function ViewPage({
   );
 }
 
-/* Main: create / edit */
-
 function MainPage({
   isEdit,
   initialData,
@@ -613,6 +631,8 @@ function MainPage({
   onSaved,
   canDelete,
   canCreatePatient,
+  canCreateRoom,
+  canCreateProcedure,
 }: {
   isEdit: boolean;
   initialData?: Partial<AppointmentFormData>;
@@ -620,6 +640,8 @@ function MainPage({
   onSaved: () => void;
   canDelete: boolean;
   canCreatePatient: boolean;
+  canCreateRoom: boolean;
+  canCreateProcedure: boolean;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const confirm = useConfirm();
@@ -632,6 +654,16 @@ function MainPage({
     field: K,
     value: AppointmentFormData[K],
   ) => setForm((prev) => ({ ...prev, [field]: value }));
+  const durationMinutes = timeDiffMinutes(form.startTime, form.endTime);
+  const hasValidTimeRange =
+    !!form.startTime && !!form.endTime && durationMinutes >= 15;
+  const showPastStartWarning = isPastStartTime(form.date, form.startTime);
+  const canSubmit =
+    !!form.patientId &&
+    !!form.roomId &&
+    form.procedures.length > 0 &&
+    !!form.date &&
+    hasValidTimeRange;
 
   const addProcedure = (option: AppointmentProcedureSelection) =>
     setForm((prev) =>
@@ -651,6 +683,14 @@ function MainPage({
 
     if (form.procedures.length === 0) {
       addAlert("error", "At least one procedure is required.");
+      return;
+    }
+    if (!form.startTime || !form.endTime || durationMinutes <= 0) {
+      addAlert("error", "End time must be after start time.");
+      return;
+    }
+    if (durationMinutes < 15) {
+      addAlert("error", "Appointment duration must be at least 15 minutes.");
       return;
     }
 
@@ -756,6 +796,21 @@ function MainPage({
           placeholder="Select room..."
           apiOptionsLimit={10}
           required
+          renderAddForm={
+            canCreateRoom
+              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                  <RoomForm
+                    open={addOpen}
+                    onClose={closeAdd}
+                    onSaved={(created) => {
+                      if (created) {
+                        onCreated(String(created.id), String(created.name));
+                      }
+                    }}
+                  />
+                )
+              : undefined
+          }
         />
       </div>
 
@@ -793,6 +848,21 @@ function MainPage({
             label: p.name,
           })}
           placeholder="Add a procedure..."
+          renderAddForm={
+            canCreateProcedure
+              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                  <ProcedureForm
+                    open={addOpen}
+                    onClose={closeAdd}
+                    onSaved={(created) => {
+                      if (created) {
+                        onCreated(String(created.id), String(created.name));
+                      }
+                    }}
+                  />
+                )
+              : undefined
+          }
         />
       </div>
 
@@ -810,6 +880,8 @@ function MainPage({
           <Input
             type="time"
             value={form.startTime}
+            step={900}
+            max={form.endTime || undefined}
             onChange={(v) => update("startTime", v.target.value)}
             required
           />
@@ -819,11 +891,19 @@ function MainPage({
           <Input
             type="time"
             value={form.endTime}
+            step={900}
+            min={form.startTime || undefined}
             onChange={(v) => update("endTime", v.target.value)}
             required
           />
         </div>
       </div>
+      {showPastStartWarning && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="size-3.5" />
+          Start time has already passed.
+        </p>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Notes</label>
@@ -851,15 +931,13 @@ function MainPage({
         <Button type="button" variant="outline" onClick={onCancelEdit}>
           Cancel
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting || !canSubmit}>
           {submitting ? "Saving..." : isEdit ? "Update" : "Create"}
         </Button>
       </div>
     </form>
   );
 }
-
-/* Cancel: confirm + reason */
 
 function CancelPage({
   appointmentId,
@@ -920,8 +998,6 @@ function CancelPage({
     </div>
   );
 }
-
-/* Complete: notes + optional invoice handoff */
 
 function CompletePage({
   appointmentId,
@@ -993,8 +1069,6 @@ function CompletePage({
     </div>
   );
 }
-
-/* In-Progress: confirm + optional notes */
 
 function InProgressPage({
   appointmentId,

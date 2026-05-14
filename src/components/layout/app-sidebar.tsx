@@ -1,8 +1,3 @@
-/**
- * app-sidebar.tsx: Main sidebar navigation for the dashboard.
- * Theme toggle and logout live in the header avatar menu.
- */
-
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -17,6 +12,7 @@ import {
   Settings,
   Activity,
   Truck,
+  Cable,
 } from "lucide-react";
 
 import { usePermissions } from "@/hooks/use-permissions";
@@ -106,6 +102,12 @@ const navItems = {
       href: "/reports",
       icon: BarChart3,
       scopes: ["reports:read"],
+    },
+    {
+      title: "Connection",
+      href: "/connection",
+      icon: Cable,
+      scopes: ["roles:read", "users:read"],
     },
     {
       title: "Settings",

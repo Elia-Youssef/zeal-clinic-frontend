@@ -35,10 +35,6 @@ import {
   Prescription,
 } from "@/lib/types";
 
-/* ------------------------------------------------------------------ */
-/*  Page content                                                       */
-/* ------------------------------------------------------------------ */
-
 function PatientDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -46,7 +42,6 @@ function PatientDetailContent() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  /* Store state */
   const patient = usePatientsStore((s) => s.current);
   const balance = usePatientsStore((s) => s.currentBalance);
   const [editingPrescription, setEditingPrescription] =
@@ -56,7 +51,6 @@ function PatientDetailContent() {
   const fetchBalance = usePatientsStore((s) => s.fetchBalance);
   const setCurrent = usePatientsStore((s) => s.setCurrent);
 
-  /* Modals */
   const [editOpen, setEditOpen] = useState(false);
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
@@ -71,7 +65,7 @@ function PatientDetailContent() {
   );
   const [prescriptionFormOpen, setPrescriptionFormOpen] = useState(false);
 
-  /* Per-section refresh keys so each list reloads independently */
+  // Related lists reload independently after saves.
   const [allergiesKey, setAllergiesKey] = useState(0);
   const [medicinesKey, setMedicinesKey] = useState(0);
   const [appointmentsKey, setAppointmentsKey] = useState(0);
@@ -100,8 +94,6 @@ function PatientDetailContent() {
     };
   }, [id]);
 
-  /* Render */
-
   if (loading) return <Loading />;
   if (!patient)
     return (
@@ -114,7 +106,6 @@ function PatientDetailContent() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <PageHeader
         backHref="/patients/list"
         title={patientName}
@@ -169,7 +160,6 @@ function PatientDetailContent() {
         </CardContent>
       </Card>
 
-      {/* Allergies & Medicines */}
       <div className="flex flex-col gap-4 lg:flex-row">
         <DataList<PatientAllergy>
           className="flex-1"
@@ -436,7 +426,6 @@ function PatientDetailContent() {
             }
           />
 
-          {/* Payments */}
           <Card className="flex-1 gap-0">
             {balance && (
               <CardHeader className="pb-4 border-b">
@@ -766,10 +755,6 @@ function PatientDetailContent() {
     }
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Page export                                                        */
-/* ------------------------------------------------------------------ */
 
 export default function PatientDetailPage() {
   usePageTitle("Patient");

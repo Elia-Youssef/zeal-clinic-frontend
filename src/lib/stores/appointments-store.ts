@@ -29,9 +29,7 @@ export const useAppointmentsStore = create<AppointmentsState>((set) => ({
   loading: true,
 
   fetchForDates: async (dates) => {
-    // The API contract requires a specific date query, so the schedule layer
-    // asks for the exact day(s) it needs and this store normalizes the result
-    // into one ordered list for the Day view.
+    // Backend requires explicit dates; normalize them for Day view.
     const uniqueDates = [...new Set(dates.filter(Boolean))];
     if (uniqueDates.length === 0) {
       set({ appointments: [], loading: false });
@@ -45,13 +43,11 @@ export const useAppointmentsStore = create<AppointmentsState>((set) => ({
           api.get<DayAppointmentsResponse>(`/appointments?date=${date}`),
         ),
       );
-      // Keep the merged list stable so the calendar rendering stays predictable
-      // regardless of the order the API requests resolve.
+      // Keep ordering stable across parallel responses.
       const appointments = responses
         .flatMap((res) => res.items)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
-      // Each response carries holidays for its specific date; merge across
-      // dates and dedupe by id so a multi-day holiday isn't duplicated.
+      // Merge holidays across dates without duplicating multi-day entries.
       const seen = new Set<string>();
       const dayHolidays: Holiday[] = [];
       for (const res of responses) {
@@ -68,8 +64,7 @@ export const useAppointmentsStore = create<AppointmentsState>((set) => ({
   },
 
   fetchWeekCounts: async (date) => {
-    // Week view needs per-room/per-day counts plus any holidays intersecting
-    // the Mon–Sun window containing `date`. Server returns both in one call.
+    // Server returns room counts and holidays for this week.
     set({ loading: true });
     try {
       const { rooms, holidays } = await api.get<WeekCountsResponse>(

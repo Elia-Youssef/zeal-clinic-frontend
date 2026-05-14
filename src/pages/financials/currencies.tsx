@@ -1,45 +1,19 @@
-
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
-import { api } from "@/lib/api";
-import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
 import type { Currency } from "@/lib/types";
 import { CurrencyForm } from "@/components/forms/currency-form";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useConfirm } from "@/hooks/use-confirm";
 
 export default function CurrenciesPage() {
-  const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
-  const confirm = useConfirm();
   const [refreshKey, setRefreshKey] = useState(0);
   const [curFormOpen, setCurFormOpen] = useState(false);
   const [editingCur, setEditingCur] = useState<Currency | undefined>();
 
   const handleSaved = () => setRefreshKey((k) => k + 1);
-
-  const handleDeleteCur = async (c: Currency) => {
-    if (
-      !(await confirm({
-        title: "Delete currency?",
-        description: `Delete currency ${c.code}?`,
-        confirmText: "Delete",
-      }))
-    ) {
-      return;
-    }
-    try {
-      await api.del(`/currencies/${c.id}`);
-      addAlert("success", "Deleted.");
-      handleSaved();
-    } catch (err) {
-      addAlert("error", getErrorMessage(err));
-    }
-  };
 
   const curColumns: Column<Currency>[] = [
     {
@@ -49,27 +23,25 @@ export default function CurrenciesPage() {
     },
     { key: "name", header: "Name", render: (c) => c.name },
     { key: "symbol", header: "Symbol", render: (c) => c.symbol },
-    { key: "exchangeRate", header: "Exchange Rate", render: (c) => c.exchangeRate },
+    {
+      key: "exchangeRate",
+      header: "Exchange Rate",
+      render: (c) => c.exchangeRate,
+    },
   ];
 
   const curActions: RowAction<Currency>[] = [
     ...(can("currencies:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (c: Currency) => {
-            setEditingCur(c);
-            setCurFormOpen(true);
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (c: Currency) => {
+              setEditingCur(c);
+              setCurFormOpen(true);
+            },
           },
-        }]
-      : []),
-    ...(can("currencies:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (c: Currency) => handleDeleteCur(c),
-        }]
+        ]
       : []),
   ];
 

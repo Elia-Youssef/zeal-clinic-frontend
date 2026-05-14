@@ -1,18 +1,8 @@
-
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAnalytics } from "./use-analytics";
 
-/**
- * Endpoint-driven stat card.
- *
- * Pass an `endpoint` plus an `extract` selector that reads the number out of
- * whatever payload that endpoint returns. This way the same component works
- * for `/analytics/patients/total`, `/analytics/appointments/counts`, etc.
- *
- * Optional `format` maps the number to a string (currency, percent, …).
- */
 export function AnalyticsStatCard<T>({
   title,
   endpoint,

@@ -44,10 +44,9 @@ import {
 import type { Appointment, Holiday, Room, RoomDayCount } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 
-const DAY_START_HOUR = 8; // inclusive: first hour on the grid
-const DAY_END_HOUR = 20; // exclusive: last hour row ends here
-// rem-based so the schedule scales with the root font size (UI scale slider).
-const HOUR_HEIGHT = 7.5; // rem per hour slot (= 120px at 100% scale)
+const DAY_START_HOUR = 8;
+const DAY_END_HOUR = 20;
+const HOUR_HEIGHT = 7.5; // rem; follows UI scale.
 const HOURS = Array.from(
   { length: DAY_END_HOUR - DAY_START_HOUR },
   (_, i) => i + DAY_START_HOUR,
@@ -56,15 +55,11 @@ const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
 const gridColsFor = (roomCount: number) =>
   `3.125rem 0.75rem repeat(${roomCount}, 1fr)`;
 
-// Helpers
-
 class SchedUtils {
-  /** "2026-03-28T09:30:00" to "2026-03-28" */
   static isoToDate(iso: string) {
     return iso.slice(0, 10);
   }
 
-  /** "2026-03-28T09:30:00" to "09:30" */
   static isoToTime(iso: string) {
     return iso.slice(11, 16);
   }
@@ -85,7 +80,7 @@ class SchedUtils {
   }
 
   static getWeekStart(date: Date) {
-    // Week starts on Monday. getDay() returns 0 for Sunday, 1 for Monday…
+    // Week starts on Monday.
     const d = new Date(date);
     const day = d.getDay();
     const diff = day === 0 ? 6 : day - 1;
@@ -108,8 +103,6 @@ class SchedUtils {
 }
 
 const EMPTY_APPTS: Appointment[] = [];
-
-// Static grid pieces (memoized, render once)
 
 const TimeLabelsColumn = memo(function TimeLabelsColumn() {
   return (
@@ -161,8 +154,6 @@ const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
     </div>
   );
 });
-
-// Appointment card
 
 function AppointmentCard({
   appt,
@@ -272,8 +263,6 @@ function AppointmentCard({
   );
 }
 
-// Single room column (empty cells + appointments)
-
 function RoomColumn({
   roomId,
   appointments,
@@ -306,8 +295,6 @@ function RoomColumn({
   );
 }
 
-// Current-time indicator (self-contained, ticks every minute)
-
 function CurrentTimeLine({ dateStr }: { dateStr: string }) {
   const [now, setNow] = useState(() => new Date());
 
@@ -330,8 +317,6 @@ function CurrentTimeLine({ dateStr }: { dateStr: string }) {
     </div>
   );
 }
-
-// Day View
 
 function DayView({
   date,
@@ -364,8 +349,7 @@ function DayView({
     0,
   );
 
-  // The store may carry holidays from neighboring dates after navigation, so
-  // filter to those whose range actually covers the displayed day.
+  // Store may include neighboring dates after navigation.
   const activeHolidays = useMemo(
     () => holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
     [holidays, dateStr],
@@ -375,10 +359,10 @@ function DayView({
     <div>
       <div className="mb-4 flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-semibold">
-          {date.toLocaleDateString("en-US", {
+          {date.toLocaleDateString("en-GB", {
             weekday: "long",
-            month: "short",
             day: "numeric",
+            month: "short",
           })}
         </h2>
         <Badge variant="secondary">
@@ -425,8 +409,6 @@ function DayView({
   );
 }
 
-// Week View
-
 function WeekView({
   date,
   rooms,
@@ -440,7 +422,7 @@ function WeekView({
   holidays: Holiday[];
   onDayClick: (day: Date) => void;
 }) {
-  const weekDays = SchedUtils.getWeekDays(date);
+  const weekDays = useMemo(() => SchedUtils.getWeekDays(date), [date]);
   const today = SchedUtils.toDateStr(new Date());
   const weekStart = weekDays[0];
   const weekEnd = weekDays[6];
@@ -453,9 +435,7 @@ function WeekView({
     return map;
   }, [weekCounts]);
 
-  // For each day in the week, collect any holiday whose [startDate, endDate]
-  // range covers it. A multi-day holiday (e.g. Mon–Wed) appears on every day
-  // it spans; single-day holidays appear once.
+  // Multi-day holidays appear on each covered day.
   const holidaysByDay = useMemo(() => {
     const map: Record<string, Holiday[]> = {};
     for (const h of holidays) {
@@ -470,7 +450,7 @@ function WeekView({
   }, [holidays, weekDays]);
 
   const shortDate = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const dayLabel = (d: Date) =>
     d.toLocaleDateString("en-US", { weekday: "short" });
   const weekGridCols = `6.25rem repeat(${rooms.length}, 1fr)`;
@@ -564,8 +544,6 @@ function WeekView({
   );
 }
 
-// Main Schedule Page
-
 function parseDateParam(raw: string | null): Date | null {
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
   const d = new Date(`${raw}T00:00:00`);
@@ -596,8 +574,7 @@ function CalendarPageContent() {
   const fetchAppointments = useAppointmentsStore((s) => s.fetchForDates);
   const fetchWeekCounts = useAppointmentsStore((s) => s.fetchWeekCounts);
 
-  // Rooms rarely change, so load once. Reloading them on every date navigation
-  // would replace the array ref and break memoized grid pieces.
+  // Keep room refs stable for memoized grid pieces.
   useEffect(() => {
     fetchRooms();
   }, [fetchRooms]);
@@ -615,9 +592,7 @@ function CalendarPageContent() {
     reloadAppointments();
   }, [reloadAppointments]);
 
-  // Keep `?date=YYYY-MM-DD` in sync with the currently viewed day. When the
-  // user lands on "today", drop the param so the URL stays clean. Using
-  // history.replaceState avoids a route-level re-render while preserving the URL.
+  // Sync `?date=YYYY-MM-DD`; omit today.
   useEffect(() => {
     const today = SchedUtils.toDateStr(new Date());
     const current = SchedUtils.toDateStr(currentDate);
@@ -649,15 +624,15 @@ function CalendarPageContent() {
 
   const dateLabel = useMemo(() => {
     if (view === "Day") {
-      return currentDate.toLocaleDateString("en-US", {
-        month: "short",
+      return currentDate.toLocaleDateString("en-GB", {
         day: "numeric",
+        month: "short",
         year: "numeric",
       });
     }
     const days = SchedUtils.getWeekDays(currentDate);
     const fmt = (d: Date) =>
-      d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
     return `${fmt(days[0])} - ${fmt(days[6])}`;
   }, [view, currentDate]);
 
@@ -778,9 +753,7 @@ function CalendarPageContent() {
         </CardHeader>
 
         <CardContent>
-          {/* Grid stays mounted across date/view changes; only the data
-              inside re-renders. Loading shows as a header spinner + dimmed
-              content, never a content swap. */}
+          {/* Keep the grid mounted; loading only dims content. */}
           <div
             className={cn(
               "transition-opacity",

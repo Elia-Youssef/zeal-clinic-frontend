@@ -27,7 +27,6 @@ import SupplierDetailPage from "@/pages/suppliers/supplier-detail";
 import FinancialsTabsLayout from "@/pages/layouts/financials-tabs-layout";
 import FinancialsInvoicesPage from "@/pages/financials/invoices";
 import FinancialsExpensesPage from "@/pages/financials/expenses";
-import FinancialsBalancesPage from "@/pages/financials/balances";
 import FinancialsDiscountsPage from "@/pages/financials/discounts";
 import FinancialsCurrenciesPage from "@/pages/financials/currencies";
 import InvoiceDetailPage from "@/pages/financials/invoice-detail";
@@ -45,10 +44,10 @@ import TeamTabsLayout from "@/pages/layouts/team-tabs-layout";
 import SettingsTabsLayout from "@/pages/layouts/settings-tabs-layout";
 import SettingsRolesPage from "@/pages/settings/roles";
 import SettingsRoleDetailPage from "@/pages/settings/role-detail";
-import SettingsUsersPage from "@/pages/settings/users";
+import SettingsStaffPage from "@/pages/settings/users";
 import SettingsAuditLogPage from "@/pages/settings/audit-log";
 import SettingsConnectionPage from "@/pages/settings/connection";
-import UserDetailPage from "@/pages/settings/user-detail";
+import StaffDetailPage from "@/pages/settings/user-detail";
 import { LoadingOverlay } from "@/components/shared/loading-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { RequireScopes, ScopeRedirect } from "@/components/shared/scope-guard";
@@ -158,6 +157,14 @@ function App() {
                 </RequireScopes>
               }
             />
+            <Route
+              path="connection"
+              element={
+                <RequireScopes scopes={["roles:read", "users:read"]}>
+                  <SettingsConnectionPage />
+                </RequireScopes>
+              }
+            />
 
             <Route
               path="inventory"
@@ -247,14 +254,6 @@ function App() {
                   </RequireScopes>
                 }
               />
-              {/* <Route
-                path="financials/balances"
-                element={
-                  <RequireScopes scopes={["balances:read"]}>
-                    <FinancialsBalancesPage />
-                  </RequireScopes>
-                }
-              /> */}
               <Route
                 path="financials/discounts"
                 element={
@@ -387,7 +386,7 @@ function App() {
               element={
                 <ScopeRedirect
                   targets={[
-                    { to: "/settings/users", scopes: ["users:read"] },
+                    { to: "/settings/staff", scopes: ["users:read"] },
                     { to: "/settings/roles", scopes: ["roles:read"] },
                     {
                       to: "/settings/audit-log",
@@ -407,10 +406,10 @@ function App() {
                 }
               />
               <Route
-                path="settings/users"
+                path="settings/staff"
                 element={
                   <RequireScopes scopes={["users:read"]}>
-                    <SettingsUsersPage />
+                    <SettingsStaffPage />
                   </RequireScopes>
                 }
               />
@@ -419,14 +418,6 @@ function App() {
                 element={
                   <RequireScopes scopes={["audit:read"]}>
                     <SettingsAuditLogPage />
-                  </RequireScopes>
-                }
-              />
-              <Route
-                path="settings/connection"
-                element={
-                  <RequireScopes scopes={["roles:read", "users:read"]}>
-                    <SettingsConnectionPage />
                   </RequireScopes>
                 }
               />
@@ -440,15 +431,17 @@ function App() {
               }
             />
             <Route
-              path="settings/users/:id"
+              path="settings/staff/:id"
               element={
                 <RequireScopes scopes={["users:read"]}>
-                  <UserDetailPage />
+                  <StaffDetailPage />
                 </RequireScopes>
               }
             />
-
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="*"
+              element={<Navigate to="/dashboard" replace />}
+            />
           </Route>
         </Routes>
       </BrowserRouter>

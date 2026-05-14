@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type Column } from "@/components/data/data-table";
@@ -35,6 +34,8 @@ export default function InvoicesPage() {
       key: "number",
       header: "#",
       className: "w-20",
+      sortable: true,
+      sortKey: "invoiceNumber",
       render: (i) => <span className="font-medium">#{i.invoiceNumber}</span>,
     },
     {
@@ -55,6 +56,8 @@ export default function InvoicesPage() {
     {
       key: "amount",
       header: "Amount",
+      sortable: true,
+      sortKey: "amount",
       className: "text-right",
       render: (i) => (
         <span

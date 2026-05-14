@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Gift } from "lucide-react";
@@ -23,6 +22,8 @@ export default function DiscountsPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (d) => <span className="font-medium">{d.name}</span>,
     },
     {
@@ -65,6 +66,8 @@ export default function DiscountsPage() {
     {
       key: "isActive",
       header: "Status",
+      sortable: true,
+      sortKey: "isActive",
       render: (d) => {
         if (d.discountType === "gift" && d.redeemedAt) {
           return <Badge variant="outline">Redeemed</Badge>;

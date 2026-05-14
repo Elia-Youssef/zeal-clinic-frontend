@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -42,25 +41,42 @@ export default function TypesPage() {
   };
 
   const columns: Column<ProcedureType>[] = [
-    { key: "name", header: "Name", render: (t) => <span className="font-medium">{t.name}</span> },
-    { key: "desc", header: "Description", render: (t) => t.description || "---" },
+    {
+      key: "name",
+      header: "Name",
+      sortable: true,
+      sortKey: "name",
+      render: (t) => <span className="font-medium">{t.name}</span>,
+    },
+    {
+      key: "desc",
+      header: "Description",
+      render: (t) => t.description || "---",
+    },
   ];
 
   const actions: RowAction<ProcedureType>[] = [
     ...(can("procedure-types:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (t: ProcedureType) => { setEditing(t); setFormOpen(true); },
-        }]
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (t: ProcedureType) => {
+              setEditing(t);
+              setFormOpen(true);
+            },
+          },
+        ]
       : []),
     ...(can("procedure-types:write")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (t: ProcedureType) => handleDelete(t),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (t: ProcedureType) => handleDelete(t),
+          },
+        ]
       : []),
   ];
 
@@ -75,7 +91,13 @@ export default function TypesPage() {
         emptyMessage="No procedure types defined."
         headerActions={
           can("procedure-types:write") ? (
-            <AddButton label="Add Type" onClick={() => { setEditing(undefined); setFormOpen(true); }} />
+            <AddButton
+              label="Add Type"
+              onClick={() => {
+                setEditing(undefined);
+                setFormOpen(true);
+              }}
+            />
           ) : undefined
         }
         refreshKey={refreshKey}

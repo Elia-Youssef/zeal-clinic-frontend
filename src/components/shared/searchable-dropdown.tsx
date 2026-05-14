@@ -43,7 +43,6 @@ export function SearchableDropdown({
   className?: string;
   disabled?: boolean;
   clearable?: boolean;
-  /** Auto-select the first available option on mount when no value is set. */
   defaultFirst?: boolean;
   onSelectItem?: (option: DropdownOption) => void;
   renderAddForm?: (props: {
@@ -59,7 +58,6 @@ export function SearchableDropdown({
     null,
   );
 
-  /* "Add new" form state */
   const [addFormOpen, setAddFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -72,7 +70,6 @@ export function SearchableDropdown({
     }
   }, [defaultApiOption, apiOptions]);
 
-  /* Fetch options from API if endpoint is provided (server-side filter, debounced) */
   useEffect(() => {
     if (!apiEndpoint || !mapItem) return;
     const timer = setTimeout(() => {
@@ -93,7 +90,6 @@ export function SearchableDropdown({
 
   const allOptions = staticOptions ?? apiOptions;
 
-  /* Auto-select the first available option once, if requested and value is empty */
   const didAutoSelectRef = useRef(false);
   useEffect(() => {
     if (defaultFirst && !value) didAutoSelectRef.current = false;
@@ -113,14 +109,12 @@ export function SearchableDropdown({
     onChange(first.value);
   }, [defaultFirst, allOptions, value, onChange, onSelectItem]);
 
-  /* Client-side filter only for static options */
   const filtered = useMemo(() => {
     if (apiEndpoint || !search) return allOptions;
     const lower = search.toLowerCase();
     return allOptions.filter((o) => o.label.toLowerCase().includes(lower));
   }, [allOptions, search, apiEndpoint]);
 
-  /* Resolve current label (check filtered results first, fall back to cache) */
   const selectedLabel =
     allOptions.find((o) => o.value === value)?.label ??
     (selectedCache?.value === value ? selectedCache.label : "");
@@ -138,7 +132,6 @@ export function SearchableDropdown({
 
   return (
     <div className={cn("relative w-full min-w-0", className)}>
-      {/* Hidden input for form required validation */}
       {required && (
         <input
           tabIndex={-1}
@@ -239,7 +232,6 @@ export function SearchableDropdown({
         </PopoverContent>
       </Popover>
 
-      {/* Nested "add new" form (rendered as a modal on top) */}
       {renderAddForm?.({
         open: addFormOpen,
         onClose: () => setAddFormOpen(false),

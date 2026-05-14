@@ -70,7 +70,7 @@ export default function RoleDetailPage() {
 
       if (next.has(scope)) {
         next.delete(scope);
-        // Removing read also removes its dependents.
+        // Removing read also removes dependents.
         if (action === "read") {
           next.delete(`${resource}:write`);
           next.delete(`${resource}:delete`);
@@ -98,8 +98,7 @@ export default function RoleDetailPage() {
   const toggleColumn = (action: Action) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      // Write/delete only applies to rows where read is satisfied (read is
-      // checked, or the row has no read scope at all).
+      // Write/delete needs read when read exists.
       const eligibleRows = matrix.filter((row) => {
         if (!row.actions.includes(action)) return false;
         if (action === "read") return true;
@@ -115,7 +114,7 @@ export default function RoleDetailPage() {
         if (allOn) next.delete(s);
         else next.add(s);
       }
-      // Turning read off cascades to write/delete on the same rows.
+      // Turning read off cascades to write/delete.
       if (action === "read" && allOn) {
         for (const row of eligibleRows) {
           next.delete(`${row.resource}:write`);

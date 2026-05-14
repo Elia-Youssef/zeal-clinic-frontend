@@ -13,7 +13,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-function UserDetailContent() {
+function StaffDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -40,7 +40,7 @@ function UserDetailContent() {
       await api.put(`/users/${id}`, { isActive: !user.isActive });
       addAlert(
         "success",
-        user.isActive ? "User deactivated." : "User activated.",
+        user.isActive ? "Staff member deactivated." : "Staff member activated.",
       );
       reload();
     } catch (err) {
@@ -51,14 +51,14 @@ function UserDetailContent() {
   if (loading) return <Loading />;
   if (!user) {
     return (
-      <p className="py-12 text-center text-muted-foreground">User not found.</p>
+      <p className="py-12 text-center text-muted-foreground">Staff member not found.</p>
     );
   }
 
   return (
     <div className="space-y-4">
       <PageHeader
-        backHref="/settings/users"
+        backHref="/settings/staff"
         title={user.displayName}
         onEdit={can("users:write") ? () => setEditOpen(true) : undefined}
       />
@@ -99,7 +99,7 @@ function UserDetailContent() {
   );
 }
 
-export default function UserDetailPage() {
-  usePageTitle("User");
-  return <UserDetailContent />;
+export default function StaffDetailPage() {
+  usePageTitle("Staff");
+  return <StaffDetailContent />;
 }

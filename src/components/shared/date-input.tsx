@@ -1,12 +1,7 @@
-
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/**
- * DateInput displays dd / mm / yyyy and stores YYYY-MM-DD internally.
- * For datetime mode, displays dd / mm / yyyy  HH:mm and stores YYYY-MM-DDTHH:mm.
- */
 export function DateInput({
   value,
   onChange,
@@ -31,7 +26,43 @@ export function DateInput({
   const hoursRef = useRef<HTMLInputElement>(null);
   const minutesRef = useRef<HTMLInputElement>(null);
 
-  /* Sync from external value (YYYY-MM-DD or YYYY-MM-DDTHH:mm) */
+  const isValidDateParts = (d: string, m: string, y: string) => {
+    if (d.length === 0 || m.length === 0 || y.length !== 4) return false;
+    const dayNum = Number(d);
+    const monthNum = Number(m);
+    const yearNum = Number(y);
+    if (
+      !Number.isInteger(dayNum) ||
+      !Number.isInteger(monthNum) ||
+      !Number.isInteger(yearNum) ||
+      dayNum < 1 ||
+      monthNum < 1 ||
+      monthNum > 12
+    ) {
+      return false;
+    }
+    const parsed = new Date(yearNum, monthNum - 1, dayNum);
+    return (
+      parsed.getFullYear() === yearNum &&
+      parsed.getMonth() === monthNum - 1 &&
+      parsed.getDate() === dayNum
+    );
+  };
+
+  const isValidTimeParts = (h: string, min: string) => {
+    if (h.length === 0 || min.length === 0) return false;
+    const hourNum = Number(h);
+    const minuteNum = Number(min);
+    return (
+      Number.isInteger(hourNum) &&
+      Number.isInteger(minuteNum) &&
+      hourNum >= 0 &&
+      hourNum <= 23 &&
+      minuteNum >= 0 &&
+      minuteNum <= 59
+    );
+  };
+
   useEffect(() => {
     if (!value) {
       setDay("");
@@ -54,12 +85,19 @@ export function DateInput({
     }
   }, [value, mode]);
 
-  /* Emit ISO string when all parts are filled */
   const emit = (d: string, m: string, y: string, h?: string, min?: string) => {
     if (d && m && y && y.length === 4) {
+      if (!isValidDateParts(d, m, y)) {
+        onChange("");
+        return;
+      }
       const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
       if (mode === "datetime") {
         if (h && min) {
+          if (!isValidTimeParts(h, min)) {
+            onChange("");
+            return;
+          }
           onChange(`${iso}T${h.padStart(2, "0")}:${min.padStart(2, "0")}`);
         }
       } else {
@@ -75,6 +113,10 @@ export function DateInput({
 
   const handleDayChange = (v: string) => {
     const clean = v.replace(/\D/g, "").slice(0, 2);
+    if (clean.length === 2) {
+      const n = Number(clean);
+      if (n < 1 || n > 31) return;
+    }
     setDay(clean);
     if (clean.length === 2) monthRef.current?.focus();
     emit(clean, month, year, hours, minutes);
@@ -82,6 +124,10 @@ export function DateInput({
 
   const handleMonthChange = (v: string) => {
     const clean = v.replace(/\D/g, "").slice(0, 2);
+    if (clean.length === 2) {
+      const n = Number(clean);
+      if (n < 1 || n > 12) return;
+    }
     setMonth(clean);
     if (clean.length === 2) yearRef.current?.focus();
     emit(day, clean, year, hours, minutes);
@@ -96,6 +142,10 @@ export function DateInput({
 
   const handleHoursChange = (v: string) => {
     const clean = v.replace(/\D/g, "").slice(0, 2);
+    if (clean.length === 2) {
+      const n = Number(clean);
+      if (n < 0 || n > 23) return;
+    }
     setHours(clean);
     if (clean.length === 2) minutesRef.current?.focus();
     emit(day, month, year, clean, minutes);
@@ -103,12 +153,24 @@ export function DateInput({
 
   const handleMinutesChange = (v: string) => {
     const clean = v.replace(/\D/g, "").slice(0, 2);
+    if (clean.length === 2) {
+      const n = Number(clean);
+      if (n < 0 || n > 59) return;
+    }
     setMinutes(clean);
     emit(day, month, year, hours, clean);
   };
 
   const hasValue = !!(day || month || year || hours || minutes);
   const showClear = !required && hasValue;
+  const fullDateInvalid =
+    !!day && !!month && year.length === 4 && !isValidDateParts(day, month, year);
+  const fullTimeInvalid =
+    mode === "datetime" &&
+    !!hours &&
+    !!minutes &&
+    !isValidTimeParts(hours, minutes);
+  const invalid = fullDateInvalid || fullTimeInvalid;
 
   const clear = () => {
     setDay("");
@@ -123,8 +185,10 @@ export function DateInput({
     <div
       className={cn(
         "flex h-8 items-center gap-0.5 rounded-lg border border-input bg-transparent px-2.5 text-base transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 md:text-sm dark:bg-input/30",
+        invalid && "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
         className,
       )}
+      aria-invalid={invalid}
     >
       <input
         className={cn(inputBase, "w-6")}

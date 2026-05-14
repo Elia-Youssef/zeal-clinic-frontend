@@ -50,7 +50,6 @@ export default function Home() {
         navigate("/dashboard", { replace: true });
       })
       .catch(() => {
-        /* api.ts clears auth + redirects to "/" on 401; overlay stays up through reload */
         if (!cancelled) hide();
       });
 

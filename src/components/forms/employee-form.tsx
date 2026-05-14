@@ -46,7 +46,7 @@ export function EmployeeForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: Employee | null;
 }) {
   const isEdit = !!initial;
@@ -104,11 +104,15 @@ export function EmployeeForm({
       if (isEdit) {
         await api.put(`/employees/${initial!.id}`, payload);
         addAlert("success", "Employee updated.");
+        onSaved();
       } else {
-        await api.post("/employees", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/employees",
+          payload,
+        );
         addAlert("success", "Employee created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
@@ -205,7 +209,7 @@ export function EmployeeForm({
                 htmlFor="employeeCreateUser"
                 className="text-sm font-medium"
               >
-                Create User Account
+                Create Staff Account
               </label>
             </div>
 
@@ -229,7 +233,7 @@ export function EmployeeForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">User Role</label>
+                  <label className="text-sm font-medium">Staff Role</label>
                   <SearchableDropdown
                     value={form.userRole}
                     onChange={(v) => update("userRole", v)}

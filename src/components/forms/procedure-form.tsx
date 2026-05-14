@@ -9,6 +9,9 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { Procedure } from "@/lib/types";
+import { ProcedureTypeForm } from "./procedure-type-form";
+import { ProcedureCategoryForm } from "./procedure-category-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type ProcedureFormFields = {
   name: string;
@@ -47,6 +50,7 @@ export function ProcedureForm({
 }) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [form, setForm] = useState<ProcedureFormFields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
@@ -157,6 +161,21 @@ export function ProcedureForm({
                   ? { value: form.typeId, label: form.typeName }
                   : undefined
               }
+              renderAddForm={
+                can("procedure-types:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <ProcedureTypeForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            onCreated(String(created.id), String(created.name));
+                          }
+                        }}
+                      />
+                    )
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-1.5">
@@ -173,6 +192,21 @@ export function ProcedureForm({
               defaultApiOption={
                 form.categoryName
                   ? { value: form.categoryId, label: form.categoryName }
+                  : undefined
+              }
+              renderAddForm={
+                can("procedure-categories:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <ProcedureCategoryForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            onCreated(String(created.id), String(created.name));
+                          }
+                        }}
+                      />
+                    )
                   : undefined
               }
             />

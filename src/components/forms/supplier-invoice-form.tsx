@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { ProductForm } from "./product-form";
+import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
 type ItemDraft = {
@@ -133,6 +134,21 @@ export function SupplierInvoiceForm({
               })}
               placeholder="Select supplier…"
               required
+              renderAddForm={
+                can("suppliers:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <SupplierForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            onCreated(String(created.id), String(created.name));
+                          }
+                        }}
+                      />
+                    )
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-1.5">
@@ -152,7 +168,6 @@ export function SupplierInvoiceForm({
           </div>
         </div>
 
-        {/* Notes */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Notes</label>
           <textarea
@@ -163,7 +178,6 @@ export function SupplierInvoiceForm({
           />
         </div>
 
-        {/* Items */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">Items *</label>
@@ -266,7 +280,6 @@ export function SupplierInvoiceForm({
           ))}
         </div>
 
-        {/* Total + Actions */}
         <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium">
             Total: ${total.toFixed(2)}

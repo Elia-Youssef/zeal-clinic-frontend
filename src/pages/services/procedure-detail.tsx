@@ -25,10 +25,6 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
 import { appointmentStatusTint } from "@/lib/constants";
 
-/* ------------------------------------------------------------------ */
-/*  Page content                                                       */
-/* ------------------------------------------------------------------ */
-
 function ProcedureDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,7 +37,6 @@ function ProcedureDetailContent() {
   const [pricingKey, setPricingKey] = useState(0);
   const [conflictsKey, setConflictsKey] = useState(0);
 
-  /* Modals */
   const [editOpen, setEditOpen] = useState(false);
   const [conflictFormOpen, setConflictFormOpen] = useState(false);
   const [viewAppointment, setViewAppointment] = useState<Appointment | null>(
@@ -106,7 +101,6 @@ function ProcedureDetailContent() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <PageHeader
         backHref="/services"
         title={procedure.name}
@@ -114,7 +108,6 @@ function ProcedureDetailContent() {
         onDelete={can("procedures:delete") ? handleDelete : undefined}
       />
 
-      {/* Details */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
@@ -293,9 +286,6 @@ function ProcedureDetailContent() {
         />
       </div>
 
-      {/* Patient Procedures */}
-
-      {/* Edit modal */}
       <ProcedureForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
@@ -306,7 +296,6 @@ function ProcedureDetailContent() {
         initial={procedure}
       />
 
-      {/* Add conflict modal */}
       <ProcedureAllergyConflictForm
         open={conflictFormOpen}
         onClose={() => setConflictFormOpen(false)}
@@ -314,7 +303,6 @@ function ProcedureDetailContent() {
         procedureId={id}
       />
 
-      {/* View appointment modal (read-only) */}
       <AppointmentForm
         key={viewAppointment?.id ?? "no-appt"}
         open={!!viewAppointment}
@@ -352,10 +340,6 @@ function ProcedureDetailContent() {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Page export                                                        */
-/* ------------------------------------------------------------------ */
 
 export default function ProcedureDetailPage() {
   usePageTitle("Procedure");

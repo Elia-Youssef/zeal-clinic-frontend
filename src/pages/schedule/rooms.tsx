@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -47,11 +46,15 @@ export default function RoomsPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (r) => <span className="font-medium">{r.name}</span>,
     },
     {
       key: "type",
       header: "Type",
+      sortable: true,
+      sortKey: "type",
       render: (r) => <Badge variant="outline">{r.type}</Badge>,
     },
     {
@@ -68,22 +71,26 @@ export default function RoomsPage() {
 
   const actions: RowAction<Room>[] = [
     ...(can("rooms:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (r: Room) => {
-            setEditing(r);
-            setFormOpen(true);
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (r: Room) => {
+              setEditing(r);
+              setFormOpen(true);
+            },
           },
-        }]
+        ]
       : []),
     ...(can("rooms:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (r: Room) => handleDelete(r),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (r: Room) => handleDelete(r),
+          },
+        ]
       : []),
   ];
 

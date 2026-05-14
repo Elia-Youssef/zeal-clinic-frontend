@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { CategoryForm } from "./category-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function ProductForm({
   open,
@@ -22,6 +24,7 @@ export function ProductForm({
 }) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -93,6 +96,21 @@ export function ProductForm({
               apiEndpoint="/product-categories/dropdown"
               mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
               placeholder="Select category…"
+              renderAddForm={
+                can("product-categories:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <CategoryForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            onCreated(String(created.id), String(created.name));
+                          }
+                        }}
+                      />
+                    )
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-1.5">

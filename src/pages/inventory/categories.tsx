@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -55,29 +54,39 @@ export default function CategoriesPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (c) => <span className="font-medium">{c.name}</span>,
     },
-    { key: "desc", header: "Description", render: (c) => c.description || "---" },
+    {
+      key: "desc",
+      header: "Description",
+      render: (c) => c.description || "---",
+    },
   ];
 
   const catActions: RowAction<ProductCategory>[] = [
     ...(can("product-categories:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (c: ProductCategory) => {
-            setEditingCat(c);
-            setCatFormOpen(true);
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (c: ProductCategory) => {
+              setEditingCat(c);
+              setCatFormOpen(true);
+            },
           },
-        }]
+        ]
       : []),
     ...(can("product-categories:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (c: ProductCategory) => handleDeleteCat(c),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (c: ProductCategory) => handleDeleteCat(c),
+          },
+        ]
       : []),
   ];
 

@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { type Column } from "@/components/data/data-table";
-import { Badge } from "@/components/ui/badge";
 import type { Patient } from "@/lib/types";
 import { PatientForm } from "@/components/forms/patient-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -19,6 +17,8 @@ export default function PatientsListPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "firstName",
       render: (p) => (
         <span className="font-medium">
           {p.firstName} {p.middleName ? `${p.middleName} ` : ""}
@@ -29,17 +29,23 @@ export default function PatientsListPage() {
     {
       key: "contact",
       header: "Contact",
+      sortable: true,
+      sortKey: "contact",
       render: (p) => p.contact,
     },
     {
       key: "email",
       header: "Email",
+      sortable: true,
+      sortKey: "email",
       render: (p) => p.email || "---",
     },
     {
       key: "dob",
       header: "Date of Birth",
       className: "w-35",
+      sortable: true,
+      sortKey: "dateOfBirth",
       render: (p) => p.dateOfBirth?.slice(0, 10) ?? "---",
     },
   ];

@@ -124,7 +124,6 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      {/* Primary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
@@ -165,7 +164,6 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Secondary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {can("analytics:read") && (
           <AnalyticsStatCard<TotalPayload>
@@ -204,7 +202,6 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Revenue trend (last 30 days) */}
       {can("analytics:read") && (
         <AnalyticsChartCard
           title="Revenue — last 30 days"
@@ -215,7 +212,6 @@ function DashboardContent() {
         />
       )}
 
-      {/* Recent lists */}
       <div className="grid gap-4 lg:grid-cols-2">
         {can("analytics:read") && (
           <AnalyticsListCard<Appointment>
@@ -238,7 +234,6 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Top procedures this month */}
       {can("analytics:read") && (
         <AnalyticsListCard<TopProcedure>
           title="Top Procedures (month)"

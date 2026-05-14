@@ -32,7 +32,7 @@ export function SalaryPreparationForm({
 
   useEffect(() => {
     if (!open) return;
-    // Default to the previous calendar month (most common payroll window).
+    // Default to previous calendar month.
     const today = new Date();
     const firstOfThisMonth = new Date(
       today.getFullYear(),

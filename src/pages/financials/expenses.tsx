@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type Column } from "@/components/data/data-table";
@@ -18,11 +17,15 @@ export default function ExpensesPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (e) => <span className="font-medium">{e.name}</span>,
     },
     {
       key: "notes",
       header: "Notes",
+      sortable: true,
+      sortKey: "notes",
       render: (e) => (
         <span className="text-muted-foreground">{e.notes || "---"}</span>
       ),

@@ -11,7 +11,6 @@ type NotificationsState = {
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   remove: (id: string) => Promise<void>;
-  /** Push a notification received via SSE into local state. */
   addIncoming: (notification: Notification) => void;
 };
 
@@ -67,7 +66,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   addIncoming: (notification) => {
     set((state) => {
-      // De-dupe in case the same id is delivered twice.
+      // SSE may deliver duplicates.
       if (state.items.some((n) => n.id === notification.id)) return state;
       return {
         items: [notification, ...state.items],

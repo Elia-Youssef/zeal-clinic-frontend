@@ -18,7 +18,7 @@ export function ProcedureCategoryForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: ProcedureCategory;
 }) {
   const isEdit = !!initial;
@@ -47,11 +47,15 @@ export function ProcedureCategoryForm({
       if (isEdit) {
         await api.put(`/procedure-categories/${initial.id}`, payload);
         addAlert("success", "Category updated.");
+        onSaved();
       } else {
-        await api.post("/procedure-categories", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/procedure-categories",
+          payload,
+        );
         addAlert("success", "Category created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
@@ -78,6 +82,17 @@ export function ProcedureCategoryForm({
               label: c.name,
             })}
             placeholder="None (top-level)"
+            renderAddForm={({ open: addOpen, onClose: closeAdd, onCreated }) => (
+              <ProcedureCategoryForm
+                open={addOpen}
+                onClose={closeAdd}
+                onSaved={(created) => {
+                  if (created) {
+                    onCreated(String(created.id), String(created.name));
+                  }
+                }}
+              />
+            )}
           />
         </div>
         <div className="space-y-1.5">

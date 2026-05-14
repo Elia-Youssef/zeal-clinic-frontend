@@ -17,7 +17,7 @@ export function ProcedureTypeForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: ProcedureType;
 }) {
   const isEdit = !!initial;
@@ -40,11 +40,15 @@ export function ProcedureTypeForm({
       if (isEdit) {
         await api.put(`/procedure-types/${initial.id}`, payload);
         addAlert("success", "Procedure type updated.");
+        onSaved();
       } else {
-        await api.post("/procedure-types", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/procedure-types",
+          payload,
+        );
         addAlert("success", "Procedure type created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));

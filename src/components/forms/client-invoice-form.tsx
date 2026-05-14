@@ -16,6 +16,9 @@ import { cn, getErrorMessage } from "@/lib/utils";
 import { invoiceItemTypeOptions } from "@/lib/constants";
 import type { Discount, Invoice } from "@/lib/types";
 import { ProcedureForm } from "./procedure-form";
+import { PatientForm } from "./patient-form";
+import { ProductForm } from "./product-form";
+import { DiscountForm } from "./discount-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
 const VOUCHER_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -37,7 +40,6 @@ type ItemDraft = {
   quantity: string;
   amount: string;
   notes: string;
-  // gift-only
   giftMode: GiftMode;
   giftCode: string;
   giftPatientId: string;
@@ -176,6 +178,7 @@ export function ClientInvoiceFormBody({
         if (
           recalcTriggers &&
           updated.unitPrice != null &&
+          updated.unitPrice > 0 &&
           updated.itemType !== "gift"
         ) {
           const qty =
@@ -202,7 +205,7 @@ export function ClientInvoiceFormBody({
       const price = type === "product" ? res.unitPrice : res.price;
       if (price != null) updateItem(idx, { unitPrice: price });
     } catch {
-      // silent: user can still enter amount manually
+      // Manual amount entry still works.
     }
   };
 
@@ -311,6 +314,26 @@ export function ClientInvoiceFormBody({
             })}
             placeholder="Select patient…"
             required
+            renderAddForm={
+              can("patients:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <PatientForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim(),
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
         <div className="space-y-1.5">
@@ -340,7 +363,6 @@ export function ClientInvoiceFormBody({
         />
       </div>
 
-      {/* Items */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Items</label>
@@ -417,6 +439,23 @@ export function ClientInvoiceFormBody({
                           label: p.name,
                         })}
                         placeholder="Select product…"
+                        renderAddForm={
+                          can("products:write")
+                            ? ({ open, onClose, onCreated }) => (
+                                <ProductForm
+                                  open={open}
+                                  onClose={onClose}
+                                  onSaved={(created) => {
+                                    if (created)
+                                      onCreated(
+                                        String(created.id),
+                                        String(created.name),
+                                      );
+                                  }}
+                                />
+                              )
+                            : undefined
+                        }
                       />
                     ) : item.itemType === "procedure" ? (
                       <SearchableDropdown
@@ -539,6 +578,26 @@ export function ClientInvoiceFormBody({
                           label: p.name,
                         })}
                         placeholder="Select recipient patient…"
+                        renderAddForm={
+                          can("patients:write")
+                            ? ({ open, onClose, onCreated }) => (
+                                <PatientForm
+                                  open={open}
+                                  onClose={onClose}
+                                  onSaved={(created) => {
+                                    if (created) {
+                                      onCreated(
+                                        String(created.id),
+                                        `${created.firstName ?? ""} ${
+                                          created.lastName ?? ""
+                                        }`.trim(),
+                                      );
+                                    }
+                                  }}
+                                />
+                              )
+                            : undefined
+                        }
                       />
                     </div>
                   )}
@@ -582,6 +641,7 @@ export function ClientInvoiceFormBody({
                         !isGift &&
                         !isOther &&
                         item.unitPrice != null &&
+                        item.unitPrice > 0 &&
                         (item.itemType === "product" ||
                           item.itemType === "procedure")
                       }
@@ -610,7 +670,6 @@ export function ClientInvoiceFormBody({
         })}
       </div>
 
-      {/* Invoice-level discount */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Invoice Discount</label>
         <SearchableDropdown
@@ -632,10 +691,39 @@ export function ClientInvoiceFormBody({
           options={offerOptions}
           placeholder="No discount"
           clearable
+          renderAddForm={
+            can("discounts:write")
+              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                  <DiscountForm
+                    open={addOpen}
+                    onClose={closeAdd}
+                    onSaved={(created) => {
+                      if (!created) return;
+                      const value = Number(created.value) || 0;
+                      const valueType: "percentage" | "fixed" =
+                        created.valueType === "fixed" ? "fixed" : "percentage";
+                      const label = `${created.name} (${
+                        valueType === "percentage"
+                          ? `${value}%`
+                          : `$${value.toFixed(2)}`
+                      })`;
+                      const option = {
+                        value: String(created.id),
+                        label,
+                        meta: { value, valueType },
+                      };
+                      setOfferOptions((prev) => [option, ...prev]);
+                      setDiscountValue(value);
+                      setDiscountValueType(valueType);
+                      onCreated(option.value, option.label);
+                    }}
+                  />
+                )
+              : undefined
+          }
         />
       </div>
 
-      {/* Totals + Actions */}
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="text-sm space-y-0.5">
           {computedDiscount > 0 && (

@@ -40,12 +40,16 @@ export default function ProceduresPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (p) => <span className="font-medium">{p.name}</span>,
     },
     {
       key: "price",
       header: "Price",
       className: "text-right",
+      sortable: true,
+      sortKey: "price",
       render: (p) => (
         <span className="font-medium">
           {p.price ? <span>${p.price}</span> : null}

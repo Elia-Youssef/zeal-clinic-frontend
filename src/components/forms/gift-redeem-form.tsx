@@ -7,6 +7,8 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { PatientForm } from "./patient-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function GiftRedeemForm({
   open,
@@ -22,6 +24,7 @@ export function GiftRedeemForm({
   codeLocked?: boolean;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [code, setCode] = useState("");
   const [patientId, setPatientId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
@@ -81,6 +84,26 @@ export function GiftRedeemForm({
             })}
             placeholder="Select patient…"
             required
+            renderAddForm={
+              can("patients:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <PatientForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim(),
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
         <div className="space-y-1.5">

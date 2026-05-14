@@ -13,6 +13,7 @@ import { Loading } from "@/components/shared/loading";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 type ServerUrl = {
   url: string;
@@ -21,6 +22,7 @@ type ServerUrl = {
 };
 
 export default function ConnectionPage() {
+  usePageTitle("Connection");
   const addAlert = useAlertStore((s) => s.addAlert);
   const [data, setData] = useState<ServerUrl | null>(null);
   const [loading, setLoading] = useState(true);

@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 
-/**
- * Fetch any analytics endpoint and expose { data, loading, error }.
- * Callers narrow `T` so each analytics component owns its own response shape.
- */
 export function useAnalytics<T>(endpoint: string) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);

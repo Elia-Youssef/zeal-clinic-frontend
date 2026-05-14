@@ -1,7 +1,3 @@
-/* ------------------------------------------------------------------ */
-/*  Shared types: single source of truth for backend API shapes        */
-/* ------------------------------------------------------------------ */
-
 export type Country = {
   id: string;
   name: string;
@@ -178,7 +174,7 @@ export type Employee = {
 export type ScheduleAvailability = {
   id: string;
   employeeId: string;
-  /** 0 = Sunday … 6 = Saturday (JS Date convention). */
+  /** 0 = Sunday, 6 = Saturday. */
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -190,7 +186,6 @@ export type ScheduleAvailability = {
   employeeName?: string;
 };
 
-/** Why a day shows up as off in the projected weekly view. */
 export type EmployeeScheduleOffReason = "" | "holiday" | "vacation" | "no-schedule";
 
 export type EmployeeScheduleShift = {
@@ -198,16 +193,12 @@ export type EmployeeScheduleShift = {
   endTime: string;
 };
 
-/**
- * One day in the projected weekly schedule, computed on the fly from the
- * weekly template minus holidays and employee vacations. Read-only; to
- * change a day, edit the template, holiday, or vacation.
- */
+/** Projected schedule day after holidays and vacations are applied. */
 export type EmployeeScheduleDay = {
   employeeId: string;
   employeeName?: string;
   workDate: string;
-  /** 0 = Sunday … 6 = Saturday. */
+  /** 0 = Sunday, 6 = Saturday. */
   dayOfWeek: number;
   shifts: EmployeeScheduleShift[];
   isOff: boolean;
@@ -215,7 +206,6 @@ export type EmployeeScheduleDay = {
   hours: number;
 };
 
-/** Approval status for a vacation request. */
 export type EmployeeVacationStatus = "pending" | "accepted" | "rejected";
 
 export type EmployeeVacation = {
@@ -224,7 +214,7 @@ export type EmployeeVacation = {
   employeeName?: string;
   startDate: string;
   endDate: string;
-  /** Empty when full-day; both set together for partial-day vacations. */
+  /** Empty for full-day vacation. */
   startTime: string;
   endTime: string;
   status: EmployeeVacationStatus;
@@ -236,7 +226,7 @@ export type EmployeeVacation = {
 export type Holiday = {
   id: string;
   name: string;
-  /** Inclusive range. For single-day holidays, endDate equals startDate. */
+  /** Inclusive range. */
   startDate: string;
   endDate: string;
   notes?: string;
@@ -307,6 +297,7 @@ export type ProductCategory = {
   name: string;
   description?: string;
   parentId?: string;
+  parent?: ProductCategory;
 };
 
 export type Product = {
@@ -317,6 +308,7 @@ export type Product = {
   minThreshold?: number;
   unitPrice: number;
   createdAt: string;
+  category?: ProductCategory;
 };
 
 export type ProductPrice = {
@@ -472,10 +464,6 @@ export type AuditLogEntry = {
   ipAddress?: string;
   createdAt: string;
 };
-
-/* ------------------------------------------------------------------ */
-/*  Discounts                                                          */
-/* ------------------------------------------------------------------ */
 
 export type Discount = {
   id: string;

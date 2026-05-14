@@ -46,6 +46,8 @@ export default function MedicinesPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (m) => <span className="font-medium">{m.name}</span>,
     },
     { key: "desc", header: "Description", render: (m) => m.description || "---" },

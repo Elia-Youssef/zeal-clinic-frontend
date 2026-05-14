@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,17 +21,6 @@ const statusBadgeVariant: Record<
   rejected: "destructive",
 };
 
-/**
- * Create / edit / delete an employee vacation. Supports full-day,
- * multi-day, and partial-day off (both times set, single day).
- *
- * Permissions:
- *  - Submitting a request (POST): any authenticated user (schedule:read).
- *    Server forces status="pending".
- *  - Editing dates/times/notes (PUT): schedule:write (admin).
- *  - Accept/reject/revert (POST /:id/status): schedule:write (admin).
- *  - Delete: schedule:delete (admin).
- */
 export function EmployeeVacationForm({
   open,
   onClose,
@@ -59,8 +47,7 @@ export function EmployeeVacationForm({
 
   const canManage = can("hr:write");
   const canDelete = can("hr:delete");
-  // In edit mode the fields are admin-only; in create mode anyone with
-  // hr:write can submit a request, so the inputs are always editable.
+  // Create requests are editable; edit mode needs admin rights.
   const fieldsEditable = !isEdit || canManage;
 
   const [startDate, setStartDate] = useState("");
@@ -90,7 +77,7 @@ export function EmployeeVacationForm({
     }
   }, [open, initial, defaultDate, defaultStartTime, defaultEndTime]);
 
-  // Times must be both set or both empty. If set, vacation must be a single day.
+  // Partial-day requests need both times on one date.
   const bothTimesSet = !!startTime && !!endTime;
   const oneTimeSet = (!!startTime) !== (!!endTime);
   const datesValid = !!startDate && !!endDate && startDate <= endDate;
@@ -99,11 +86,18 @@ export function EmployeeVacationForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      addAlert(
+        "error",
+        bothTimesSet && startTime >= endTime
+          ? "End time must be after start time."
+          : "Enter a valid time off range.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
-      // status is intentionally omitted: the server forces "pending" on
-      // POST and strips it from PUT.
+      // Server owns status on create/update.
       const payload: Record<string, unknown> = {
         employeeId,
         startDate,
@@ -227,6 +221,7 @@ export function EmployeeVacationForm({
               <Input
                 type="time"
                 value={startTime}
+                max={endTime || undefined}
                 onChange={(e) => setStartTime(e.target.value)}
                 disabled={!fieldsEditable}
                 className={startTime ? "pr-8" : undefined}
@@ -249,6 +244,7 @@ export function EmployeeVacationForm({
               <Input
                 type="time"
                 value={endTime}
+                min={startTime || undefined}
                 onChange={(e) => setEndTime(e.target.value)}
                 disabled={!fieldsEditable}
                 className={endTime ? "pr-8" : undefined}
@@ -282,7 +278,6 @@ export function EmployeeVacationForm({
           />
         </div>
 
-        {/* Admin status actions: accept / reject / revert. */}
         {isEdit && canManage && (
           <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/20 p-2">
             {status !== "accepted" && (

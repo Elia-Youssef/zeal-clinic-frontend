@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -19,16 +18,22 @@ function SuppliersContent() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (s) => <span className="font-medium">{s.name}</span>,
     },
     {
       key: "contact",
       header: "Contact",
+      sortable: true,
+      sortKey: "contact",
       render: (s) => s.contact || "---",
     },
     {
       key: "email",
       header: "Email",
+      sortable: true,
+      sortKey: "email",
       render: (s) => s.email || "---",
     },
     {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataList } from "@/components/data/data-list";
@@ -9,7 +8,7 @@ import type { User } from "@/lib/types";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-function UsersContent() {
+function StaffContent() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const [formOpen, setFormOpen] = useState(false);
@@ -19,23 +18,31 @@ function UsersContent() {
     {
       key: "username",
       header: "Username",
+      sortable: true,
+      sortKey: "username",
       render: (u) => <span className="font-medium">{u.username}</span>,
     },
     {
       key: "displayName",
       header: "Display Name",
+      sortable: true,
+      sortKey: "displayName",
       render: (u) => u.displayName,
     },
     {
       key: "role",
       header: "Role",
       className: "w-36",
+      sortable: true,
+      sortKey: "role",
       render: (u) => <Badge variant="outline">{u.role}</Badge>,
     },
     {
       key: "status",
       header: "Status",
       className: "w-30",
+      sortable: true,
+      sortKey: "isActive",
       render: (u) => (
         <Badge variant={u.isActive ? "default" : "secondary"}>
           {u.isActive ? "Active" : "Inactive"}
@@ -47,17 +54,17 @@ function UsersContent() {
   return (
     <>
       <DataList<User>
-        title="Users"
+        title="Staff"
         endpoint="/users"
         columns={columns}
         rowKey={(u) => u.id}
-        searchPlaceholder="Search users…"
-        emptyMessage="No users yet."
-        emptySearchMessage="No users match your search."
-        onRowClick={(u) => navigate(`/settings/users/${u.id}`)}
+        searchPlaceholder="Search staff..."
+        emptyMessage="No staff yet."
+        emptySearchMessage="No staff match your search."
+        onRowClick={(u) => navigate(`/settings/staff/${u.id}`)}
         headerActions={
           can("users:write") ? (
-            <AddButton label="Add User" onClick={() => setFormOpen(true)} />
+            <AddButton label="Add Staff" onClick={() => setFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}
@@ -72,6 +79,6 @@ function UsersContent() {
   );
 }
 
-export default function UsersPage() {
-  return <UsersContent />;
+export default function StaffPage() {
+  return <StaffContent />;
 }

@@ -10,11 +10,15 @@ export default function RolesPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (r) => <span className="font-mono text-sm">{r.name}</span>,
     },
     {
       key: "label",
       header: "Label",
+      sortable: true,
+      sortKey: "label",
       render: (r) => <span className="font-medium">{r.label}</span>,
     },
     {

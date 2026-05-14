@@ -1,34 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, AlertTriangle, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { DataList } from "@/components/data/data-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Modal } from "@/components/shared/modal";
-import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
-import { api, type Paginated } from "@/lib/api";
+import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import type {
   Invoice,
   Product,
   ProductAllergyConflict,
-  ProductCategory,
   ProductPrice,
 } from "@/lib/types";
 import { ProductAllergyConflictForm } from "@/components/forms/product-allergy-conflict-form";
+import { ProductForm } from "@/components/forms/product-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
-
-/* ------------------------------------------------------------------ */
-/*  Page content                                                       */
-/* ------------------------------------------------------------------ */
 
 function ProductDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
@@ -38,9 +31,6 @@ function ProductDetailContent() {
   const confirm = useConfirm();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    [],
-  );
   const [loading, setLoading] = useState(true);
   const [pricingKey, setPricingKey] = useState(0);
   const [conflictsKey, setConflictsKey] = useState(0);
@@ -48,31 +38,14 @@ function ProductDetailContent() {
   const bumpPricing = () => setPricingKey((k) => k + 1);
   const bumpConflicts = () => setConflictsKey((k) => k + 1);
 
-  /* Edit modal */
   const [editOpen, setEditOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [minThreshold, setMinThreshold] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
-  /* Allergy conflict add modal */
   const [conflictFormOpen, setConflictFormOpen] = useState(false);
 
   const load = async () => {
     try {
-      const [prod, cats] = await Promise.all([
-        api.get<Product>(`/products/${id}`),
-        api.get<Paginated<ProductCategory>>("/product-categories"),
-      ]);
+      const prod = await api.get<Product>(`/products/${id}`);
       setProduct(prod);
-      setCategories(cats.items ?? []);
-      setName(prod.name);
-      setCategoryId(prod.categoryId ?? "");
-      setQuantity(prod.quantity.toString());
-      setMinThreshold(prod.minThreshold?.toString() ?? "");
-      setUnitPrice(prod.unitPrice.toString());
     } catch {
       addAlert("error", "Failed to load product.");
     } finally {
@@ -83,29 +56,6 @@ function ProductDetailContent() {
   useEffect(() => {
     load();
   }, [id]);
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const payload: Record<string, unknown> = {
-      name,
-      unitPrice: Number(unitPrice),
-      categoryId,
-      quantity: quantity ? Number(quantity) : 0,
-      minThreshold: minThreshold ? Number(minThreshold) : 0,
-    };
-    try {
-      await api.put(`/products/${id}`, payload);
-      addAlert("success", "Product updated.");
-      setEditOpen(false);
-      load();
-      bumpPricing();
-    } catch (err) {
-      addAlert("error", getErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!product) return;
@@ -145,8 +95,6 @@ function ProductDetailContent() {
       </p>
     );
 
-  const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
-
   return (
     <div className="space-y-4">
       <PageHeader
@@ -156,16 +104,31 @@ function ProductDetailContent() {
         onDelete={can("products:delete") ? handleDelete : undefined}
       />
 
-      {/* Details */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
-          <DetailField label="Unit Price">
-            <p className="text-lg font-semibold">
-              ${product.unitPrice.toFixed(2)}
-            </p>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
+          <DetailField label="Price">
+            <p className="font-semibold">${product.unitPrice.toFixed(2)}</p>
+          </DetailField>
+          <DetailField label="Category">
+            {(() => {
+              let cats = [
+                product.category?.parent?.name || "",
+                product.category?.name || "",
+              ].filter((c) => c);
+              if (!cats.length) return "---";
+              return (
+                <div className="flex flex-row gap-1">
+                  {cats.map((cat, i) => (
+                    <Badge variant="outline" key={i}>
+                      {cat}
+                    </Badge>
+                  ))}
+                </div>
+              );
+            })()}
           </DetailField>
           <DetailField label="Stock">{product.quantity}</DetailField>
           <DetailField label="Min Threshold">
@@ -290,7 +253,6 @@ function ProductDetailContent() {
         />
       </div>
 
-      {/* Add conflict modal */}
       <ProductAllergyConflictForm
         open={conflictFormOpen}
         onClose={() => setConflictFormOpen(false)}
@@ -298,82 +260,18 @@ function ProductDetailContent() {
         productId={id}
       />
 
-      {/* Edit modal */}
-      <Modal
+      <ProductForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Edit Product"
-      >
-        <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Name *</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Category</label>
-              <SearchableDropdown
-                value={categoryId}
-                onChange={setCategoryId}
-                apiEndpoint="/product-categories/dropdown"
-                mapItem={(c: any) => ({ value: c.id, label: c.name })}
-                placeholder="None"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Unit Price *</label>
-              <Input
-                type="number"
-                step="0.01"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Quantity</label>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Min Threshold</label>
-              <Input
-                type="number"
-                value={minThreshold}
-                onChange={(e) => setMinThreshold(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Update"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSaved={() => {
+          load();
+          bumpPricing();
+        }}
+        initial={product}
+      />
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Page export                                                        */
-/* ------------------------------------------------------------------ */
 
 export default function ProductDetailPage() {
   usePageTitle("Product");

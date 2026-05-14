@@ -8,11 +8,6 @@ type Listeners = {
   onEvent?: Record<string, EventHandler>;
 };
 
-/**
- * Long-lived SSE client. Wraps a single EventSource and re-opens it with
- * exponential backoff whenever the connection drops (browser native
- * auto-reconnect can stall on certain network/proxy conditions).
- */
 class RealtimeClient {
   private source: EventSource | null = null;
   private token = "";
@@ -68,19 +63,14 @@ class RealtimeClient {
 
     source.onerror = () => {
       this.listeners.onError?.();
-      // EventSource sets readyState to CLOSED on terminal failures (e.g.
-      // 401 from expired token). The browser does not retry CLOSED
-      // sources, so we tear it down and schedule our own reconnect.
+      // CLOSED needs our reconnect path.
       if (source.readyState === EventSource.CLOSED) {
         source.close();
         if (this.source === source) this.source = null;
-        // EventSource hides HTTP status: probe an auth endpoint so api.ts
-        // can clear the session and redirect on 401. On any other outcome
-        // we fall through to reconnect.
+        // Probe auth because EventSource hides HTTP status.
         api.get("/auth/verify").catch(() => {});
         this.scheduleReconnect();
       }
-      // CONNECTING state means the browser is already retrying, so let it.
     };
 
     if (this.listeners.onEvent) {

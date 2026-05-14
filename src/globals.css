@@ -36,6 +36,7 @@
   --color-status-cancelled: var(--status-cancelled);
   --color-status-cancelled-foreground: var(--status-cancelled-foreground);
   --color-positive: var(--positive);
+  --color-warning: var(--warning);
   --color-negative: var(--negative);
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -86,16 +87,16 @@
   --chart-3: oklch(0.45 0.017 213.2);
   --chart-4: oklch(0.378 0.015 216);
   --chart-5: oklch(0.275 0.011 216.9);
-  /* Refined status palette tuned to the slate brand: muted amber / sage /
-     warm-gray instead of saturated tailwind defaults. */
+  /* Status palette. */
   --status-progress: oklch(0.65 0.13 70);
   --status-progress-foreground: oklch(1 0 0);
   --status-completed: oklch(0.55 0.1 170);
   --status-completed-foreground: oklch(1 0 0);
   --status-cancelled: oklch(0.55 0.045 25);
   --status-cancelled-foreground: oklch(1 0 0);
-  /* Financial direction: refined sage/terracotta instead of pure green/red. */
+  /* Financial direction. */
   --positive: oklch(0.58 0.12 160);
+  --warning: oklch(0.65 0.13 75);
   --negative: oklch(0.56 0.16 28);
   --radius: 0.625rem;
   --sidebar: oklch(0.987 0.002 197.1);
@@ -139,6 +140,7 @@
   --status-cancelled: oklch(0.62 0.045 25);
   --status-cancelled-foreground: oklch(1 0 0);
   --positive: oklch(0.7 0.12 160);
+  --warning: oklch(0.76 0.13 75);
   --negative: oklch(0.68 0.16 28);
   --sidebar: oklch(0.218 0.008 223.9);
   --sidebar-foreground: oklch(0.987 0.002 197.1);

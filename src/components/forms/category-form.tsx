@@ -18,7 +18,7 @@ export function CategoryForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: ProductCategory;
 }) {
   const isEdit = !!initial;
@@ -47,11 +47,15 @@ export function CategoryForm({
       if (isEdit) {
         await api.put(`/product-categories/${initial.id}`, payload);
         addAlert("success", "Category updated.");
+        onSaved();
       } else {
-        await api.post("/product-categories", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/product-categories",
+          payload,
+        );
         addAlert("success", "Category created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));
@@ -83,6 +87,17 @@ export function CategoryForm({
             apiEndpoint="/product-categories/dropdown"
             mapItem={(c: { id: string; name: string }) => ({ value: c.id, label: c.name })}
             placeholder="None (top-level)"
+            renderAddForm={({ open: addOpen, onClose: closeAdd, onCreated }) => (
+              <CategoryForm
+                open={addOpen}
+                onClose={closeAdd}
+                onSaved={(created) => {
+                  if (created) {
+                    onCreated(String(created.id), String(created.name));
+                  }
+                }}
+              />
+            )}
           />
         </div>
         <div className="space-y-1.5">

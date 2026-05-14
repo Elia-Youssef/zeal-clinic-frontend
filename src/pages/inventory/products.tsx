@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { type Column } from "@/components/data/data-table";
@@ -13,7 +12,6 @@ import { usePermissions } from "@/hooks/use-permissions";
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
-  const categories = useProductsStore((s) => s.categories);
   const fetchAll = useProductsStore((s) => s.fetch);
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -22,8 +20,6 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
-
-  const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
 
   const handleSaved = () => {
     setRefreshKey((k) => k + 1);
@@ -34,27 +30,38 @@ export default function ProductsPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (p) => <span className="font-medium">{p.name}</span>,
     },
     {
       key: "category",
       header: "Category",
-      render: (p) =>
-        p.categoryId ? (
-          <Badge variant="outline">{catMap[p.categoryId] ?? "---"}</Badge>
-        ) : (
-          "---"
-        ),
+      render: (p) => {
+        let cat = p.category?.name || "";
+        let parentcat = p.category?.parent?.name || "";
+        if (!cat && !parentcat) return "---";
+        return (
+          <div className="flex flex-row gap-1">
+            {parentcat && <Badge variant="outline">{parentcat}</Badge>}
+            {cat && <Badge variant="outline">{cat}</Badge>}
+          </div>
+        );
+      },
     },
     {
       key: "quantity",
       header: "Stock",
+      sortable: true,
+      sortKey: "quantity",
       render: (p) => `${p.quantity}`,
     },
     {
       key: "price",
       header: "Unit Price",
       className: "text-right",
+      sortable: true,
+      sortKey: "unitPrice",
       render: (p) => (
         <span className="font-medium">
           {p.unitPrice != null ? `$${p.unitPrice.toFixed(2)}` : "---"}

@@ -46,6 +46,8 @@ export default function AllergiesPage() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "name",
       render: (a) => <span className="font-medium">{a.name}</span>,
     },
     { key: "desc", header: "Description", render: (a) => a.description || "---" },

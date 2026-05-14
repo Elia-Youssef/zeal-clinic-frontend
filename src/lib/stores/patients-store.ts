@@ -7,7 +7,6 @@ type PatientsState = {
   loading: boolean;
   fetch: () => Promise<void>;
 
-  /* Detail state for the patient detail page */
   current: Patient | null;
   currentBalance: Balance | null;
   detailLoading: boolean;

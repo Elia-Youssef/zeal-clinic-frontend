@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +42,7 @@ export function HolidayForm({
     }
   }, [open, initial]);
 
-  // Auto-mirror endDate when the user picks a startDate first. This covers the
-  // common single-day case without forcing them to fill both fields.
+  // Default to a single-day holiday.
   const handleStartChange = (next: string) => {
     setStartDate(next);
     if (!endDate || endDate < next) setEndDate(next);

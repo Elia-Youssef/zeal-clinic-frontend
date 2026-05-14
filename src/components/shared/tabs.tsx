@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
@@ -10,7 +9,6 @@ export function Tabs({
 }: {
   tabs: string[]
   defaultTab?: string
-  /** Controlled active tab: when provided, the component is fully controlled. */
   activeTab?: string
   onChange?: (tab: string) => void
 }) {

@@ -33,11 +33,18 @@ export function HeaderUserAvatar() {
   const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
   const isConnected = useRealtimeStore((s) => s.isConnected);
+  const cloudConnected = useRealtimeStore((s) => s.cloudConnected);
   const theme = useUIStore((s) => s.theme);
   const toggleTheme = useUIStore((s) => s.toggleTheme);
   const scale = useUIStore((s) => s.scale);
   const setScale = useUIStore((s) => s.setScale);
   const [pendingScale, setPendingScale] = useState(scale);
+  const connectionClass =
+    !isConnected || cloudConnected === null
+      ? "bg-muted-foreground/50"
+      : cloudConnected
+        ? "bg-positive"
+        : "bg-warning";
 
   useEffect(() => {
     setPendingScale(scale);
@@ -48,7 +55,7 @@ export function HeaderUserAvatar() {
     try {
       await api.post("/auth/logout");
     } catch {
-      /* clear locally even if the call fails so the user can still sign out */
+      // Local logout still proceeds.
     }
     logout();
     navigate("/");
@@ -61,7 +68,7 @@ export function HeaderUserAvatar() {
           <button
             type="button"
             className="relative inline-flex outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
-            aria-label="User menu"
+            aria-label="Staff menu"
           >
             <Avatar size="sm">
               <AvatarFallback>{getInitials(user)}</AvatarFallback>
@@ -69,7 +76,7 @@ export function HeaderUserAvatar() {
             <span
               className={cn(
                 "absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-background",
-                isConnected ? "bg-green-500" : "bg-muted-foreground/50",
+                connectionClass,
               )}
             />
           </button>

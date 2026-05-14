@@ -23,6 +23,28 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
 
+function TagList({ values }: { values: string | null | undefined }) {
+  const items = (values ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (items.length === 0) {
+    return <p className="text-sm text-foreground">---</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item, idx) => (
+        <span
+          key={`${item}-${idx}`}
+          className="inline-flex items-center rounded-md bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function SupplierDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -120,14 +142,17 @@ function SupplierDetailContent() {
         onDelete={can("suppliers:delete") ? handleDelete : undefined}
       />
 
-      {/* Details */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Supplier Details</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
-          <DetailField label="Email">{supplier.email || "---"}</DetailField>
-          <DetailField label="Contact">{supplier.contact || "---"}</DetailField>
+          <DetailField label="Emails">
+            <TagList values={supplier.email} />
+          </DetailField>
+          <DetailField label="Contacts">
+            <TagList values={supplier.contact} />
+          </DetailField>
           <DetailField label="Address">{supplier.address || "---"}</DetailField>
           <DetailField label="Notes" className="sm:col-span-2 md:col-span-3">
             {supplier.notes || "---"}
@@ -135,7 +160,6 @@ function SupplierDetailContent() {
         </CardContent>
       </Card>
 
-      {/* Invoices & Payments */}
       {(can("invoices:read") || can("payments:read")) && (
         <div className="flex flex-col gap-4 lg:flex-row">
           <DataList<Invoice>
@@ -177,7 +201,6 @@ function SupplierDetailContent() {
             }
           />
 
-          {/* Payments (with balance header) */}
           <Card className="flex-1 gap-0">
             {balance && (
               <CardHeader className="pb-4 border-b">
@@ -315,7 +338,6 @@ function SupplierDetailContent() {
         </div>
       )}
 
-      {/* Modals */}
       <SupplierForm
         open={editOpen}
         onClose={() => setEditOpen(false)}

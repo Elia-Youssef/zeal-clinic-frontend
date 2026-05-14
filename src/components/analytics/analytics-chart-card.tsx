@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import {
   Area,
@@ -38,15 +37,6 @@ export type SeriesPoint = { bucket: string; value: number };
 
 export type ChartKind = "area" | "line" | "bar";
 
-/**
- * Endpoint-driven time-series chart backed by `/analytics/series`.
- *
- * Defaults follow the backend contract: from = today-29d, to = today,
- * groupBy = "day". Callers override only what they care about.
- *
- * `endpoint` is exposed as an escape hatch in case the backend adds
- * sibling time-series routes later (e.g. per-clinic, per-room).
- */
 export function AnalyticsChartCard({
   title,
   metric,

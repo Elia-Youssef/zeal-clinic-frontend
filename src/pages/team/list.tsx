@@ -1,8 +1,3 @@
-/**
- * Team page: Employee management with schedule availability.
- * Lists employees from GET /api/employees with CRUD operations.
- */
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
@@ -17,10 +12,6 @@ import { EmployeeForm } from "@/components/forms/employee-form";
 import { SalaryPreparationForm } from "@/components/forms/salary-preparation-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-/* ------------------------------------------------------------------ */
-/*  Team page content                                                  */
-/* ------------------------------------------------------------------ */
-
 function TeamContent() {
   const navigate = useNavigate();
   const { can } = usePermissions();
@@ -32,24 +23,42 @@ function TeamContent() {
     {
       key: "name",
       header: "Name",
+      sortable: true,
+      sortKey: "firstName",
       render: (e) => (
         <span className="font-medium">
           {e.firstName} {e.lastName}
         </span>
       ),
     },
-    { key: "contact", header: "Contact", render: (e) => e.contact },
-    { key: "email", header: "Email", render: (e) => e.email || "---" },
+    {
+      key: "contact",
+      header: "Contact",
+      sortable: true,
+      sortKey: "contact",
+      render: (e) => e.contact,
+    },
+    {
+      key: "email",
+      header: "Email",
+      sortable: true,
+      sortKey: "email",
+      render: (e) => e.email || "---",
+    },
     {
       key: "role",
       header: "Role",
       className: "w-40",
+      sortable: true,
+      sortKey: "role",
       render: (e) => <Badge variant="outline">{e.role}</Badge>,
     },
     {
       key: "type",
       header: "Type",
       className: "w-25",
+      sortable: true,
+      sortKey: "employmentType",
       render: (e) => (
         <Badge
           variant={e.employmentType === "Full-time" ? "default" : "secondary"}
@@ -108,10 +117,6 @@ function TeamContent() {
     </>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Page export                                                        */
-/* ------------------------------------------------------------------ */
 
 export default function TeamPage() {
   usePageTitle("Team");

@@ -70,10 +70,10 @@ export function UserForm({
     try {
       if (isEdit) {
         await api.put(`/users/${initial!.id}`, payload);
-        addAlert("success", "User updated.");
+        addAlert("success", "Staff member updated.");
       } else {
         await api.post("/users", { ...payload, password: form.password });
-        addAlert("success", "User created.");
+        addAlert("success", "Staff member created.");
       }
       onSaved();
       onClose();
@@ -88,7 +88,7 @@ export function UserForm({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit User" : "New User"}
+      title={isEdit ? "Edit Staff" : "New Staff"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

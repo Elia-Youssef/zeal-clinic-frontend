@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 import {
   Card,
@@ -10,13 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, type Column } from "@/components/data/data-table";
 import { useAnalytics } from "./use-analytics";
 
-/**
- * Endpoint-driven list card.
- *
- * Fetches an array from `endpoint` and renders it with <DataTable>.
- * The wrapping <Card> plus loading / error / empty state are handled here so
- * every recent-X panel on the dashboard shares identical shell + skeleton.
- */
 export function AnalyticsListCard<T>({
   title,
   endpoint,

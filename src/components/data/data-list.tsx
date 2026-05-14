@@ -1,15 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DataTable,
   type Column,
-  type RowAction,
+  type SortState,
 } from "@/components/data/data-table";
+import { type RowAction } from "@/components/data/data-row-actions";
+import { DataPagination } from "@/components/data/data-pagination";
 import { SearchBar } from "@/components/shared/search-bar";
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loading } from "@/components/shared/loading";
 import { api, type Paginated } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+const DEFAULT_LIMIT = 100;
 
 function isPaginated<T>(res: unknown): res is Paginated<T> {
   return (
@@ -20,7 +23,62 @@ function isPaginated<T>(res: unknown): res is Paginated<T> {
   );
 }
 
-const DEFAULT_LIMIT = 20;
+function useListData<T>({
+  endpoint,
+  offset,
+  limit,
+  filter,
+  sort,
+  refreshKey,
+}: {
+  endpoint: string;
+  offset: number;
+  limit: number;
+  filter: string;
+  sort: SortState | null;
+  refreshKey: number;
+}) {
+  const [data, setData] = useState<T[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("offset", String(offset));
+      params.set("limit", String(limit));
+      if (filter) params.set("filter", filter);
+      if (sort) {
+        params.set("sort", sort.id);
+        params.set("order", sort.dir);
+      }
+      const sep = endpoint.includes("?") ? "&" : "?";
+      const res = await api.get<Paginated<T> | T[]>(
+        `${endpoint}${sep}${params}`,
+      );
+      if (isPaginated<T>(res)) {
+        setData(res.items);
+        setTotal(res.total);
+      } else {
+        setData(res);
+        setTotal(res.length);
+      }
+    } catch {
+      setData([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [endpoint, offset, limit, filter, sort]);
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData, refreshKey]);
+
+  return { data, total, loading };
+}
 
 export function DataList<T>({
   title,
@@ -55,14 +113,11 @@ export function DataList<T>({
   className?: string;
   rowClassName?: (item: T) => string | undefined;
 }) {
-  const [data, setData] = useState<T[]>([]);
-  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [filterInput, setFilterInput] = useState("");
   const [filter, setFilter] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState<SortState | null>(null);
 
-  /* Debounce the search input */
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilter(filterInput);
@@ -71,49 +126,28 @@ export function DataList<T>({
     return () => clearTimeout(timer);
   }, [filterInput]);
 
-  /* Fetch data from endpoint */
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Most endpoints are paginated, but some dashboard tabs still return raw
-      // arrays. This keeps the shared list component compatible with both while
-      // still using the central Paginated<T> contract when available.
-      const params = new URLSearchParams();
-      params.set("offset", String(offset));
-      params.set("limit", String(limit));
-      if (filter) params.set("filter", filter);
-      const sep = endpoint.includes("?") ? "&" : "?";
-      const res = await api.get<Paginated<T> | T[]>(
-        `${endpoint}${sep}${params}`,
-      );
-      if (isPaginated<T>(res)) {
-        setData(res.items);
-        setTotal(res.total);
-      } else {
-        setData(res);
-        setTotal(res.length);
-      }
-    } catch {
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [endpoint, offset, limit, filter]);
+  const { data, total, loading } = useListData<T>({
+    endpoint,
+    offset,
+    limit,
+    filter,
+    sort,
+    refreshKey,
+  });
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchData, refreshKey]);
-
-  const totalPages = Math.ceil(total / limit);
-  const currentPage = Math.floor(offset / limit) + 1;
   const hasHeader = !!(title || !hideSearch || headerActions);
+  const hasPagination = total > limit;
+  const isEmpty = !loading && data.length === 0;
 
   return (
-    <Card className={"flex flex-col gap-4 min-w-0 " + className}>
+    <Card
+      className={cn(
+        "flex flex-col min-w-0 max-h-[calc(100svh-9rem)] gap-0 py-0 overflow-hidden",
+        className,
+      )}
+    >
       {hasHeader && (
-        <CardHeader className="flex flex-row flex-wrap items-center gap-3">
+        <CardHeader className="flex flex-row flex-wrap items-center gap-3 border-b py-3">
           {title && (
             <CardTitle className="min-w-0 flex-1 basis-40 font-semibold">
               {title}
@@ -138,12 +172,12 @@ export function DataList<T>({
         </CardHeader>
       )}
 
-      <div className={hasHeader ? "border-t border-border/70" : undefined}>
+      <div className="flex flex-1 min-h-0 flex-col">
         {loading ? (
           <div className="px-4 py-8">
             <Loading />
           </div>
-        ) : data.length === 0 ? (
+        ) : isEmpty ? (
           <p className="px-4 py-12 text-center text-sm text-muted-foreground">
             {filter ? emptySearchMessage : emptyMessage}
           </p>
@@ -155,37 +189,26 @@ export function DataList<T>({
             onRowClick={onRowClick}
             actions={actions}
             rowClassName={rowClassName}
+            sort={sort}
+            onSortChange={(next) => {
+              setSort(next);
+              setOffset(0);
+            }}
+            scrollable
+            maxBodyHeight="max-h-full"
           />
         )}
       </div>
 
-      {totalPages > 1 && !loading && (
-        <CardFooter className="justify-between">
-          <span className="text-sm text-muted-foreground">
-            {offset + 1}–{Math.min(offset + limit, total)} of {total}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={offset === 0}
-              onClick={() => setOffset((prev) => Math.max(0, prev - limit))}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="px-2 text-sm">
-              {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={offset + limit >= total}
-              onClick={() => setOffset((prev) => prev + limit)}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </CardFooter>
+      {hasPagination && !loading && (
+        <div className="border-t">
+          <DataPagination
+            offset={offset}
+            limit={limit}
+            total={total}
+            onOffsetChange={setOffset}
+          />
+        </div>
       )}
     </Card>
   );

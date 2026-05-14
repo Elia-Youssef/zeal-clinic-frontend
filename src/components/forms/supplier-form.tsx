@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -11,19 +12,97 @@ import type { Supplier } from "@/lib/types";
 
 type SupplierFormFields = {
   name: string;
-  contact: string;
-  email: string;
+  contacts: string[];
+  emails: string[];
   address: string;
   notes: string;
 };
 
 const emptyForm: SupplierFormFields = {
   name: "",
-  contact: "",
-  email: "",
+  contacts: [],
+  emails: [],
   address: "",
   notes: "",
 };
+
+const splitCsv = (value: string | null | undefined): string[] =>
+  (value ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+function TagsInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  type?: "text" | "email";
+}) {
+  const [draft, setDraft] = useState("");
+
+  const commit = (raw: string) => {
+    const parts = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((s) => !value.includes(s));
+    if (parts.length) onChange([...value, ...parts]);
+    setDraft("");
+  };
+
+  const removeAt = (idx: number) =>
+    onChange(value.filter((_, i) => i !== idx));
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (draft.trim()) commit(draft);
+    } else if (e.key === "Backspace" && draft === "" && value.length > 0) {
+      e.preventDefault();
+      removeAt(value.length - 1);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Input
+        type={type}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => {
+          if (draft.trim()) commit(draft);
+        }}
+        placeholder={placeholder}
+      />
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {value.map((tag, idx) => (
+            <span
+              key={`${tag}-${idx}`}
+              className="inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeAt(idx)}
+                className="rounded-sm hover:bg-muted-foreground/20"
+                aria-label={`Remove ${tag}`}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SupplierForm({
   open,
@@ -47,8 +126,8 @@ export function SupplierForm({
     if (initial) {
       setForm({
         name: initial.name,
-        contact: initial.contact ?? "",
-        email: initial.email ?? "",
+        contacts: splitCsv(initial.contact),
+        emails: splitCsv(initial.email),
         address: initial.address ?? "",
         notes: initial.notes ?? "",
       });
@@ -57,18 +136,18 @@ export function SupplierForm({
     }
   }, [open, initial]);
 
-  const update = (field: keyof SupplierFormFields, value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
+    const contact = form.contacts.join(", ");
+    const email = form.emails.join(", ");
+
     const payload: Record<string, unknown> = {
       name: form.name,
     };
-    if (isEdit || form.contact) payload.contact = form.contact;
-    if (isEdit || form.email) payload.email = form.email;
+    if (isEdit || contact) payload.contact = contact;
+    if (isEdit || email) payload.email = email;
     if (isEdit || form.address) payload.address = form.address;
     if (isEdit || form.notes) payload.notes = form.notes;
 
@@ -101,7 +180,7 @@ export function SupplierForm({
           <label className="text-sm font-medium">Name *</label>
           <Input
             value={form.name}
-            onChange={(e) => update("name", e.target.value)}
+            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             placeholder="Supplier name"
             required
           />
@@ -109,20 +188,20 @@ export function SupplierForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contact</label>
-            <Input
-              value={form.contact}
-              onChange={(e) => update("contact", e.target.value)}
-              placeholder="Phone number"
+            <label className="text-sm font-medium">Contacts</label>
+            <TagsInput
+              value={form.contacts}
+              onChange={(contacts) => setForm((p) => ({ ...p, contacts }))}
+              placeholder="Phone number, press Enter"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Email</label>
-            <Input
+            <label className="text-sm font-medium">Emails</label>
+            <TagsInput
               type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              placeholder="email@example.com"
+              value={form.emails}
+              onChange={(emails) => setForm((p) => ({ ...p, emails }))}
+              placeholder="email@example.com, press Enter"
             />
           </div>
         </div>
@@ -131,7 +210,7 @@ export function SupplierForm({
           <label className="text-sm font-medium">Address</label>
           <Input
             value={form.address}
-            onChange={(e) => update("address", e.target.value)}
+            onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
             placeholder="Address"
           />
         </div>
@@ -142,7 +221,7 @@ export function SupplierForm({
             className={textareaClass}
             rows={2}
             value={form.notes}
-            onChange={(e) => update("notes", e.target.value)}
+            onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             placeholder="Optional notes…"
           />
         </div>

@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
+import { SupplierForm } from "./supplier-form";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function SupplierPaymentForm({
   open,
@@ -23,6 +25,7 @@ export function SupplierPaymentForm({
   defaultSupplierLabel?: string;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
 
   const [supplierId, setSupplierId] = useState("");
   const [amount, setAmount] = useState("");
@@ -84,6 +87,21 @@ export function SupplierPaymentForm({
             })}
             placeholder="Select supplier…"
             required
+            renderAddForm={
+              can("suppliers:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <SupplierForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(String(created.id), String(created.name));
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
 

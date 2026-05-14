@@ -39,8 +39,7 @@ export const useUIStore = create<UIState>()(
   ),
 );
 
-// Apply UI settings to the DOM. Tailwind's spacing/typography is rem-based,
-// so scaling the root font-size scales the whole UI proportionally.
+// Root font-size drives app scale through rem units.
 function applyUiSettings(state: UIState): void {
   document.documentElement.classList.toggle("dark", state.theme === "dark");
   document.documentElement.style.fontSize = `${state.scale * 100}%`;

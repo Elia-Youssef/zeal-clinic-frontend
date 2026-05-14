@@ -1,7 +1,4 @@
-/**
- * Canonical list of all backend scopes. Mirrors scopes.json at the project
- * root; keep both in sync when the backend permission set changes.
- */
+// Keep in sync with backend scopes.
 export const ALL_SCOPES = [
   "allergies:read",
   "allergies:write",
@@ -91,12 +88,7 @@ export type ScopeMatrixRow = {
   actions: ("read" | "write" | "delete")[];
 };
 
-/**
- * Group scopes by resource, preserving the order in which resources first
- * appear. Each row lists the actions ("read" / "write" / "delete") that
- * actually exist on the backend for that resource; the role editor uses
- * this to render only the checkboxes that map to a real scope.
- */
+// Groups scopes for the role editor matrix.
 export function scopeMatrix(scopes: readonly string[]): ScopeMatrixRow[] {
   const order: string[] = [];
   const map = new Map<string, Set<"read" | "write" | "delete">>();

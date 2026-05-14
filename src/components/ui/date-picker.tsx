@@ -18,7 +18,15 @@ function parseISO(iso: string): Date | undefined {
   if (!iso) return undefined
   const [y, m, d] = iso.split("-").map(Number)
   if (!y || !m || !d) return undefined
-  return new Date(y, m - 1, d)
+  const parsed = new Date(y, m - 1, d)
+  if (
+    parsed.getFullYear() !== y ||
+    parsed.getMonth() !== m - 1 ||
+    parsed.getDate() !== d
+  ) {
+    return undefined
+  }
+  return parsed
 }
 
 function toISO(date: Date): string {
@@ -57,14 +65,14 @@ export function DatePicker({
               disabled={disabled}
               className={cn(
                 "w-full justify-start text-left font-normal",
-                !value && "text-muted-foreground",
+                !selected && "text-muted-foreground",
                 showClear && "pr-8",
               )}
             />
           }
         >
           <CalendarIcon className="size-4 text-muted-foreground" />
-          {value ? formatDisplay(selected) : placeholder}
+          {selected ? formatDisplay(selected) : placeholder}
           {required && !value && <span className="sr-only">(required)</span>}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

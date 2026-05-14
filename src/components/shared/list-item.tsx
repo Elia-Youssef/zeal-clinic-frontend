@@ -1,19 +1,13 @@
-
 import type { ReactNode } from "react"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-/**
- * A bordered row used in inline lists (allergies, sessions, conflicts, etc.).
- * Shows content on the left with optional actions (including a delete button) on the right.
- */
 export function ListItem({
   children,
   actions,
   onDelete,
 }: {
   children: ReactNode
-  /** Extra action buttons rendered before the delete button. */
   actions?: ReactNode
   onDelete?: () => void
 }) {

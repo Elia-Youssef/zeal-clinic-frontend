@@ -61,10 +61,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: "", isAuthenticated: false, user: "", role: "", scopes: [] });
   },
 
-  /**
-   * Refetch the current user's role/scopes from the backend and update
-   * cached state. Used after a `scopes_changed` realtime event.
-   */
+  // Used after a scopes_changed realtime event.
   refreshAuth: async () => {
     const data = await api.get<MeResponse>("/auth/me");
     sessionStorage.setItem("auth_user", data.user);
@@ -73,7 +70,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: data.user, role: data.role, scopes: data.scopes });
   },
 
-  /** Read token from sessionStorage on app start. Returns true if a token exists. */
   hydrate: () => {
     if (typeof window === "undefined") return false;
     const token = sessionStorage.getItem("token") ?? "";

@@ -128,10 +128,6 @@ export default function ReportsPage() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Revenue                                                            */
-/* ------------------------------------------------------------------ */
-
 function RevenueReport() {
   const { addAlert } = useAlertStore();
   const [from, setFrom] = useState(isoDaysAgo(30));
@@ -297,10 +293,6 @@ function RevenueReport() {
     </>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Expenses                                                           */
-/* ------------------------------------------------------------------ */
 
 function ExpensesReport() {
   const { addAlert } = useAlertStore();
@@ -492,10 +484,6 @@ function ExpensesReport() {
     </>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Shared pieces                                                      */
-/* ------------------------------------------------------------------ */
 
 function DateField({
   label,

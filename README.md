@@ -1,10 +1,24 @@
 # Clinic Dashboard
 
-Vite React dashboard for the clinic management app.
+React dashboard for the dental clinic management system.
 
-## Local Scripts
+## Stack
 
-- `npm run dev` starts the Vite development server.
-- `npm run build` runs `tsc -b` and builds the app.
-- `npm run lint` runs ESLint.
-- `npm run preview` serves the production build locally.
+- Vite, React, TypeScript
+- Tailwind CSS, shadcn/Base UI, lucide-react
+- Zustand, React Router, Recharts, Sonner
+
+## Scripts
+
+```sh
+npm run dev
+npm run build
+npm run lint
+npm run preview
+```
+
+## Notes
+
+- App code lives in `src/`; use the `@/` alias for imports.
+- API calls go through `src/lib/api.ts`.
+- Backend-facing types live in `src/lib/types.ts`.

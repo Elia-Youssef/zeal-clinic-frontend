@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -42,30 +41,47 @@ export default function CategoriesPage() {
   };
 
   const columns: Column<ProcedureCategory>[] = [
-    { key: "name", header: "Name", render: (c) => <span className="font-medium">{c.name}</span> },
+    {
+      key: "name",
+      header: "Name",
+      sortable: true,
+      sortKey: "name",
+      render: (c) => <span className="font-medium">{c.name}</span>,
+    },
     {
       key: "parent",
       header: "Parent",
       render: (c) => c.parent?.name || "---",
     },
-    { key: "desc", header: "Description", render: (c) => c.description || "---" },
+    {
+      key: "desc",
+      header: "Description",
+      render: (c) => c.description || "---",
+    },
   ];
 
   const actions: RowAction<ProcedureCategory>[] = [
     ...(can("procedure-categories:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (c: ProcedureCategory) => { setEditing(c); setFormOpen(true); },
-        }]
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (c: ProcedureCategory) => {
+              setEditing(c);
+              setFormOpen(true);
+            },
+          },
+        ]
       : []),
     ...(can("procedure-categories:write")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (c: ProcedureCategory) => handleDelete(c),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (c: ProcedureCategory) => handleDelete(c),
+          },
+        ]
       : []),
   ];
 
@@ -80,7 +96,13 @@ export default function CategoriesPage() {
         emptyMessage="No procedure categories defined."
         headerActions={
           can("procedure-categories:write") ? (
-            <AddButton label="Add Category" onClick={() => { setEditing(undefined); setFormOpen(true); }} />
+            <AddButton
+              label="Add Category"
+              onClick={() => {
+                setEditing(undefined);
+                setFormOpen(true);
+              }}
+            />
           ) : undefined
         }
         refreshKey={refreshKey}

@@ -18,7 +18,7 @@ export function RoomForm({
 }: {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Record<string, unknown>) => void;
   initial?: Room;
 }) {
   const isEdit = !!initial;
@@ -43,11 +43,15 @@ export function RoomForm({
       if (isEdit) {
         await api.put(`/rooms/${initial.id}`, payload);
         addAlert("success", "Room updated.");
+        onSaved();
       } else {
-        await api.post("/rooms", payload);
+        const created = await api.post<Record<string, unknown>>(
+          "/rooms",
+          payload,
+        );
         addAlert("success", "Room created.");
+        onSaved(created);
       }
-      onSaved();
       onClose();
     } catch (err) {
       addAlert("error", getErrorMessage(err));

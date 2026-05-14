@@ -28,7 +28,7 @@ export function ScheduleAvailabilityForm({
   onSaved: () => void;
   employeeId: string;
   initial?: ScheduleAvailability | null;
-  /** 0 = Sunday … 6 = Saturday. */
+  /** 0 = Sunday, 6 = Saturday. */
   defaultDayOfWeek?: number;
   defaultStartTime?: string;
   defaultEndTime?: string;
@@ -65,7 +65,10 @@ export function ScheduleAvailabilityForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      addAlert("error", "End time must be after start time.");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
@@ -138,6 +141,7 @@ export function ScheduleAvailabilityForm({
             <Input
               type="time"
               value={startTime}
+              max={endTime || undefined}
               onChange={(e) => setStartTime(e.target.value)}
               required
             />
@@ -147,6 +151,7 @@ export function ScheduleAvailabilityForm({
             <Input
               type="time"
               value={endTime}
+              min={startTime || undefined}
               onChange={(e) => setEndTime(e.target.value)}
               required
             />

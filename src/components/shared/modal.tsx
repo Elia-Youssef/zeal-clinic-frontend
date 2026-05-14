@@ -12,10 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/**
- * Tracks how many open modals are stacked above this one.
- * When > 0, the modal hides itself so only the topmost is visible.
- */
+// Keeps parent modal state while a child modal is open.
 const ModalDepthContext = React.createContext<{
   depth: number;
   register: () => () => void;
@@ -28,7 +25,6 @@ export type ModalStep = {
   id: string;
   title: string;
   content: React.ReactNode;
-  /** When false, disables the Next button while this step is active. */
   canAdvance?: boolean;
 };
 
@@ -37,28 +33,23 @@ type BaseProps = {
   onClose: () => void;
   title: string;
   description?: string;
-  /** Hide the top-right close button. */
   hideClose?: boolean;
-  /** Custom element rendered at the top-right of the modal, replacing the close button. */
   headerAction?: React.ReactNode;
   children?: React.ReactNode;
 };
 
 type SingleProps = BaseProps & {
   steps?: undefined;
-  /** Pinned footer below the scrollable body. */
   footer?: React.ReactNode;
 };
 
 type WizardProps = BaseProps & {
   steps: ModalStep[];
-  /** Controlled step index. Omit for uncontrolled. */
   activeStep?: number;
   onStepChange?: (index: number) => void;
   onSubmit?: () => void;
   submitLabel?: string;
   submitting?: boolean;
-  /** Disable final submit button (e.g. cross-step validation). */
   canSubmit?: boolean;
 };
 
@@ -80,7 +71,6 @@ export function Modal(props: ModalProps) {
   const parent = React.useContext(ModalDepthContext);
   const [childCount, setChildCount] = React.useState(0);
 
-  /* Tell our parent we are open, so it hides itself while we're shown. */
   React.useEffect(() => {
     if (!open) return;
     return parent.register();
@@ -110,6 +100,9 @@ export function Modal(props: ModalProps) {
         <DialogContent
           showCloseButton={!hideClose && !headerAction}
           className={cn("sm:max-w-125", hidden && "hidden")}
+          onSubmit={(event) => {
+            event.stopPropagation();
+          }}
         >
           <DialogHeader className="flex flex-row w-full justify-between items-center gap-3 min-w-0">
             <div className="min-w-0">

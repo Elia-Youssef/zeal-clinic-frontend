@@ -11,8 +11,10 @@ import { selectClass } from "@/lib/form-styles";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { MedicineForm } from "@/components/forms/medicine-form";
+import { EmployeeForm } from "@/components/forms/employee-form";
 import type { Prescription } from "@/lib/types";
 import { DatePicker } from "../ui/date-picker";
+import { usePermissions } from "@/hooks/use-permissions";
 
 type MedicineDraft = {
   medicineId: string;
@@ -52,6 +54,7 @@ export function PrescriptionForm({
   initial?: Prescription | null;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
+  const { can } = usePermissions();
   const [form, setForm] = useState<FormFields>(emptyForm);
   const [medicines, setMedicines] = useState<MedicineDraft[]>([blankMedicine()]);
   const [submitting, setSubmitting] = useState(false);
@@ -144,6 +147,26 @@ export function PrescriptionForm({
             apiEndpoint="/employees/dropdown"
             mapItem={(item: any) => ({ value: item.id, label: item.name })}
             placeholder="Select employee…"
+            renderAddForm={
+              can("employees:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <EmployeeForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim(),
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
           />
         </div>
 
