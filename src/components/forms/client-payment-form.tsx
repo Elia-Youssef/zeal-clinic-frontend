@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
 import type { Transaction } from "@/lib/types";
 import { PatientForm } from "./patient-form";
@@ -156,7 +156,7 @@ export function ClientPaymentFormBody({
             step="0.01"
             min="0"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(clampNonNegative(e.target.value))}
             required
           />
         </div>

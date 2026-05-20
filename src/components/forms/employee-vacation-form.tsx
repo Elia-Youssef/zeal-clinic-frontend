@@ -80,9 +80,9 @@ export function EmployeeVacationForm({
   // Partial-day requests need both times on one date.
   const bothTimesSet = !!startTime && !!endTime;
   const oneTimeSet = (!!startTime) !== (!!endTime);
-  const datesValid = !!startDate && !!endDate && startDate <= endDate;
+  const datesSet = !!startDate && !!endDate;
   const partialDayOk = !bothTimesSet || (startDate === endDate && startTime < endTime);
-  const canSubmit = datesValid && !oneTimeSet && partialDayOk && fieldsEditable;
+  const canSubmit = datesSet && !oneTimeSet && partialDayOk && fieldsEditable;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +201,7 @@ export function EmployeeVacationForm({
               onChange={setStartDate}
               required
               disabled={!fieldsEditable}
+              max={endDate}
             />
           </div>
           <div className="space-y-1.5">
@@ -210,6 +211,7 @@ export function EmployeeVacationForm({
               onChange={setEndDate}
               required
               disabled={!fieldsEditable}
+              min={startDate}
             />
           </div>
         </div>

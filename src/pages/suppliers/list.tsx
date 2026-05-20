@@ -7,6 +7,7 @@ import { type Column } from "@/components/data/data-table";
 import type { Supplier } from "@/lib/types";
 import { SupplierForm } from "@/components/forms/supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { beirutDayKey } from "@/lib/tz";
 
 function SuppliersContent() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function SuppliersContent() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "name",
       render: (s) => <span className="font-medium">{s.name}</span>,
@@ -25,6 +27,7 @@ function SuppliersContent() {
     {
       key: "contact",
       header: "Contact",
+      className: "w-45",
       sortable: true,
       sortKey: "contact",
       render: (s) => s.contact || "---",
@@ -32,6 +35,7 @@ function SuppliersContent() {
     {
       key: "email",
       header: "Email",
+      className: "w-68",
       sortable: true,
       sortKey: "email",
       render: (s) => s.email || "---",
@@ -39,12 +43,14 @@ function SuppliersContent() {
     {
       key: "address",
       header: "Address",
+      className: "w-65",
       render: (s) => s.address || "---",
     },
     {
       key: "date",
       header: "Created",
-      render: (s) => s.createdAt?.slice(0, 10) ?? "---",
+      className: "w-36",
+      render: (s) => beirutDayKey(s.createdAt) || "---",
     },
   ];
 
@@ -55,7 +61,6 @@ function SuppliersContent() {
         endpoint="/suppliers"
         columns={columns}
         rowKey={(s) => s.id}
-        searchPlaceholder="Search suppliers…"
         emptyMessage={
           can("suppliers:write")
             ? "No suppliers yet. Click Add Supplier to get started."
@@ -65,7 +70,7 @@ function SuppliersContent() {
         onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
         headerActions={
           can("suppliers:write") ? (
-            <AddButton label="Add Supplier" onClick={() => setFormOpen(true)} />
+            <AddButton label="New" onClick={() => setFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}

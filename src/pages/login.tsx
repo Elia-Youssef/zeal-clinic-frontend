@@ -16,7 +16,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useLoading } from "@/hooks/use-loading";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -67,11 +67,7 @@ export default function Home() {
       await login(username, password);
       navigate("/dashboard");
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Unable to connect to the server.");
-      }
+      setError(err instanceof Error ? err.message : "Unable to connect to the server.");
     } finally {
       setLoading(false);
     }

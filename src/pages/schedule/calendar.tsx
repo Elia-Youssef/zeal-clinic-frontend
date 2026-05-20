@@ -4,9 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
-  memo,
 } from "react";
-import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import {
   CalendarIcon,
@@ -15,534 +13,31 @@ import {
   Loader2,
   RotateCcw,
 } from "lucide-react";
-import { cn, formatTimeRange } from "@/lib/utils";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { format as fnsFormat } from "date-fns";
+import { cn } from "@/lib/utils";
+import { beirutNow, formatInBeirut } from "@/lib/tz";
 import { Button } from "@/components/ui/button";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Tabs } from "@/components/shared/tabs";
 import {
   AppointmentForm,
   type AppointmentFormData,
 } from "@/components/forms/appointment-form";
-import { useRoomsStore } from "@/lib/stores/rooms-store";
-import { useAppointmentsStore } from "@/lib/stores/appointments-store";
-import {
-  appointmentStatusStyles,
-  defaultAppointmentStatusStyle,
-} from "@/lib/constants";
-import type { Appointment, Holiday, Room, RoomDayCount } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAppointmentsStore } from "@/lib/stores/appointments-store";
+import { useRoomsStore } from "@/lib/stores/rooms-store";
+import type { Appointment } from "@/lib/types";
+import { DayView } from "./components/day-view";
+import { WeekView } from "./components/week-view";
+import { getWeekDays, padHour, toDateStr } from "./components/sched-utils";
 
-const DAY_START_HOUR = 8;
-const DAY_END_HOUR = 20;
-const HOUR_HEIGHT = 7.5; // rem; follows UI scale.
-const HOURS = Array.from(
-  { length: DAY_END_HOUR - DAY_START_HOUR },
-  (_, i) => i + DAY_START_HOUR,
-);
-const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
-const gridColsFor = (roomCount: number) =>
-  `3.125rem 0.75rem repeat(${roomCount}, 1fr)`;
-
-class SchedUtils {
-  static isoToDate(iso: string) {
-    return iso.slice(0, 10);
-  }
-
-  static isoToTime(iso: string) {
-    return iso.slice(11, 16);
-  }
-
-  static formatHour(hour: number) {
-    const h = hour % 12 || 12;
-    const ampm = hour < 12 ? "AM" : "PM";
-    return `${h} ${ampm}`;
-  }
-
-  static timeToDecimal(time: string) {
-    const [h, m] = time.split(":").map(Number);
-    return h + m / 60;
-  }
-
-  static toDateStr(date: Date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  }
-
-  static getWeekStart(date: Date) {
-    // Week starts on Monday.
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = day === 0 ? 6 : day - 1;
-    d.setDate(d.getDate() - diff);
-    return d;
-  }
-
-  static getWeekDays(date: Date) {
-    const start = SchedUtils.getWeekStart(date);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }
-
-  static padHour(hour: number) {
-    return String(hour).padStart(2, "0");
-  }
-}
-
-const EMPTY_APPTS: Appointment[] = [];
-
-const TimeLabelsColumn = memo(function TimeLabelsColumn() {
-  return (
-    <div className="relative" style={{ height: `${GRID_HEIGHT}rem` }}>
-      {HOURS.map((hour, i) => (
-        <div
-          key={hour}
-          className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
-          style={{ top: `${i * HOUR_HEIGHT}rem` }}
-        >
-          {i ? SchedUtils.formatHour(hour) : ""}
-        </div>
-      ))}
-    </div>
-  );
-});
-
-const HourLinesColumn = memo(function HourLinesColumn() {
-  return (
-    <div>
-      {HOURS.map((hour) => (
-        <div
-          key={hour}
-          className="border-b border-border"
-          style={{ height: `${HOUR_HEIGHT}rem` }}
-        />
-      ))}
-    </div>
-  );
-});
-
-const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
-  return (
-    <div
-      className="grid"
-      style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
-    >
-      <div />
-      <div className="border-b" />
-      {rooms.map((room) => (
-        <div
-          key={room.id}
-          className="border-l border-border p-2 text-center border-b"
-        >
-          <div className="text-sm font-medium">{room.name}</div>
-          <div className="text-xs text-muted-foreground">{room.type}</div>
-        </div>
-      ))}
-    </div>
-  );
-});
-
-function AppointmentCard({
-  appt,
-  onClick,
-}: {
-  appt: Appointment;
-  onClick: (appt: Appointment) => void;
-}) {
-  const { can } = usePermissions();
-  const startTime = SchedUtils.isoToTime(appt.startTime);
-  const endTime = SchedUtils.isoToTime(appt.endTime);
-  const startDec = SchedUtils.timeToDecimal(startTime);
-  const endDec = SchedUtils.timeToDecimal(endTime);
-  const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
-  const height = (endDec - startDec) * HOUR_HEIGHT;
-  const style =
-    appointmentStatusStyles[appt.status] ?? defaultAppointmentStatusStyle;
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger
-        delay={150}
-        closeDelay={200}
-        render={
-          <div
-            className={cn(
-              "absolute cursor-pointer overflow-hidden rounded-md border transition-opacity w-full flex flex-col gap-1 justify-between",
-              style.card,
-            )}
-            style={{ top: `${top}rem`, height: `${height}rem` }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(appt);
-            }}
-          />
-        }
-      >
-        <div className="flex flex-col">
-          <div
-            className={cn(
-              "truncate text-xs font-medium p-1 text-center",
-              style.badge,
-            )}
-          >
-            {appt.patientName || "---"}
-          </div>
-          <div className="flex flex-col gap-0.5 opacity-80 p-1">
-            {appt.appointmentProcedures?.map((p) =>
-              p.procedureName ? (
-                <Badge variant="secondary" className="text-[0.7em]">
-                  {p.procedureName}
-                </Badge>
-              ) : null,
-            )}
-          </div>
-        </div>
-        <div
-          className={cn(
-            "absolute bottom-0 right-0 text-[0.6em] font-medium px-1 py-0.5 rounded-tl-sm",
-            style.badge,
-          )}
-        >
-          {appt.status}
-        </div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="right"
-        align="start"
-        className="space-y-2 min-w-70 min-h-30 w-fit"
-      >
-        <div className="flex flex-1 items-start justify-between gap-2">
-          {can("patients:read") ? (
-            <Link
-              to={`/patients/${appt.patientId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-heading font-medium leading-tight hover:underline"
-            >
-              {appt.patientName || "Unknown Patient"}
-            </Link>
-          ) : (
-            <span className="font-heading font-medium leading-tight">
-              {appt.patientName || "Unknown Patient"}
-            </span>
-          )}
-          <Badge className={cn("shrink-0", style.badge)}>{appt.status}</Badge>
-        </div>
-        <div className="flex-1 grid grid-cols-[7em_1fr] gap-y-1 text-xs">
-          <span className="text-muted-foreground">Time</span>
-          <span>{formatTimeRange(appt.startTime, appt.endTime)}</span>
-          <span className="text-muted-foreground">
-            {(appt.appointmentProcedures?.length || 0) > 1
-              ? "Procedures"
-              : "Procedure"}
-          </span>
-          <div className="flex flex-col gap-0.5">
-            {appt.appointmentProcedures?.map((p) => (
-              <Badge variant="secondary">{p.procedureName || "---"}</Badge>
-            ))}
-          </div>
-          <span className="text-muted-foreground">Notes</span>
-          <span className="whitespace-pre-wrap wrap-break-word">
-            {appt.notes || "---"}
-          </span>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-}
-
-function RoomColumn({
-  roomId,
-  appointments,
-  onCellClick,
-  onAppointmentClick,
-}: {
-  roomId: string;
-  appointments: Appointment[];
-  onCellClick: (roomId: string, hour: number) => void;
-  onAppointmentClick: (appt: Appointment) => void;
-}) {
-  return (
-    <div className="relative border-l border-border">
-      {HOURS.map((hour) => (
-        <div
-          key={hour}
-          className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer"
-          style={{ height: `${HOUR_HEIGHT}rem` }}
-          onClick={() => onCellClick(roomId, hour)}
-        />
-      ))}
-      {appointments.map((appt) => (
-        <AppointmentCard
-          key={appt.id}
-          appt={appt}
-          onClick={onAppointmentClick}
-        />
-      ))}
-    </div>
-  );
-}
-
-function CurrentTimeLine({ dateStr }: { dateStr: string }) {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (SchedUtils.toDateStr(now) !== dateStr) return null;
-  const decimal = now.getHours() + now.getMinutes() / 60;
-  if (decimal < DAY_START_HOUR || decimal > DAY_END_HOUR) return null;
-
-  return (
-    <div
-      className="pointer-events-none absolute left-12.5 right-0 z-10"
-      style={{ top: `${(decimal - DAY_START_HOUR) * HOUR_HEIGHT}rem` }}
-    >
-      <div className="h-2.5 w-2.5 bg-destructive absolute -translate-y-1/2 top-px left-0 rounded-2xl" />
-      <div className="h-0.5 bg-destructive/60" />
-    </div>
-  );
-}
-
-function DayView({
-  date,
-  rooms,
-  appointments,
-  holidays,
-  onCellClick,
-  onAppointmentClick,
-}: {
-  date: Date;
-  rooms: Room[];
-  appointments: Appointment[];
-  holidays: Holiday[];
-  onCellClick: (roomId: string, hour: number) => void;
-  onAppointmentClick: (appt: Appointment) => void;
-}) {
-  const dateStr = SchedUtils.toDateStr(date);
-
-  const appointmentsByRoom = useMemo(() => {
-    const map: Record<string, Appointment[]> = {};
-    for (const a of appointments) {
-      if (SchedUtils.isoToDate(a.startTime) !== dateStr) continue;
-      (map[a.roomId] ??= []).push(a);
-    }
-    return map;
-  }, [appointments, dateStr]);
-
-  const dayCount = Object.values(appointmentsByRoom).reduce(
-    (n, arr) => n + arr.length,
-    0,
-  );
-
-  // Store may include neighboring dates after navigation.
-  const activeHolidays = useMemo(
-    () => holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
-    [holidays, dateStr],
-  );
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center gap-3 flex-wrap">
-        <h2 className="text-lg font-semibold">
-          {date.toLocaleDateString("en-GB", {
-            weekday: "long",
-            day: "numeric",
-            month: "short",
-          })}
-        </h2>
-        <Badge variant="secondary">
-          {dayCount} appointment{dayCount !== 1 ? "s" : ""}
-        </Badge>
-        {activeHolidays.map((h) => (
-          <Badge
-            key={h.id}
-            variant="secondary"
-            className="bg-amber-500/20 text-amber-900 dark:text-amber-200"
-            title={h.notes || h.name}
-          >
-            {h.name}
-          </Badge>
-        ))}
-      </div>
-
-      <div className="overflow-auto max-h-[calc(100svh-18.5rem)]">
-        <div className="min-w-225">
-          <div className="sticky top-0 z-11 bg-card">
-            <RoomHeaders rooms={rooms} />
-          </div>
-
-          <div
-            className="relative grid"
-            style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
-          >
-            <TimeLabelsColumn />
-            <HourLinesColumn />
-            {rooms.map((room) => (
-              <RoomColumn
-                key={room.id}
-                roomId={room.id}
-                appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
-                onCellClick={onCellClick}
-                onAppointmentClick={onAppointmentClick}
-              />
-            ))}
-            <CurrentTimeLine dateStr={dateStr} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WeekView({
-  date,
-  rooms,
-  weekCounts,
-  holidays,
-  onDayClick,
-}: {
-  date: Date;
-  rooms: Room[];
-  weekCounts: RoomDayCount[];
-  holidays: Holiday[];
-  onDayClick: (day: Date) => void;
-}) {
-  const weekDays = useMemo(() => SchedUtils.getWeekDays(date), [date]);
-  const today = SchedUtils.toDateStr(new Date());
-  const weekStart = weekDays[0];
-  const weekEnd = weekDays[6];
-
-  const countsByRoom = useMemo(() => {
-    const map: Record<string, Record<string, number>> = {};
-    for (const r of weekCounts) {
-      map[r.roomId] = r.days;
-    }
-    return map;
-  }, [weekCounts]);
-
-  // Multi-day holidays appear on each covered day.
-  const holidaysByDay = useMemo(() => {
-    const map: Record<string, Holiday[]> = {};
-    for (const h of holidays) {
-      for (const day of weekDays) {
-        const dayStr = SchedUtils.toDateStr(day);
-        if (dayStr >= h.startDate && dayStr <= h.endDate) {
-          (map[dayStr] ??= []).push(h);
-        }
-      }
-    }
-    return map;
-  }, [holidays, weekDays]);
-
-  const shortDate = (d: Date) =>
-    d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  const dayLabel = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "short" });
-  const weekGridCols = `6.25rem repeat(${rooms.length}, 1fr)`;
-
-  return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">
-          {shortDate(weekStart)} - {shortDate(weekEnd)}
-        </h2>
-      </div>
-
-      <div className="overflow-x-auto">
-        <div className="min-w-225">
-          <div
-            className="grid border-b border-border"
-            style={{ gridTemplateColumns: weekGridCols }}
-          >
-            <div className="p-3" />
-            {rooms.map((room) => (
-              <div
-                key={room.id}
-                className="border-l border-border p-3 text-center"
-              >
-                <div className="text-sm font-medium">{room.name}</div>
-                <div className="text-xs text-muted-foreground">{room.type}</div>
-              </div>
-            ))}
-          </div>
-
-          {weekDays.map((day) => {
-            const dayStr = SchedUtils.toDateStr(day);
-            const isToday = dayStr === today;
-            const dayHolidays = holidaysByDay[dayStr];
-            const isHoliday = !!dayHolidays?.length;
-            return (
-              <div
-                key={dayStr}
-                className={cn(
-                  "grid border-b border-border",
-                  isToday && "bg-primary/10",
-                  isHoliday && "bg-amber-500/10",
-                )}
-                style={{ gridTemplateColumns: weekGridCols }}
-              >
-                <div
-                  className={cn(
-                    "cursor-pointer p-3 transition-colors hover:bg-muted/50",
-                    isToday && "font-semibold",
-                  )}
-                  onClick={() => onDayClick(day)}
-                >
-                  <div className="text-sm">{dayLabel(day)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {shortDate(day)}
-                  </div>
-                  {dayHolidays?.map((h) => (
-                    <Badge
-                      key={h.id}
-                      variant="secondary"
-                      className="mt-1 bg-amber-500/20 text-amber-900 dark:text-amber-200"
-                      title={h.notes || h.name}
-                    >
-                      {h.name}
-                    </Badge>
-                  ))}
-                </div>
-                {rooms.map((room) => {
-                  const count = countsByRoom[room.id]?.[dayStr] ?? 0;
-                  return (
-                    <div
-                      key={room.id}
-                      className="flex items-center justify-center border-l border-border p-3"
-                    >
-                      {count > 0 ? (
-                        <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                          {count}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
+type View = "Day" | "Week";
 
 function parseDateParam(raw: string | null): Date | null {
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
@@ -552,11 +47,10 @@ function parseDateParam(raw: string | null): Date | null {
 
 function CalendarPageContent() {
   const [searchParams] = useSearchParams();
-  const [view, setView] = useState<"Day" | "Week">("Day");
+  const [view, setView] = useState<View>("Day");
   const [currentDate, setCurrentDate] = useState<Date>(
-    () => parseDateParam(searchParams.get("date")) ?? new Date(),
+    () => parseDateParam(searchParams.get("date")) ?? beirutNow(),
   );
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [formData, setFormData] = useState<
@@ -574,91 +68,57 @@ function CalendarPageContent() {
   const fetchAppointments = useAppointmentsStore((s) => s.fetchForDates);
   const fetchWeekCounts = useAppointmentsStore((s) => s.fetchWeekCounts);
 
-  // Keep room refs stable for memoized grid pieces.
   useEffect(() => {
     fetchRooms();
   }, [fetchRooms]);
 
   const reloadAppointments = useCallback(() => {
-    const dateStr = SchedUtils.toDateStr(currentDate);
-    if (view === "Week") {
-      fetchWeekCounts(dateStr);
-    } else {
-      fetchAppointments([dateStr]);
-    }
+    const dateStr = toDateStr(currentDate);
+    if (view === "Week") fetchWeekCounts(dateStr);
+    else fetchAppointments([dateStr]);
   }, [currentDate, view, fetchAppointments, fetchWeekCounts]);
 
   useEffect(() => {
     reloadAppointments();
   }, [reloadAppointments]);
 
-  // Sync `?date=YYYY-MM-DD`; omit today.
-  useEffect(() => {
-    const today = SchedUtils.toDateStr(new Date());
-    const current = SchedUtils.toDateStr(currentDate);
-    const desired = current === today ? null : current;
-    if (searchParams.get("date") === desired) return;
+  useDateSearchParamSync(currentDate, searchParams);
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (desired) params.set("date", desired);
-    else params.delete("date");
-    const qs = params.toString();
-    window.history.replaceState(
-      null,
-      "",
-      qs ? `?${qs}` : window.location.pathname,
-    );
-  }, [currentDate, searchParams]);
+  const navigate = useCallback(
+    (direction: -1 | 1) =>
+      setCurrentDate((prev) => {
+        const next = new Date(prev);
+        next.setDate(next.getDate() + (view === "Week" ? 7 : 1) * direction);
+        return next;
+      }),
+    [view],
+  );
 
-  const navigate = (direction: -1 | 1) => {
-    setCurrentDate((prev) => {
-      const next = new Date(prev);
-      next.setDate(
-        next.getDate() + (view === "Week" ? 7 * direction : direction),
-      );
-      return next;
-    });
-  };
-
-  const goToToday = () => setCurrentDate(new Date());
-
-  const dateLabel = useMemo(() => {
-    if (view === "Day") {
-      return currentDate.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    }
-    const days = SchedUtils.getWeekDays(currentDate);
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    return `${fmt(days[0])} - ${fmt(days[6])}`;
-  }, [view, currentDate]);
+  const goToToday = useCallback(() => setCurrentDate(beirutNow()), []);
 
   const handleWeekDayClick = useCallback((day: Date) => {
     setCurrentDate(day);
     setView("Day");
   }, []);
 
-  const openForm = (data: Partial<AppointmentFormData>) => {
+  const openForm = useCallback((data: Partial<AppointmentFormData>) => {
     setFormData(data);
     setFormKey((k) => k + 1);
     setModalOpen(true);
-  };
+  }, []);
 
   const handleCellClick = useCallback(
     (roomId: string, hour: number) => {
       if (!can("appointments:write")) return;
-      const dateStr = SchedUtils.toDateStr(currentDate);
+      const dateStr = toDateStr(currentDate);
       openForm({
         roomId,
-        startTime: `${dateStr}T${SchedUtils.padHour(hour)}:00`,
-        endTime: `${dateStr}T${SchedUtils.padHour(hour + 1)}:00`,
+        startTime: `${dateStr}T${padHour(hour)}:00`,
+        endTime: `${dateStr}T${padHour(hour + 1)}:00`,
         status: "Scheduled",
       });
     },
-    [can, currentDate],
+    [can, currentDate, openForm],
   );
 
   const handleAppointmentClick = useCallback(
@@ -674,13 +134,15 @@ function CalendarPageContent() {
             id: ap.procedureId,
             label: ap.procedureName ?? "",
           })) ?? [],
-        startTime: appt.startTime.slice(0, 16),
-        endTime: appt.endTime.slice(0, 16),
+        startTime: formatInBeirut(appt.startTime, "yyyy-MM-dd'T'HH:mm"),
+        endTime: formatInBeirut(appt.endTime, "yyyy-MM-dd'T'HH:mm"),
         status: appt.status,
         notes: appt.notes,
+        cancelNotes: appt.cancelNotes,
+        completionNotes: appt.completionNotes,
       });
     },
-    [can],
+    [can, openForm],
   );
 
   return (
@@ -690,66 +152,16 @@ function CalendarPageContent() {
           <Tabs
             tabs={["Day", "Week"]}
             activeTab={view}
-            onChange={(tab) => setView(tab as "Day" | "Week")}
+            onChange={(tab) => setView(tab as View)}
           />
-
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-            {loading && (
-              <Loader2 className="size-4 mr-2 animate-spin text-muted-foreground" />
-            )}
-            <Button
-              variant="outline"
-              size="icon"
-              className="size-8"
-              onClick={() => navigate(-1)}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-xs font-normal"
-                  />
-                }
-              >
-                <CalendarIcon className="size-4 text-muted-foreground" />
-                {dateLabel}
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setCurrentDate(date);
-                      setDatePickerOpen(false);
-                    }
-                  }}
-                  defaultMonth={currentDate}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="outline"
-              size="icon"
-              className="size-8"
-              onClick={() => navigate(1)}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="size-8"
-              onClick={goToToday}
-              title={view === "Day" ? "Go to today" : "Go to this week"}
-            >
-              <RotateCcw className="size-4" />
-            </Button>
-          </div>
+          <NavigationControls
+            view={view}
+            currentDate={currentDate}
+            loading={loading}
+            onNavigate={navigate}
+            onPickDate={setCurrentDate}
+            onGoToToday={goToToday}
+          />
         </CardHeader>
 
         <CardContent>
@@ -790,6 +202,113 @@ function CalendarPageContent() {
         onSaved={reloadAppointments}
         readOnly={formData?.status === "Completed"}
       />
+    </div>
+  );
+}
+
+// Sync `?date=YYYY-MM-DD`; omit today.
+function useDateSearchParamSync(currentDate: Date, searchParams: URLSearchParams) {
+  useEffect(() => {
+    const today = toDateStr(beirutNow());
+    const current = toDateStr(currentDate);
+    const desired = current === today ? null : current;
+    if (searchParams.get("date") === desired) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (desired) params.set("date", desired);
+    else params.delete("date");
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `?${qs}` : window.location.pathname,
+    );
+  }, [currentDate, searchParams]);
+}
+
+function NavigationControls({
+  view,
+  currentDate,
+  loading,
+  onNavigate,
+  onPickDate,
+  onGoToToday,
+}: {
+  view: View;
+  currentDate: Date;
+  loading: boolean;
+  onNavigate: (direction: -1 | 1) => void;
+  onPickDate: (date: Date) => void;
+  onGoToToday: () => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const dateLabel = useMemo(() => {
+    // currentDate carries Beirut wall-clock in its local fields; date-fns
+    // format reads those directly so we don't shift through the browser zone.
+    if (view === "Day") return fnsFormat(currentDate, "d MMM yyyy");
+    const days = getWeekDays(currentDate);
+    const fmt = (d: Date) => fnsFormat(d, "d MMM");
+    return `${fmt(days[0])} - ${fmt(days[6])}`;
+  }, [view, currentDate]);
+
+  return (
+    <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+      {loading && (
+        <Loader2 className="size-4 mr-2 animate-spin text-muted-foreground" />
+      )}
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-8"
+        onClick={() => onNavigate(-1)}
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs font-normal"
+            />
+          }
+        >
+          <CalendarIcon className="size-4 text-muted-foreground" />
+          {dateLabel}
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="center">
+          <Calendar
+            mode="single"
+            selected={currentDate}
+            onSelect={(date) => {
+              if (date) {
+                onPickDate(date);
+                setPickerOpen(false);
+              }
+            }}
+            defaultMonth={currentDate}
+          />
+        </PopoverContent>
+      </Popover>
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-8"
+        onClick={() => onNavigate(1)}
+      >
+        <ChevronRight className="size-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-8"
+        onClick={onGoToToday}
+        title={view === "Day" ? "Go to today" : "Go to this week"}
+      >
+        <RotateCcw className="size-4" />
+      </Button>
     </div>
   );
 }

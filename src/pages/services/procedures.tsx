@@ -18,13 +18,13 @@ export default function ProceduresPage() {
     {
       key: "type",
       header: "Type",
-      className: "w-36",
+      className: "w-40",
       render: (p) => <Badge variant="secondary">{p.type?.name || "---"}</Badge>,
     },
     {
       key: "category",
       header: "Category",
-      className: "w-48",
+      className: "w-65",
       render: (p) => {
         let cat = p.category?.name || "";
         let parentcat = p.category?.parent?.name || "";
@@ -40,6 +40,7 @@ export default function ProceduresPage() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "name",
       render: (p) => <span className="font-medium">{p.name}</span>,
@@ -47,7 +48,7 @@ export default function ProceduresPage() {
     {
       key: "price",
       header: "Price",
-      className: "text-right",
+      className: "w-40 text-right",
       sortable: true,
       sortKey: "price",
       render: (p) => (
@@ -74,16 +75,12 @@ export default function ProceduresPage() {
         endpoint="/procedures"
         columns={columns}
         rowKey={(p) => p.id}
-        searchPlaceholder="Search procedures…"
         emptyMessage="No procedures yet."
         emptySearchMessage="No procedures match your search."
         onRowClick={(p) => navigate(`/services/procedures/${p.id}`)}
         headerActions={
           can("procedures:write") ? (
-            <AddButton
-              label="Add Procedure"
-              onClick={() => setFormOpen(true)}
-            />
+            <AddButton label="New" onClick={() => setFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}

@@ -79,9 +79,11 @@ export function PrescriptionForm({
   const update = (field: keyof FormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  const canSubmit = !!form.startDate;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.startDate) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     try {
       if (isEdit) {
@@ -128,6 +130,7 @@ export function PrescriptionForm({
             <DatePicker
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
+              max={form.endDate}
             />
           </div>
           <div className="space-y-1.5">
@@ -135,6 +138,7 @@ export function PrescriptionForm({
             <DatePicker
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
+              min={form.startDate}
             />
           </div>
         </div>
@@ -263,7 +267,7 @@ export function PrescriptionForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting || !form.startDate}>
+          <Button type="submit" disabled={submitting || !canSubmit}>
             {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
           </Button>
         </div>

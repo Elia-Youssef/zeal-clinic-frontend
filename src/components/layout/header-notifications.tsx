@@ -1,6 +1,6 @@
-
-import { useEffect, useState } from "react";
-import { Bell, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useAnimationControls } from "motion/react";
+import { Bell, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
 import { useNotificationsStore } from "@/lib/stores/notifications-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { formatInBeirut } from "@/lib/tz";
 
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -21,13 +22,14 @@ function timeAgo(iso: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return formatInBeirut(iso, "yyyy-MM-dd");
 }
 
 export function HeaderNotifications() {
   const [open, setOpen] = useState(false);
   const items = useNotificationsStore((s) => s.items);
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const receivedNonce = useNotificationsStore((s) => s.receivedNonce);
   const fetchList = useNotificationsStore((s) => s.fetch);
   const fetchUnreadCount = useNotificationsStore((s) => s.fetchUnreadCount);
   const markRead = useNotificationsStore((s) => s.markRead);
@@ -35,9 +37,29 @@ export function HeaderNotifications() {
   const remove = useNotificationsStore((s) => s.remove);
   const addAlert = useAlertStore((s) => s.addAlert);
 
+  const bellControls = useAnimationControls();
+  const badgeControls = useAnimationControls();
+  const firstRender = useRef(true);
+
   useEffect(() => {
     fetchUnreadCount().catch(() => {});
   }, [fetchUnreadCount]);
+
+  // Swing the bell and pop the badge whenever a new notification arrives.
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    bellControls.start({
+      rotate: [0, -16, 13, -10, 7, -3, 0],
+      transition: { duration: 0.7, ease: "easeInOut" },
+    });
+    badgeControls.start({
+      scale: [1, 1.5, 0.9, 1.15, 1],
+      transition: { duration: 0.5, ease: "easeOut" },
+    });
+  }, [receivedNonce, bellControls, badgeControls]);
 
   useEffect(() => {
     if (!open) return;
@@ -75,16 +97,26 @@ export function HeaderNotifications() {
       <PopoverTrigger
         render={
           <Button variant="secondary" size="icon-sm" className="relative">
-            <Bell className="size-4" />
+            <motion.span
+              animate={bellControls}
+              style={{ display: "inline-flex", transformOrigin: "50% 0%" }}
+            >
+              <Bell className="size-4" />
+            </motion.span>
             {unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 size-4 items-center justify-center rounded-full p-0 text-[10px]">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </Badge>
+              <motion.span
+                animate={badgeControls}
+                className="absolute -top-1 -right-1"
+              >
+                <Badge className="size-4 items-center justify-center rounded-full p-0 text-[10px]">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Badge>
+              </motion.span>
             )}
           </Button>
         }
       />
-      <PopoverContent align="end" className="w-80 p-0 gap-0">
+      <PopoverContent align="end" className="w-80 p-0 gap-0 overflow-hidden">
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
           <span className="text-sm font-semibold">Notifications</span>
           <div className="flex items-center gap-3">
@@ -98,7 +130,7 @@ export function HeaderNotifications() {
             )}
           </div>
         </div>
-        <div className="max-h-72 overflow-auto">
+        <div className="max-h-72 overflow-auto no-scrollbar">
           {items.length === 0 ? (
             <p className="p-4 text-center text-sm text-muted-foreground">
               No notifications

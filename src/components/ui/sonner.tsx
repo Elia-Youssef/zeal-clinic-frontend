@@ -15,6 +15,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      // Drop top-anchored toasts (the notification toast) below the sticky
+      // h-14 header. Other sides keep Sonner's default spacing.
+      offset={{ top: "3rem" }}
+      mobileOffset={{ top: "3rem" }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

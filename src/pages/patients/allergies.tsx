@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -46,31 +45,41 @@ export default function AllergiesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-80",
       sortable: true,
       sortKey: "name",
       render: (a) => <span className="font-medium">{a.name}</span>,
     },
-    { key: "desc", header: "Description", render: (a) => a.description || "---" },
+    {
+      key: "desc",
+      header: "Description",
+      className: "truncate",
+      render: (a) => a.description || "---",
+    },
   ];
 
   const actions: RowAction<Allergy>[] = [
     ...(can("allergies:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (a: Allergy) => {
-            setEditing(a);
-            setFormOpen(true);
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (a: Allergy) => {
+              setEditing(a);
+              setFormOpen(true);
+            },
           },
-        }]
+        ]
       : []),
     ...(can("allergies:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (a: Allergy) => handleDelete(a),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (a: Allergy) => handleDelete(a),
+          },
+        ]
       : []),
   ];
 
@@ -86,7 +95,7 @@ export default function AllergiesPage() {
         headerActions={
           can("allergies:write") ? (
             <AddButton
-              label="Add Allergy"
+              label="New"
               onClick={() => {
                 setEditing(undefined);
                 setFormOpen(true);

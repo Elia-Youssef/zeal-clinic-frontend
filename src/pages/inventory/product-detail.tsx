@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import type {
   Invoice,
@@ -144,11 +145,13 @@ function ProductDetailContent() {
             {
               header: "Allergy",
               key: "allergy",
+              className: "w-75",
               render: (i) => i.allergyName ?? i.allergyId,
             },
             {
               header: "Notes",
               key: "notes",
+              className: "truncate",
               render: (i) => i.notes ?? "---",
             },
           ]}
@@ -188,13 +191,15 @@ function ProductDetailContent() {
             title="Invoices"
             columns={[
               {
-                header: "#",
-                key: "#",
+                header: "Invoice No.",
+                key: "Invoice No.",
+                className: "w-28",
                 render: (i) => `#${i.invoiceNumber}`,
               },
               {
                 header: "Type",
                 key: "type",
+                className: "w-40",
                 render: (i) => (
                   <Badge variant="secondary">
                     {i.fromEntityId == "self" ? "Sale" : "Purchase"}
@@ -204,12 +209,12 @@ function ProductDetailContent() {
               {
                 header: "Date",
                 key: "date",
-                render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+                render: (i) => beirutDayKey(i.createdAt) || "---",
               },
               {
                 header: "Amount",
                 key: "amount",
-                className: "text-right",
+                className: "w-40 text-right",
                 render: (i) => `$${i.amount.toFixed(2)}`,
               },
             ]}
@@ -228,7 +233,7 @@ function ProductDetailContent() {
             {
               header: "",
               key: "status",
-              className: "w-24",
+              className: "w-28",
               render: (i) => (i.isActive ? <Badge>Current</Badge> : null),
             },
             {
@@ -241,7 +246,8 @@ function ProductDetailContent() {
             {
               header: "Date",
               key: "createdAt",
-              render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+              className: "w-40",
+              render: (i) => beirutDayKey(i.createdAt) || "---",
             },
           ]}
           endpoint={`/products/${id}/prices`}

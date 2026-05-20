@@ -12,7 +12,8 @@ import { Loading } from "@/components/shared/loading";
 import { DataTable } from "@/components/data/data-table";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -200,7 +201,7 @@ export default function InvoiceDetailPage() {
             )}
           </DetailField>
           <DetailField label="Date">
-            {invoice.createdAt?.slice(0, 10) ?? "---"}
+            {beirutDayKey(invoice.createdAt) || "---"}
           </DetailField>
           <DetailField label="Notes" className="sm:col-span-2">
             {invoice.notes || "---"}
@@ -221,6 +222,7 @@ export default function InvoiceDetailPage() {
               {
                 header: "Type",
                 key: "type",
+                className: "w-36",
                 render: (i) => (
                   <Badge variant="outline" className="text-xs capitalize">
                     {i.itemType ?? "---"}
@@ -230,22 +232,42 @@ export default function InvoiceDetailPage() {
               {
                 header: "Name",
                 key: "name",
-                render: (i) => i.itemName ?? "---",
+                className: "w-69",
+                render: (i) => {
+                  const name = i.itemName ?? "---";
+                  const href =
+                    i.itemType === "product" && can("products:read")
+                      ? `/inventory/products/${i.itemId}`
+                      : i.itemType === "procedure" && can("procedures:read")
+                      ? `/services/procedures/${i.itemId}`
+                      : i.itemType === "gift" && can("discounts:read")
+                      ? `/financials/discounts/${i.itemId}`
+                      : null;
+                  return href ? (
+                    <Link to={href} className="hover:underline">
+                      {name}
+                    </Link>
+                  ) : (
+                    name
+                  );
+                },
               },
               {
                 header: "Notes",
                 key: "notes",
+                className: "truncate",
                 render: (i) => i.notes || "---",
               },
               {
                 header: "Quantity",
                 key: "quantity",
+                className: "w-28",
                 render: (i) => i.quantity ?? "---",
               },
               {
                 header: "Amount",
                 key: "amount",
-                className: "text-right",
+                className: "w-40 text-right",
                 render: (i) => `$${(i.amount ?? 0).toFixed(2)}`,
               },
             ]}
@@ -302,7 +324,7 @@ export default function InvoiceDetailPage() {
               step="0.01"
               min="0"
               value={itemAmount}
-              onChange={(e) => setItemAmount(e.target.value)}
+              onChange={(e) => setItemAmount(clampNonNegative(e.target.value))}
               autoFocus
             />
           </div>

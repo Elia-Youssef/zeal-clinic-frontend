@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
@@ -14,6 +15,7 @@ type UserFormFields = {
   displayName: string;
   role: string;
   password: string;
+  isActive: boolean;
 };
 
 const emptyForm: UserFormFields = {
@@ -21,6 +23,7 @@ const emptyForm: UserFormFields = {
   displayName: "",
   role: "user",
   password: "",
+  isActive: true,
 };
 
 export function UserForm({
@@ -47,13 +50,14 @@ export function UserForm({
         displayName: initial.displayName,
         role: initial.role,
         password: "",
+        isActive: initial.isActive,
       });
     } else {
       setForm(emptyForm);
     }
   }, [open, initial]);
 
-  const update = (field: keyof UserFormFields, value: string) =>
+  const update = (field: keyof UserFormFields, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,11 +65,12 @@ export function UserForm({
     setSubmitting(true);
 
     const payload: Record<string, unknown> = {
-      username: form.username,
       displayName: form.displayName,
       role: form.role,
     };
+    if (!isEdit) payload.username = form.username;
     if (form.password) payload.password = form.password;
+    if (isEdit) payload.isActive = form.isActive;
 
     try {
       if (isEdit) {
@@ -98,6 +103,7 @@ export function UserForm({
               value={form.username}
               onChange={(e) => update("username", e.target.value)}
               required
+              disabled={isEdit}
             />
           </div>
           <div className="space-y-1.5">
@@ -131,6 +137,19 @@ export function UserForm({
             />
           </div>
         </div>
+
+        {isEdit && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="user-isActive"
+              checked={form.isActive}
+              onCheckedChange={(value) => update("isActive", value)}
+            />
+            <label htmlFor="user-isActive" className="text-sm font-medium">
+              Active
+            </label>
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>

@@ -88,11 +88,11 @@ export function DataList<T>({
   onRowClick,
   actions,
   headerActions,
-  searchPlaceholder = "Search…",
   emptyMessage = "No data yet.",
   emptySearchMessage = "No results match your search.",
   limit = DEFAULT_LIMIT,
   refreshKey = 0,
+  resetKey,
   hideSearch = false,
   className = "",
   rowClassName,
@@ -104,11 +104,11 @@ export function DataList<T>({
   onRowClick?: (item: T) => void;
   actions?: RowAction<T>[];
   headerActions?: React.ReactNode;
-  searchPlaceholder?: string;
   emptyMessage?: string;
   emptySearchMessage?: string;
   limit?: number;
   refreshKey?: number;
+  resetKey?: unknown;
   hideSearch?: boolean;
   className?: string;
   rowClassName?: (item: T) => string | undefined;
@@ -125,6 +125,13 @@ export function DataList<T>({
     }, 300);
     return () => clearTimeout(timer);
   }, [filterInput]);
+
+  useEffect(() => {
+    setOffset(0);
+    setFilterInput("");
+    setFilter("");
+    setSort(null);
+  }, [resetKey]);
 
   const { data, total, loading } = useListData<T>({
     endpoint,
@@ -159,7 +166,7 @@ export function DataList<T>({
                 <SearchBar
                   value={filterInput}
                   onChange={setFilterInput}
-                  placeholder={searchPlaceholder}
+                  placeholder="Search..."
                 />
               </div>
             )}

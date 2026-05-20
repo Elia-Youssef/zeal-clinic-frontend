@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
 import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -113,7 +113,7 @@ export function SupplierPaymentForm({
               step="0.01"
               min="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
           </div>

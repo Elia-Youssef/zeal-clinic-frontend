@@ -44,6 +44,7 @@ export default function TypesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-70",
       sortable: true,
       sortKey: "name",
       render: (t) => <span className="font-medium">{t.name}</span>,
@@ -51,6 +52,7 @@ export default function TypesPage() {
     {
       key: "desc",
       header: "Description",
+      className: "truncate",
       render: (t) => t.description || "---",
     },
   ];
@@ -92,7 +94,7 @@ export default function TypesPage() {
         headerActions={
           can("procedure-types:write") ? (
             <AddButton
-              label="Add Type"
+              label="New"
               onClick={() => {
                 setEditing(undefined);
                 setFormOpen(true);

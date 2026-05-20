@@ -45,11 +45,10 @@ export function HolidayForm({
   // Default to a single-day holiday.
   const handleStartChange = (next: string) => {
     setStartDate(next);
-    if (!endDate || endDate < next) setEndDate(next);
+    if (!endDate) setEndDate(next);
   };
 
-  const canSubmit =
-    !!name.trim() && !!startDate && !!endDate && startDate <= endDate;
+  const canSubmit = !!name.trim() && !!startDate && !!endDate;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,11 +96,21 @@ export function HolidayForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Start Date *</label>
-            <DatePicker value={startDate} onChange={handleStartChange} required />
+            <DatePicker
+              value={startDate}
+              onChange={handleStartChange}
+              required
+              max={endDate}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">End Date *</label>
-            <DatePicker value={endDate} onChange={setEndDate} required />
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              required
+              min={startDate}
+            />
           </div>
         </div>
         <div className="space-y-1.5">

@@ -10,12 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -139,7 +134,7 @@ function renderChart(
     tickLine: false,
     axisLine: false,
     tickMargin: 8,
-    width: 40,
+    width: "auto",
     tickFormatter: (v: number) =>
       formatValue ? formatValue(v) : v.toLocaleString(),
   } as const;

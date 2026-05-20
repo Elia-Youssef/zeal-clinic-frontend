@@ -151,7 +151,10 @@ export function DataTable<T>({
       )}
     >
       <TableHeader
-        className={cn(scrollable && "sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)]")}
+        className={cn(
+          scrollable &&
+            "sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)]",
+        )}
       >
         <TableRow>
           {columns.map((col, idx) => {
@@ -163,7 +166,8 @@ export function DataTable<T>({
                 key={col.key}
                 className={cn(
                   col.className,
-                  sortable && "cursor-pointer select-none hover:text-foreground",
+                  sortable &&
+                    "cursor-pointer select-none hover:text-foreground",
                 )}
                 onClick={sortable ? () => handleHeaderClick(col) : undefined}
               >

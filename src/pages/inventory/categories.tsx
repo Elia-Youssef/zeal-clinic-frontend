@@ -54,13 +54,21 @@ export default function CategoriesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-75",
       sortable: true,
       sortKey: "name",
       render: (c) => <span className="font-medium">{c.name}</span>,
     },
     {
+      key: "parent",
+      header: "Parent",
+      className: "w-48",
+      render: (c) => c.parent?.name || "---",
+    },
+    {
       key: "desc",
       header: "Description",
+      className: "truncate",
       render: (c) => c.description || "---",
     },
   ];
@@ -102,7 +110,7 @@ export default function CategoriesPage() {
         headerActions={
           can("product-categories:write") ? (
             <AddButton
-              label="Add Category"
+              label="New"
               onClick={() => {
                 setEditingCat(undefined);
                 setCatFormOpen(true);

@@ -19,6 +19,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import type { BalanceTransaction, Expense } from "@/lib/types";
 import { transactionColors } from "@/lib/constants";
 
@@ -105,15 +106,15 @@ function ExpenseDetailContent() {
     {
       key: "date",
       header: "Date",
-      className: "w-32",
+      className: "w-36",
       sortable: true,
       sortKey: "createdAt",
-      render: (t) => t.createdAt?.slice(0, 10) ?? "---",
+      render: (t) => beirutDayKey(t.createdAt) || "---",
     },
     {
       key: "method",
       header: "Method",
-      className: "w-32",
+      className: "w-36",
       render: (t) => {
         const isAdj =
           t.transactionType === "adjustment" ||
@@ -131,6 +132,7 @@ function ExpenseDetailContent() {
     {
       key: "description",
       header: "Description",
+      className: "truncate",
       render: (t) => (
         <span className="text-muted-foreground">{t.description || "---"}</span>
       ),
@@ -138,7 +140,7 @@ function ExpenseDetailContent() {
     {
       key: "amount",
       header: "Amount",
-      className: "w-32 text-right",
+      className: "w-40 text-right",
       sortable: true,
       sortKey: "amount",
       render: (t) => {
@@ -178,7 +180,7 @@ function ExpenseDetailContent() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Created">
-            {expense.createdAt?.slice(0, 10) ?? "---"}
+            {beirutDayKey(expense.createdAt) || "---"}
           </DetailField>
           <DetailField label="Notes">{expense.notes || "---"}</DetailField>
         </CardContent>

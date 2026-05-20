@@ -5,13 +5,56 @@ import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
+import { DataList } from "@/components/data/data-list";
+import { type Column } from "@/components/data/data-table";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey, formatInBeirut } from "@/lib/tz";
 import { useUsersStore } from "@/lib/stores/users-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import type { AuditLogEntry } from "@/lib/types";
+
+const actionClasses: Record<string, string> = {
+  POST: "bg-positive/10 text-positive border-positive/30",
+  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
+  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+const actionColumns: Column<AuditLogEntry>[] = [
+  {
+    key: "time",
+    header: "Time",
+    className: "w-40",
+    sortable: true,
+    sortKey: "createdAt",
+    render: (e) => (
+      <span className="text-xs">
+        {formatInBeirut(e.createdAt, "yyyy-MM-dd HH:mm:ss")}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    header: "Action",
+    className: "w-28",
+    sortable: true,
+    sortKey: "action",
+    render: (e) => (
+      <Badge variant="outline" className={actionClasses[e.action]}>
+        {e.action}
+      </Badge>
+    ),
+  },
+  {
+    key: "entity",
+    header: "Entity",
+    className: "truncate",
+    render: (e) => `${e.entityType} #${e.entityId.slice(0, 8)}`,
+  },
+];
 
 function StaffDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
@@ -81,13 +124,23 @@ function StaffDetailContent() {
             </Badge>
           </DetailField>
           <DetailField label="Created">
-            {user.createdAt?.slice(0, 10) ?? "---"}
+            {beirutDayKey(user.createdAt) || "---"}
           </DetailField>
           <DetailField label="Updated">
-            {user.updatedAt?.slice(0, 10) ?? "---"}
+            {beirutDayKey(user.updatedAt) || "---"}
           </DetailField>
         </CardContent>
       </Card>
+
+      <DataList<AuditLogEntry>
+        title="Actions"
+        endpoint={`/users/${id}/actions`}
+        columns={actionColumns}
+        rowKey={(a) => a.id}
+        limit={50}
+        emptyMessage="No entries."
+        emptySearchMessage="No entries match your search."
+      />
 
       <UserForm
         open={editOpen}

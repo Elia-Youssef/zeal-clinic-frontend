@@ -7,10 +7,11 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, isUnder18 } from "@/lib/utils";
 import { genderOptions, bloodTypeOptions } from "@/lib/constants";
 import type { Patient } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 type PatientFormFields = {
   firstName: string;
@@ -70,6 +71,7 @@ export function PatientForm({
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const confirm = useConfirm();
 
   const [form, setForm] = useState<PatientFormFields>(emptyForm);
   const [isLebanon, setIsLebanon] = useState(false);
@@ -80,11 +82,7 @@ export function PatientForm({
     if (initial) {
       const hasLebanonCity = !!initial.cityId;
       const cityName = initial.city
-        ? [
-            initial.city.governorate,
-            initial.city.district,
-            initial.city.name,
-          ]
+        ? [initial.city.name, initial.city.district, initial.city.governorate]
             .filter(Boolean)
             .join(", ")
         : "";
@@ -122,6 +120,26 @@ export function PatientForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isEdit) {
+      const optionalFields = [
+        form.weight,
+        form.height,
+        form.countryId,
+      ];
+      const filledCount = optionalFields.filter((v) => v && v.trim()).length;
+      if (filledCount <= 1) {
+        const ok = await confirm({
+          title: "Create patient with minimal info?",
+          description:
+            "Some optional fields are empty. Are you sure you want to create this patient?",
+          confirmText: "Create",
+          variant: "default",
+        });
+        if (!ok) return;
+      }
+    }
+
     setSubmitting(true);
 
     const payload: Record<string, unknown> = {
@@ -139,13 +157,16 @@ export function PatientForm({
       payload.emergencyContactName = form.emergencyContactName;
     if (isEdit || form.emergencyContactPhone)
       payload.emergencyContactPhone = form.emergencyContactPhone;
-    if (isEdit || form.weight) payload.weight = form.weight ? Number(form.weight) : 0;
-    if (isEdit || form.height) payload.height = form.height ? Number(form.height) : 0;
+    if (isEdit || form.weight)
+      payload.weight = form.weight ? Number(form.weight) : 0;
+    if (isEdit || form.height)
+      payload.height = form.height ? Number(form.height) : 0;
     if (isEdit || form.bloodType) payload.bloodType = form.bloodType;
     if (isEdit || form.address) payload.address = form.address;
     if (isEdit || form.notes) payload.notes = form.notes;
     if (isEdit || form.referralId) payload.referralId = form.referralId;
-    if (isEdit || form.referralSource) payload.referralSource = form.referralSource;
+    if (isEdit || form.referralSource)
+      payload.referralSource = form.referralSource;
 
     try {
       if (isEdit) {
@@ -219,6 +240,11 @@ export function PatientForm({
               onChange={(v) => update("dateOfBirth", v)}
               required
             />
+            {isUnder18(form.dateOfBirth) && (
+              <p className="text-xs text-amber-600">
+                Patient is under 18 years old.
+              </p>
+            )}
           </div>
         </div>
 
@@ -269,8 +295,9 @@ export function PatientForm({
             <Input
               type="number"
               step="0.1"
+              min="0"
               value={form.weight}
-              onChange={(e) => update("weight", e.target.value)}
+              onChange={(e) => update("weight", clampNonNegative(e.target.value))}
               placeholder="e.g. 70"
             />
           </div>
@@ -279,8 +306,9 @@ export function PatientForm({
             <Input
               type="number"
               step="0.1"
+              min="0"
               value={form.height}
-              onChange={(e) => update("height", e.target.value)}
+              onChange={(e) => update("height", clampNonNegative(e.target.value))}
               placeholder="e.g. 170"
             />
           </div>

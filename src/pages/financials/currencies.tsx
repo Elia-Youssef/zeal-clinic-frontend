@@ -19,13 +19,25 @@ export default function CurrenciesPage() {
     {
       key: "code",
       header: "Code",
+      className: "w-28",
       render: (c) => <span className="font-medium">{c.code}</span>,
     },
-    { key: "name", header: "Name", render: (c) => c.name },
-    { key: "symbol", header: "Symbol", render: (c) => c.symbol },
+    {
+      key: "name",
+      header: "Name",
+      className: "truncate",
+      render: (c) => c.name,
+    },
+    {
+      key: "symbol",
+      header: "Symbol",
+      className: "w-28",
+      render: (c) => c.symbol,
+    },
     {
       key: "exchangeRate",
       header: "Exchange Rate",
+      className: "w-36",
       render: (c) => c.exchangeRate,
     },
   ];
@@ -56,7 +68,7 @@ export default function CurrenciesPage() {
         headerActions={
           can("currencies:write") ? (
             <AddButton
-              label="Add"
+              label="New"
               onClick={() => {
                 setEditingCur(undefined);
                 setCurFormOpen(true);

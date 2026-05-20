@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -104,16 +105,16 @@ const navItems = {
       scopes: ["reports:read"],
     },
     {
-      title: "Connection",
-      href: "/connection",
-      icon: Cable,
-      scopes: ["roles:read", "users:read"],
-    },
-    {
       title: "Settings",
       href: "/settings",
       icon: Settings,
       scopes: ["roles:read", "users:read", "audit:read"],
+    },
+    {
+      title: "Connection",
+      href: "/connection",
+      icon: Cable,
+      scopes: ["roles:read", "users:read"],
     },
   ],
 };
@@ -122,6 +123,13 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { canAny } = usePermissions();
   const user = useAuthStore((s) => s.user);
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const visibleNavItems = Object.entries(navItems)
     .map(([group, items]) => ({
@@ -134,10 +142,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="h-14 justify-center py-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link to="/dashboard" />}>
+            <SidebarMenuButton
+              size="lg"
+              render={<Link to="/dashboard" />}
+              onClick={handleNavClick}
+            >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <div
                   className="w-full h-full bg-no-repeat bg-center bg-cover"
@@ -155,7 +167,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarSeparator className="mx-0" />
+      <SidebarSeparator className="-mt-px mx-0" />
 
       <SidebarContent>
         {visibleNavItems.map(({ group, items }) => (
@@ -173,6 +185,7 @@ export function AppSidebar() {
                       isActive={pathname.startsWith(item.href)}
                       tooltip={item.title}
                       render={<Link to={item.href} />}
+                      onClick={handleNavClick}
                       className={
                         pathname.startsWith(item.href) ? "" : "hover:bg-muted"
                       }

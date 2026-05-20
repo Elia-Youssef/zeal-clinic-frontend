@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -12,7 +13,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage, clampNonNegative } from "@/lib/utils";
 import { invoiceItemTypeOptions } from "@/lib/constants";
 import type { Discount, Invoice } from "@/lib/types";
 import { ProcedureForm } from "./procedure-form";
@@ -118,6 +119,8 @@ export function ClientInvoiceFormBody({
     return true;
   });
 
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
   const [patientId, setPatientId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [discountId, setDiscountId] = useState("");
@@ -138,6 +141,8 @@ export function ClientInvoiceFormBody({
 
   useEffect(() => {
     if (!open) return;
+    setInvoiceNumber("");
+    setInvoiceNumberAuto(true);
     setPatientId(defaultPatientId ?? "");
     setCurrencyId("");
     setDiscountId("");
@@ -232,6 +237,7 @@ export function ClientInvoiceFormBody({
   const canSubmit =
     patientId &&
     currencyId &&
+    (invoiceNumberAuto || Number(invoiceNumber) > 0) &&
     items.length > 0 &&
     items.every((it) => {
       if (it.itemType === "gift") {
@@ -254,6 +260,7 @@ export function ClientInvoiceFormBody({
     setSubmitting(true);
     try {
       const created = await api.post<Invoice>("/client-invoices", {
+        ...(invoiceNumberAuto ? {} : { invoiceNumber: Number(invoiceNumber) }),
         patientId,
         currencyId,
         ...(discountId ? { discountId } : {}),
@@ -263,6 +270,7 @@ export function ClientInvoiceFormBody({
             return {
               itemType: "gift",
               amount: Number(it.amount),
+              giftName: it.giftName,
               ...(it.notes ? { notes: it.notes } : {}),
               ...(it.giftMode === "code"
                 ? { giftCode: it.giftCode.trim() }
@@ -296,6 +304,36 @@ export function ClientInvoiceFormBody({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="clientInvoiceNumber" className="text-sm font-medium">
+            Invoice Number *
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              id="clientInvoiceNumberAuto"
+              checked={invoiceNumberAuto}
+              onCheckedChange={(value) => {
+                const next = Boolean(value);
+                setInvoiceNumberAuto(next);
+                if (next) setInvoiceNumber("");
+              }}
+            />
+            <span>Auto</span>
+          </label>
+        </div>
+        <Input
+          id="clientInvoiceNumber"
+          type="number"
+          min="1"
+          step="1"
+          value={invoiceNumber}
+          onChange={(e) => setInvoiceNumber(clampNonNegative(e.target.value))}
+          disabled={invoiceNumberAuto}
+          placeholder={invoiceNumberAuto ? "Auto-generated" : ""}
+        />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Patient</label>
@@ -502,7 +540,7 @@ export function ClientInvoiceFormBody({
                 <>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Gift Type *</label>
-                    <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
+                    <div className="flex w-fit rounded-lg border border-border p-0.5">
                       <button
                         type="button"
                         onClick={() =>
@@ -512,13 +550,13 @@ export function ClientInvoiceFormBody({
                           })
                         }
                         className={cn(
-                          "rounded px-3 py-1 transition-colors",
+                          "rounded-md px-3 py-1 transition-colors",
                           item.giftMode === "code"
                             ? "bg-accent font-medium"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        Sell with code
+                        Code
                       </button>
                       <button
                         type="button"
@@ -529,13 +567,13 @@ export function ClientInvoiceFormBody({
                           })
                         }
                         className={cn(
-                          "rounded px-3 py-1 transition-colors",
+                          "rounded-md px-3 py-1 transition-colors",
                           item.giftMode === "patient"
                             ? "bg-accent font-medium"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        Send to patient
+                        Apply to recipient
                       </button>
                     </div>
                   </div>
@@ -620,7 +658,9 @@ export function ClientInvoiceFormBody({
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
-                        updateItem(idx, { quantity: e.target.value })
+                        updateItem(idx, {
+                          quantity: clampNonNegative(e.target.value),
+                        })
                       }
                     />
                   </div>
@@ -646,7 +686,9 @@ export function ClientInvoiceFormBody({
                           item.itemType === "procedure")
                       }
                       onChange={(e) =>
-                        updateItem(idx, { amount: e.target.value })
+                        updateItem(idx, {
+                          amount: clampNonNegative(e.target.value),
+                        })
                       }
                     />
                   </InputGroup>

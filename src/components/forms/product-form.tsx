@@ -6,7 +6,7 @@ import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { CategoryForm } from "./category-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -118,8 +118,9 @@ export function ProductForm({
             <Input
               type="number"
               step="0.01"
+              min="0"
               value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
+              onChange={(e) => setUnitPrice(clampNonNegative(e.target.value))}
               required
             />
           </div>
@@ -129,16 +130,18 @@ export function ProductForm({
             <label className="text-sm font-medium">Quantity</label>
             <Input
               type="number"
+              min="0"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={(e) => setQuantity(clampNonNegative(e.target.value))}
             />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Min Threshold</label>
             <Input
               type="number"
+              min="0"
               value={minThreshold}
-              onChange={(e) => setMinThreshold(e.target.value)}
+              onChange={(e) => setMinThreshold(clampNonNegative(e.target.value))}
             />
           </div>
         </div>

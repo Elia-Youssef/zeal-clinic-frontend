@@ -22,6 +22,7 @@ export default function DiscountsPage() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "name",
       render: (d) => <span className="font-medium">{d.name}</span>,
@@ -29,6 +30,7 @@ export default function DiscountsPage() {
     {
       key: "discountType",
       header: "Type",
+      className: "w-28",
       render: (d) => (
         <Badge variant="outline" className="capitalize">
           {d.discountType}
@@ -38,12 +40,14 @@ export default function DiscountsPage() {
     {
       key: "value",
       header: "Value",
+      className: "w-32",
       render: (d) =>
         d.valueType === "percentage" ? `${d.value}%` : `$${d.value.toFixed(2)}`,
     },
     {
       key: "code",
       header: "Code",
+      className: "w-40",
       render: (d) =>
         d.code ? (
           <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
@@ -56,16 +60,18 @@ export default function DiscountsPage() {
     {
       key: "dates",
       header: "Period",
+      className: "w-65",
       render: (d) => {
         const s = d.startDate?.slice(0, 10);
         const e = d.endDate?.slice(0, 10);
         if (!s && !e) return "---";
-        return `${s ?? "…"} → ${e ?? "…"}`;
+        return `${s ?? "…"} -> ${e ?? "…"}`;
       },
     },
     {
       key: "isActive",
       header: "Status",
+      className: "w-30",
       sortable: true,
       sortKey: "isActive",
       render: (d) => {
@@ -88,7 +94,6 @@ export default function DiscountsPage() {
         endpoint="/discounts"
         columns={columns}
         rowKey={(d) => d.id}
-        searchPlaceholder="Search discounts…"
         emptyMessage="No discounts yet."
         emptySearchMessage="No discounts match your search."
         onRowClick={(d) => navigate(`/financials/discounts/${d.id}`)}
@@ -105,7 +110,7 @@ export default function DiscountsPage() {
               </Button>
             )}
             {can("discounts:write") && (
-              <AddButton label="Add Offer" onClick={() => setFormOpen(true)} />
+              <AddButton label="New" onClick={() => setFormOpen(true)} />
             )}
           </div>
         }

@@ -11,6 +11,7 @@ import { DataList } from "@/components/data/data-list";
 import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { useSuppliersStore } from "@/lib/stores/suppliers-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { transactionColors } from "@/lib/constants";
@@ -167,14 +168,14 @@ function SupplierDetailContent() {
             title="Invoices"
             columns={[
               {
-                header: "#",
-                key: "#",
+                header: "Invoice No.",
+                key: "Invoice No.",
                 render: (i) => `#${i.invoiceNumber}`,
               },
               {
                 header: "Date",
                 key: "date",
-                render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+                render: (i) => beirutDayKey(i.createdAt) || "---",
               },
               {
                 header: "Amount",
@@ -242,7 +243,7 @@ function SupplierDetailContent() {
                 {
                   header: "Date",
                   key: "date",
-                  render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+                  render: (i) => beirutDayKey(i.createdAt) || "---",
                 },
                 {
                   header: "Method",

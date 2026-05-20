@@ -39,7 +39,7 @@ export function RequireScopes({
   useEffect(() => {
     if (allowed) return;
     const { show, hide } = useLoadingStore.getState();
-    show("Redirecting...");
+    show("Redirecting");
     return () => hide();
   }, [allowed]);
 

@@ -7,7 +7,7 @@ import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, isUnder18 } from "@/lib/utils";
 import { employmentTypeOptions, userRoleOptions } from "@/lib/constants";
 import type { Employee } from "@/lib/types";
 import { DateInput } from "@/components/shared/date-input";
@@ -195,6 +195,11 @@ export function EmployeeForm({
             value={form.dateOfBirth}
             onChange={(v) => update("dateOfBirth", v)}
           />
+          {isUnder18(form.dateOfBirth) && (
+            <p className="text-xs text-amber-600">
+              Employee is under 18 years old.
+            </p>
+          )}
         </div>
 
         {!isEdit && (

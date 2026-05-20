@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import type { Currency } from "@/lib/types";
 
 export function CurrencyForm({
@@ -96,7 +96,7 @@ export function CurrencyForm({
               type="number"
               step="any"
               value={exchangeRate}
-              onChange={(e) => setExchangeRate(e.target.value)}
+              onChange={(e) => setExchangeRate(clampNonNegative(e.target.value))}
               placeholder="1.00"
               required
             />

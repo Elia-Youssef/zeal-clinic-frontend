@@ -116,12 +116,18 @@ export type Appointment = {
   patientId: string;
   patientName?: string;
   roomId: string;
-  status: "Scheduled" | "In-Progress" | "Completed" | "Cancelled";
+  status:
+    | "Scheduled"
+    | "In-Progress"
+    | "Completed"
+    | "Cancelled"
+    | "Rescheduled";
   startTime: string;
   endTime: string;
   notes: string;
   cancelNotes?: string;
   completionNotes?: string;
+  rescheduledFrom?: string;
   createdAt?: string;
   updatedAt?: string;
   appointmentProcedures?: AppointmentProcedure[];
@@ -399,6 +405,7 @@ export type InvoiceItem = {
   itemName?: string;
   giftPatientId?: string | null;
   giftCode?: string | null;
+  giftName?: string | null;
 };
 
 export type Invoice = {
@@ -455,7 +462,7 @@ export type Role = {
 
 export type AuditLogEntry = {
   id: string;
-  userName: string;
+  username: string;
   userRole: string;
   action: "POST" | "PUT" | "DELETE";
   entityType: string;

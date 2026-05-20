@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatInBeirut } from "@/lib/tz";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -12,9 +13,33 @@ export function getErrorMessage(
   return err instanceof Error ? err.message : fallback;
 }
 
+export function clampNonNegative(value: string): string {
+  if (value === "" || value === "-") return "";
+  const n = Number(value);
+  if (!Number.isNaN(n) && n < 0) return "0";
+  return value;
+}
+
+export function isUnder18(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return false;
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const monthDiff = today.getMonth() + 1 - m;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age--;
+  return age < 18;
+}
+
 export function formatTime(input: string | null | undefined): string {
   if (!input) return "---";
-  const match = input.match(/(\d{1,2}):(\d{2})/);
+  // Full RFC3339 timestamps (UTC from the API) must be projected into Beirut
+  // wall-clock before extracting HH:mm; otherwise late-evening Beirut slots
+  // would display in UTC.
+  const source = input.includes("T")
+    ? formatInBeirut(input, "HH:mm")
+    : input;
+  const match = source.match(/(\d{1,2}):(\d{2})/);
   if (!match) return "---";
   const hours = Number(match[1]);
   if (Number.isNaN(hours) || hours > 23) return "---";

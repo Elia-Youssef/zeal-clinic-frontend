@@ -7,7 +7,7 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { transactionMethodOptions } from "@/lib/constants";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import type { BalanceTransaction } from "@/lib/types";
 
 export function ExpensePaymentForm({
@@ -73,7 +73,7 @@ export function ExpensePaymentForm({
               step="0.01"
               min="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
           </div>

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import type { Discount, Patient } from "@/lib/types";
 import { DiscountForm } from "@/components/forms/discount-form";
@@ -162,7 +163,7 @@ function DiscountDetailContent() {
               </DetailField>
               <DetailField label="Redeemed">
                 {discount.redeemedAt
-                  ? discount.redeemedAt.slice(0, 10)
+                  ? beirutDayKey(discount.redeemedAt)
                   : "Not yet"}
               </DetailField>
             </>
@@ -175,7 +176,7 @@ function DiscountDetailContent() {
             {discount.endDate?.slice(0, 10) ?? "---"}
           </DetailField>
           <DetailField label="Created">
-            {discount.createdAt?.slice(0, 10) ?? "---"}
+            {beirutDayKey(discount.createdAt) || "---"}
           </DetailField>
           <DetailField label="Description" className="sm:col-span-2 md:col-span-3">
             {discount.description || "---"}

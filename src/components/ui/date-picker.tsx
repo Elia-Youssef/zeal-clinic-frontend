@@ -43,6 +43,8 @@ export function DatePicker({
   required,
   disabled,
   className,
+  min,
+  max,
 }: {
   value: string
   onChange: (iso: string) => void
@@ -50,10 +52,20 @@ export function DatePicker({
   required?: boolean
   disabled?: boolean
   className?: string
+  min?: string
+  max?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = parseISO(value)
   const showClear = !required && !!value && !disabled
+  const minDate = parseISO(min ?? "")
+  const maxDate = parseISO(max ?? "")
+  const disabledMatcher = React.useMemo(() => {
+    if (minDate && maxDate) return [{ before: minDate }, { after: maxDate }]
+    if (minDate) return { before: minDate }
+    if (maxDate) return { after: maxDate }
+    return undefined
+  }, [minDate, maxDate])
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -85,7 +97,8 @@ export function DatePicker({
                 setOpen(false)
               }
             }}
-            defaultMonth={selected}
+            defaultMonth={selected ?? minDate ?? maxDate}
+            disabled={disabledMatcher}
           />
         </PopoverContent>
       </Popover>

@@ -36,9 +36,9 @@ export const transactionMethodOptions: DropdownOption[] = [
 ];
 
 export const employeePaymentTypeOptions: DropdownOption[] = [
-  { value: "salary", label: "Salary" },
-  { value: "bonus", label: "Bonus" },
-  { value: "adjustment", label: "Adjustment" },
+  { value: "cash", label: "Cash" },
+  { value: "card", label: "Card" },
+  { value: "transfer", label: "Transfer" },
 ];
 
 export const invoiceItemTypeOptions: DropdownOption[] = [
@@ -63,6 +63,7 @@ export const appointmentStatuses = [
   "In-Progress",
   "Completed",
   "Cancelled",
+  "Rescheduled",
 ] as const;
 
 export const roomTypeOptions: DropdownOption[] = [
@@ -101,6 +102,12 @@ export const appointmentStatusStyles: Record<string, AppointmentStatusStyle> = {
     badge:
       "bg-status-cancelled text-status-cancelled-foreground hover:bg-status-cancelled/90",
     tint: "border-status-cancelled/30 bg-status-cancelled/10 text-status-cancelled",
+  },
+  Rescheduled: {
+    card: "bg-status-rescheduled/10 border-status-rescheduled/40",
+    badge:
+      "bg-status-rescheduled text-status-rescheduled-foreground hover:bg-status-rescheduled/90",
+    tint: "border-status-rescheduled/30 bg-status-rescheduled/10 text-status-rescheduled",
   },
 };
 

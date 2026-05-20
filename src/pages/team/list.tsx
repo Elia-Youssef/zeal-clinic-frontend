@@ -23,6 +23,7 @@ function TeamContent() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "firstName",
       render: (e) => (
@@ -34,6 +35,7 @@ function TeamContent() {
     {
       key: "contact",
       header: "Contact",
+      className: "w-50",
       sortable: true,
       sortKey: "contact",
       render: (e) => e.contact,
@@ -41,6 +43,7 @@ function TeamContent() {
     {
       key: "email",
       header: "Email",
+      className: "w-60",
       sortable: true,
       sortKey: "email",
       render: (e) => e.email || "---",
@@ -48,7 +51,7 @@ function TeamContent() {
     {
       key: "role",
       header: "Role",
-      className: "w-40",
+      className: "w-48",
       sortable: true,
       sortKey: "role",
       render: (e) => <Badge variant="outline">{e.role}</Badge>,
@@ -56,7 +59,7 @@ function TeamContent() {
     {
       key: "type",
       header: "Type",
-      className: "w-25",
+      className: "w-32",
       sortable: true,
       sortKey: "employmentType",
       render: (e) => (
@@ -76,7 +79,6 @@ function TeamContent() {
         endpoint="/employees"
         columns={columns}
         rowKey={(e) => e.id}
-        searchPlaceholder="Search employees…"
         emptyMessage="No employees yet."
         emptySearchMessage="No employees match your search."
         onRowClick={(e) => navigate(`/team/${e.id}`)}
@@ -94,10 +96,7 @@ function TeamContent() {
               </Button>
             )}
             {can("employees:write") && (
-              <AddButton
-                label="Add Employee"
-                onClick={() => setFormOpen(true)}
-              />
+              <AddButton label="New" onClick={() => setFormOpen(true)} />
             )}
           </div>
         }

@@ -183,7 +183,7 @@ export function SearchableDropdown({
         <PopoverContent
           align="start"
           sideOffset={4}
-          className="w-(--anchor-width) max-h-56 gap-0 overflow-hidden p-0"
+          className="w-auto min-w-(--anchor-width) max-w-[min(28rem,calc(100vw-1rem))] max-h-56 gap-0 overflow-hidden p-0"
           initialFocus={false}
         >
           <div className="flex items-center gap-1 p-1.5">
@@ -220,7 +220,7 @@ export function SearchableDropdown({
                   type="button"
                   onClick={() => select(opt.value)}
                   className={cn(
-                    "block w-full truncate rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
+                    "block w-full whitespace-nowrap rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
                     opt.value === value && "bg-accent font-medium",
                   )}
                 >

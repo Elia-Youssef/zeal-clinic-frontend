@@ -10,6 +10,7 @@ export default function RolesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-50",
       sortable: true,
       sortKey: "name",
       render: (r) => <span className="font-mono text-sm">{r.name}</span>,
@@ -17,6 +18,7 @@ export default function RolesPage() {
     {
       key: "label",
       header: "Label",
+      className: "truncate",
       sortable: true,
       sortKey: "label",
       render: (r) => <span className="font-medium">{r.label}</span>,
@@ -24,6 +26,7 @@ export default function RolesPage() {
     {
       key: "permissions",
       header: "Permissions",
+      className: "w-42",
       render: (r) => (
         <span className="text-xs text-muted-foreground">
           {r.scopes.length} permissions

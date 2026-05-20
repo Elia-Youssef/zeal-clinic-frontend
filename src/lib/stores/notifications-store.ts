@@ -6,6 +6,9 @@ type NotificationsState = {
   items: Notification[];
   unreadCount: number;
   loading: boolean;
+  // Bumped each time an unread notification arrives in real time, so the bell
+  // can animate on receipt without also firing on the initial load fetch.
+  receivedNonce: number;
   fetch: () => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
@@ -18,6 +21,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   items: [],
   unreadCount: 0,
   loading: false,
+  receivedNonce: 0,
 
   fetch: async () => {
     set({ loading: true });
@@ -68,9 +72,11 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     set((state) => {
       // SSE may deliver duplicates.
       if (state.items.some((n) => n.id === notification.id)) return state;
+      const isUnread = !notification.isRead;
       return {
         items: [notification, ...state.items],
-        unreadCount: state.unreadCount + (notification.isRead ? 0 : 1),
+        unreadCount: state.unreadCount + (isUnread ? 1 : 0),
+        receivedNonce: state.receivedNonce + (isUnread ? 1 : 0),
       };
     });
   },

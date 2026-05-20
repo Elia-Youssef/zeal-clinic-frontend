@@ -18,6 +18,7 @@ function StaffContent() {
     {
       key: "username",
       header: "Username",
+      className: "w-50",
       sortable: true,
       sortKey: "username",
       render: (u) => <span className="font-medium">{u.username}</span>,
@@ -25,6 +26,7 @@ function StaffContent() {
     {
       key: "displayName",
       header: "Display Name",
+      className: "truncate",
       sortable: true,
       sortKey: "displayName",
       render: (u) => u.displayName,
@@ -32,7 +34,7 @@ function StaffContent() {
     {
       key: "role",
       header: "Role",
-      className: "w-36",
+      className: "w-40",
       sortable: true,
       sortKey: "role",
       render: (u) => <Badge variant="outline">{u.role}</Badge>,
@@ -58,13 +60,12 @@ function StaffContent() {
         endpoint="/users"
         columns={columns}
         rowKey={(u) => u.id}
-        searchPlaceholder="Search staff..."
         emptyMessage="No staff yet."
         emptySearchMessage="No staff match your search."
         onRowClick={(u) => navigate(`/settings/staff/${u.id}`)}
         headerActions={
           can("users:write") ? (
-            <AddButton label="Add Staff" onClick={() => setFormOpen(true)} />
+            <AddButton label="New" onClick={() => setFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}

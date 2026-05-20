@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { api } from "@/lib/api";
+import { api, BASE_URL } from "@/lib/api";
 
 type LoginResponse = {
   token: string;
@@ -36,20 +36,42 @@ export const useAuthStore = create<AuthState>((set) => ({
   scopes: [],
 
   login: async (username, password) => {
-    const data = await api.post<LoginResponse>("/auth/login", {
-      username,
-      password,
-    });
-    sessionStorage.setItem("token", data.token);
-    sessionStorage.setItem("auth_user", data.user);
-    sessionStorage.setItem("auth_role", data.role);
-    sessionStorage.setItem("auth_scopes", JSON.stringify(data.scopes));
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch {
+      throw new Error("Unable to connect to the server.");
+    }
+
+    let json: {
+      Success?: boolean;
+      Error?: string;
+      Data?: LoginResponse;
+    } = {};
+    try {
+      json = await res.json();
+    } catch {
+      throw new Error(res.statusText || "Login failed");
+    }
+
+    if (!res.ok || json.Success === false || !json.Data?.token) {
+      throw new Error(json.Error ?? "Login failed");
+    }
+
+    sessionStorage.setItem("token", json.Data.token);
+    sessionStorage.setItem("auth_user", json.Data.user);
+    sessionStorage.setItem("auth_role", json.Data.role);
+    sessionStorage.setItem("auth_scopes", JSON.stringify(json.Data.scopes));
     set({
-      token: data.token,
+      token: json.Data.token,
       isAuthenticated: true,
-      user: data.user,
-      role: data.role,
-      scopes: data.scopes,
+      user: json.Data.user,
+      role: json.Data.role,
+      scopes: json.Data.scopes,
     });
   },
 

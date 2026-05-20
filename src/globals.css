@@ -35,6 +35,8 @@
   --color-status-completed-foreground: var(--status-completed-foreground);
   --color-status-cancelled: var(--status-cancelled);
   --color-status-cancelled-foreground: var(--status-cancelled-foreground);
+  --color-status-rescheduled: var(--status-rescheduled);
+  --color-status-rescheduled-foreground: var(--status-rescheduled-foreground);
   --color-positive: var(--positive);
   --color-warning: var(--warning);
   --color-negative: var(--negative);
@@ -94,6 +96,8 @@
   --status-completed-foreground: oklch(1 0 0);
   --status-cancelled: oklch(0.55 0.045 25);
   --status-cancelled-foreground: oklch(1 0 0);
+  --status-rescheduled: oklch(0.55 0.13 290);
+  --status-rescheduled-foreground: oklch(1 0 0);
   /* Financial direction. */
   --positive: oklch(0.58 0.12 160);
   --warning: oklch(0.65 0.13 75);
@@ -139,6 +143,8 @@
   --status-completed-foreground: oklch(1 0 0);
   --status-cancelled: oklch(0.62 0.045 25);
   --status-cancelled-foreground: oklch(1 0 0);
+  --status-rescheduled: oklch(0.62 0.13 290);
+  --status-rescheduled-foreground: oklch(1 0 0);
   --positive: oklch(0.7 0.12 160);
   --warning: oklch(0.76 0.13 75);
   --negative: oklch(0.68 0.16 28);

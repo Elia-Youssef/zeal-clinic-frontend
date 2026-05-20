@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { beirutToday } from "@/lib/tz";
 
 export function DateInput({
   value,
@@ -49,6 +50,14 @@ export function DateInput({
     );
   };
 
+  const isFutureDate = (d: string, m: string, y: string) => {
+    // Compare on Beirut calendar days, not browser-local: a clinic user
+    // travelling abroad shouldn't see their input rejected as "future" just
+    // because their device clock hasn't rolled into the next day yet.
+    const picked = `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    return picked > beirutToday();
+  };
+
   const isValidTimeParts = (h: string, min: string) => {
     if (h.length === 0 || min.length === 0) return false;
     const hourNum = Number(h);
@@ -87,7 +96,7 @@ export function DateInput({
 
   const emit = (d: string, m: string, y: string, h?: string, min?: string) => {
     if (d && m && y && y.length === 4) {
-      if (!isValidDateParts(d, m, y)) {
+      if (!isValidDateParts(d, m, y) || isFutureDate(d, m, y)) {
         onChange("");
         return;
       }
@@ -165,12 +174,34 @@ export function DateInput({
   const showClear = !required && hasValue;
   const fullDateInvalid =
     !!day && !!month && year.length === 4 && !isValidDateParts(day, month, year);
+  const fullDateFuture =
+    !!day &&
+    !!month &&
+    year.length === 4 &&
+    !fullDateInvalid &&
+    isFutureDate(day, month, year);
   const fullTimeInvalid =
     mode === "datetime" &&
     !!hours &&
     !!minutes &&
     !isValidTimeParts(hours, minutes);
-  const invalid = fullDateInvalid || fullTimeInvalid;
+  const invalid = fullDateInvalid || fullDateFuture || fullTimeInvalid;
+
+  // Block native form submission while the input is invalid. Without this,
+  // the per-segment <input>s appear filled to the browser even though emit()
+  // refused to store the bad value, and the parent form submits silently.
+  useEffect(() => {
+    const yearEl = yearRef.current;
+    if (!yearEl) return;
+    const message = fullDateFuture
+      ? "Date cannot be in the future."
+      : fullDateInvalid
+        ? "Enter a valid date."
+        : fullTimeInvalid
+          ? "Enter a valid time."
+          : "";
+    yearEl.setCustomValidity(message);
+  }, [fullDateFuture, fullDateInvalid, fullTimeInvalid]);
 
   const clear = () => {
     setDay("");

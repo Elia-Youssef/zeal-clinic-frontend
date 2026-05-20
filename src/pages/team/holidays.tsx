@@ -64,6 +64,7 @@ function HolidaysContent() {
     {
       key: "name",
       header: "Name",
+      className: "w-75",
       sortable: true,
       sortKey: "name",
       render: (h) => <span className="font-medium">{h.name}</span>,
@@ -71,12 +72,13 @@ function HolidaysContent() {
     {
       key: "dates",
       header: "Dates",
-      className: "w-56",
+      className: "w-50",
       render: (h) => fmtRange(h),
     },
     {
       key: "notes",
       header: "Notes",
+      className: "truncate",
       render: (h) => (
         <span className="text-muted-foreground">{h.notes || "---"}</span>
       ),
@@ -101,14 +103,13 @@ function HolidaysContent() {
         endpoint="/holidays"
         columns={columns}
         rowKey={(h) => h.id}
-        searchPlaceholder="Search holidays…"
         emptyMessage="No holidays yet."
         emptySearchMessage="No holidays match your search."
         onRowClick={can("hr:write") ? openEdit : undefined}
         actions={actions}
         headerActions={
           can("hr:write") ? (
-            <AddButton label="Add Holiday" onClick={openCreate} />
+            <AddButton label="New" onClick={openCreate} />
           ) : undefined
         }
         refreshKey={refreshKey}

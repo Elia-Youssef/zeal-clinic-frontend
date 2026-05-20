@@ -1,6 +1,8 @@
 
+import { useId } from "react"
 import { Link } from "react-router-dom"
 import { useLocation } from "react-router-dom"
+import { motion } from "motion/react"
 import { usePermissions } from "@/hooks/use-permissions"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +20,8 @@ export function RouteTabs({
 }) {
   const { pathname } = useLocation()
   const { canAny, canAll } = usePermissions()
+  const layoutId = useId()
+
   const visibleTabs = tabs.filter((tab) => {
     if (!tab.scopes?.length) return true
     return tab.mode === "all" ? canAll(...tab.scopes) : canAny(...tab.scopes)
@@ -29,20 +33,30 @@ export function RouteTabs({
     <div className="-mx-4 overflow-x-auto px-4">
       <div className="flex justify-center">
         <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-          {visibleTabs.map((tab) => (
-            <Link
-              key={tab.href}
-              to={tab.href}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                pathname === tab.href
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab.label}
-            </Link>
-          ))}
+          {visibleTabs.map((tab) => {
+            const isActive = pathname === tab.href
+            return (
+              <Link
+                key={tab.href}
+                to={tab.href}
+                className={cn(
+                  "relative shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId={layoutId}
+                    className="absolute inset-0 rounded-md bg-background shadow-sm"
+                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
+              </Link>
+            )
+          })}
         </div>
       </div>
     </div>

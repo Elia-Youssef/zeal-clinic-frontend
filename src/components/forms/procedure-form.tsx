@@ -7,7 +7,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import type { Procedure } from "@/lib/types";
 import { ProcedureTypeForm } from "./procedure-type-form";
 import { ProcedureCategoryForm } from "./procedure-category-form";
@@ -134,8 +134,9 @@ export function ProcedureForm({
             <label className="text-sm font-medium">Price</label>
             <Input
               type="number"
+              min="0"
               value={form.price}
-              onChange={(e) => update("price", e.target.value)}
+              onChange={(e) => update("price", clampNonNegative(e.target.value))}
             />
           </div>
           <div className="space-y-1.5">

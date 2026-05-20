@@ -10,6 +10,12 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import {
+  beirutDaysAgo,
+  beirutToday,
+  dateRangeToUtc,
+  formatInBeirut,
+} from "@/lib/tz";
 
 const reportTabs = ["Revenue", "Expenses"];
 
@@ -57,21 +63,6 @@ const levelOptions: { value: RevenueLevel; label: string }[] = [
   { value: "product", label: "Products" },
 ];
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function isoToday() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function isoDaysAgo(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 function formatMoney(n: number) {
   return n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -79,11 +70,14 @@ function formatMoney(n: number) {
   });
 }
 
-function formatDate(iso: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso.slice(0, 10);
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+function formatDate(value: string) {
+  if (!value) return "";
+  // Backend returns either a pure date (yyyy-MM-dd) or an RFC3339 timestamp.
+  // Format both as the clinic's local calendar day in Beirut.
+  if (value.includes("T")) return formatInBeirut(value, "dd/MM/yyyy");
+  const [y, m, d] = value.slice(0, 10).split("-");
+  if (!y || !m || !d) return value;
+  return `${d}/${m}/${y}`;
 }
 
 function buildQuery(params: Record<string, string>) {
@@ -130,9 +124,8 @@ export default function ReportsPage() {
 
 function RevenueReport() {
   const { addAlert } = useAlertStore();
-  const [from, setFrom] = useState(isoDaysAgo(30));
-  const [to, setTo] = useState(isoToday());
-  const [currencyId, setCurrencyId] = useState("");
+  const [from, setFrom] = useState(beirutDaysAgo(30));
+  const [to, setTo] = useState(beirutToday());
   const [level, setLevel] = useState<RevenueLevel>("kind");
   const [data, setData] = useState<RevenueResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,8 +134,8 @@ function RevenueReport() {
   const handlePrintPdf = async () => {
     setPdfLoading(true);
     try {
-      const params: Record<string, string> = { from, to, level };
-      if (currencyId) params.currencyId = currencyId;
+      const range = dateRangeToUtc(from, to);
+      const params: Record<string, string> = { ...range, level };
       await api.openPdf(`/reports/revenue/pdf${buildQuery(params)}`);
     } catch (err) {
       addAlert("error", getErrorMessage(err, "Failed to generate PDF."));
@@ -153,8 +146,8 @@ function RevenueReport() {
 
   useEffect(() => {
     let aborted = false;
-    const params: Record<string, string> = { from, to, level };
-    if (currencyId) params.currencyId = currencyId;
+    const range = dateRangeToUtc(from, to);
+    const params: Record<string, string> = { ...range, level };
     setLoading(true);
     api
       .get<RevenueResponse>(`/reports/revenue${buildQuery(params)}`)
@@ -174,30 +167,14 @@ function RevenueReport() {
     return () => {
       aborted = true;
     };
-  }, [from, to, currencyId, level, addAlert]);
+  }, [from, to, level, addAlert]);
 
   return (
     <>
       <div className="rounded-lg border bg-muted/30 p-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">
-          <DateField label="From" value={from} onChange={setFrom} />
-          <DateField label="To" value={to} onChange={setTo} />
-          <div className="w-full space-y-1.5 sm:w-48">
-            <label className="text-xs font-medium text-muted-foreground">
-              Currency
-            </label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="All currencies"
-              clearable
-            />
-          </div>
+          <DateField label="From" value={from} onChange={setFrom} max={to} />
+          <DateField label="To" value={to} onChange={setTo} min={from} />
           <div className="w-full space-y-1.5 sm:w-56">
             <label className="text-xs font-medium text-muted-foreground">
               Group by
@@ -296,9 +273,8 @@ function RevenueReport() {
 
 function ExpensesReport() {
   const { addAlert } = useAlertStore();
-  const [from, setFrom] = useState(isoDaysAgo(30));
-  const [to, setTo] = useState(isoToday());
-  const [currencyId, setCurrencyId] = useState("");
+  const [from, setFrom] = useState(beirutDaysAgo(30));
+  const [to, setTo] = useState(beirutToday());
   const [rows, setRows] = useState<ExpenseRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -306,8 +282,7 @@ function ExpensesReport() {
   const handlePrintPdf = async () => {
     setPdfLoading(true);
     try {
-      const params: Record<string, string> = { from, to };
-      if (currencyId) params.currencyId = currencyId;
+      const params: Record<string, string> = dateRangeToUtc(from, to);
       await api.openPdf(`/reports/expenses/pdf${buildQuery(params)}`);
     } catch (err) {
       addAlert("error", getErrorMessage(err, "Failed to generate PDF."));
@@ -318,8 +293,7 @@ function ExpensesReport() {
 
   useEffect(() => {
     let aborted = false;
-    const params: Record<string, string> = { from, to };
-    if (currencyId) params.currencyId = currencyId;
+    const params: Record<string, string> = dateRangeToUtc(from, to);
     setLoading(true);
     api
       .get<ExpenseRow[]>(`/reports/expenses${buildQuery(params)}`)
@@ -339,7 +313,7 @@ function ExpensesReport() {
     return () => {
       aborted = true;
     };
-  }, [from, to, currencyId, addAlert]);
+  }, [from, to, addAlert]);
 
   const totals = useMemo(() => {
     if (!rows) return { quantity: 0, amount: 0, remainingBalance: 0, total: 0 };
@@ -358,24 +332,8 @@ function ExpensesReport() {
     <>
       <div className="rounded-lg border bg-muted/30 p-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">
-          <DateField label="From" value={from} onChange={setFrom} />
-          <DateField label="To" value={to} onChange={setTo} />
-          <div className="w-full space-y-1.5 sm:w-48">
-            <label className="text-xs font-medium text-muted-foreground">
-              Currency
-            </label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="All currencies"
-              clearable
-            />
-          </div>
+          <DateField label="From" value={from} onChange={setFrom} max={to} />
+          <DateField label="To" value={to} onChange={setTo} min={from} />
           <div className="w-full sm:ml-auto sm:w-auto">
             <Button
               variant="outline"
@@ -489,17 +447,27 @@ function DateField({
   label,
   value,
   onChange,
+  min,
+  max,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  min?: string;
+  max?: string;
 }) {
   return (
     <div className="w-full space-y-1.5 sm:w-auto">
       <label className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
-      <DatePicker value={value} onChange={onChange} className="w-full sm:w-40" />
+      <DatePicker
+        value={value}
+        onChange={onChange}
+        min={min}
+        max={max}
+        className="w-full sm:w-40"
+      />
     </div>
   );
 }

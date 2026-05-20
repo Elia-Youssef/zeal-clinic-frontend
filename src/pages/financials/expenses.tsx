@@ -6,6 +6,7 @@ import { AddButton } from "@/components/shared/add-button";
 import { ExpenseForm } from "@/components/forms/expense-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { Expense } from "@/lib/types";
+import { beirutDayKey } from "@/lib/tz";
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function ExpensesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-70",
       sortable: true,
       sortKey: "name",
       render: (e) => <span className="font-medium">{e.name}</span>,
@@ -24,6 +26,7 @@ export default function ExpensesPage() {
     {
       key: "notes",
       header: "Notes",
+      className: "truncate",
       sortable: true,
       sortKey: "notes",
       render: (e) => (
@@ -33,8 +36,8 @@ export default function ExpensesPage() {
     {
       key: "created",
       header: "Created",
-      className: "w-32",
-      render: (e) => e.createdAt?.slice(0, 10) ?? "---",
+      className: "w-36",
+      render: (e) => beirutDayKey(e.createdAt) || "---",
     },
   ];
 
@@ -50,7 +53,6 @@ export default function ExpensesPage() {
         columns={expenseColumns}
         rowKey={(e) => e.id}
         onRowClick={(e) => navigate(`/financials/expenses/${e.id}`)}
-        searchPlaceholder="Search expenses..."
         emptyMessage="No expenses yet."
         headerActions={
           can("expenses:write") ? (

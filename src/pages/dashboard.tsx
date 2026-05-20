@@ -34,6 +34,7 @@ const appointmentColumns: Column<Appointment>[] = [
   {
     key: "patient",
     header: "Patient",
+    className: "truncate",
     render: (a) => {
       const procedures = a.appointmentProcedures
         ?.map((p) => p.procedureName)
@@ -75,6 +76,7 @@ const transactionColumns: Column<BalanceTransaction>[] = [
   {
     key: "description",
     header: "Description",
+    className: "truncate",
     render: (t) => (
       <div>
         <p className="font-medium">
@@ -109,6 +111,7 @@ const topProcedureColumns: Column<TopProcedure>[] = [
   {
     key: "name",
     header: "Procedure",
+    className: "truncate",
     render: (p) => <span className="font-medium">{p.name}</span>,
   },
   {

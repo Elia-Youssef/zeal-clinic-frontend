@@ -17,15 +17,11 @@ import {
 import { EmployeeWeekSchedule } from "@/components/shared/employee-week-schedule";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { useEmployeesStore } from "@/lib/stores/employees-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { transactionColors } from "@/lib/constants";
-import type {
-  AuditLogEntry,
-  Salary,
-  SalaryPreparation,
-  Transaction,
-} from "@/lib/types";
+import type { Salary, SalaryPreparation, Transaction } from "@/lib/types";
 import { EmployeeForm } from "@/components/forms/employee-form";
 import { EmployeePaymentForm } from "@/components/forms/employee-payment-form";
 import { SalaryForm } from "@/components/forms/salary-form";
@@ -177,6 +173,7 @@ export default function EmployeeDetailPage() {
     {
       key: "amount",
       header: "Amount",
+      className: "w-34",
       render: (s) => (
         <span className="font-medium">${s.amount.toFixed(2)}</span>
       ),
@@ -184,6 +181,7 @@ export default function EmployeeDetailPage() {
     {
       key: "status",
       header: "Status",
+      className: "w-30",
       render: (s) => (
         <Badge variant={s.isActive ? "default" : "outline"}>
           {s.isActive ? "Active" : "Inactive"}
@@ -193,11 +191,13 @@ export default function EmployeeDetailPage() {
     {
       key: "effectiveDate",
       header: "Effective",
+      className: "w-40",
       render: (s) => s.effectiveDate?.slice(0, 10) ?? "---",
     },
     {
       key: "notes",
       header: "Notes",
+      className: "truncate",
       render: (s) => (
         <span className="text-muted-foreground">{s.notes || "---"}</span>
       ),
@@ -256,9 +256,7 @@ export default function EmployeeDetailPage() {
           className={`${can("employee-payments:read") ? "flex-1" : ""} flex flex-col gap-4`}
         >
           <CardHeader className="flex flex-row flex-wrap items-center gap-2">
-            <CardTitle className="min-w-0 flex-1 basis-32">
-              Salaries
-            </CardTitle>
+            <CardTitle className="min-w-0 flex-1 basis-32">Salaries</CardTitle>
             {can("employee-salaries:write") && (
               <Button
                 size="sm"
@@ -328,11 +326,13 @@ export default function EmployeeDetailPage() {
                 {
                   header: "Date",
                   key: "date",
-                  render: (p) => p.createdAt?.slice(0, 10) ?? "---",
+                  className: "w-36",
+                  render: (p) => beirutDayKey(p.createdAt) || "---",
                 },
                 {
                   header: "Type",
                   key: "type",
+                  className: "w-36",
                   render: (p) =>
                     p.transactionType ? (
                       <Badge variant="outline" className="capitalize">
@@ -345,6 +345,7 @@ export default function EmployeeDetailPage() {
                 {
                   header: "Description",
                   key: "description",
+                  className: "truncate",
                   render: (p) => (
                     <span className="truncate text-muted-foreground">
                       {p.description || "---"}
@@ -354,6 +355,7 @@ export default function EmployeeDetailPage() {
                 {
                   header: "Amount",
                   key: "amount",
+                  className: "w-32 text-right",
                   render: (p) => {
                     const isInflow = balance?.id === p.fromBalanceId;
                     return (
@@ -418,129 +420,90 @@ export default function EmployeeDetailPage() {
         )}
       </div>
 
-      <DataList<SalaryPreparation>
-        title="Prepared Salaries"
-        endpoint={`/employees/${id}/prepared-salaries`}
-        columns={[
-          {
-            header: "Period",
-            key: "period",
-            render: (p) =>
-              `${p.periodStart?.slice(0, 10) ?? "---"} → ${p.periodEnd?.slice(0, 10) ?? "---"}`,
-          },
-          {
-            header: "Base",
-            key: "base",
-            render: (p) => `$${p.baseSalary?.toFixed(2) ?? "0.00"}`,
-          },
-          {
-            header: "Adjustment",
-            key: "adjustment",
-            render: (p) =>
-              p.adjustment != null && p.adjustment !== 0 ? (
-                <span
-                  className={
-                    p.adjustment > 0
-                      ? transactionColors.inflow
-                      : transactionColors.outflow
-                  }
-                >
-                  {p.adjustment > 0 ? "+" : "-"}$
-                  {Math.abs(p.adjustment).toFixed(2)}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DataList<SalaryPreparation>
+          title="Prepared Salaries"
+          endpoint={`/employees/${id}/prepared-salaries`}
+          columns={[
+            {
+              header: "Period",
+              key: "period",
+              className: "truncate",
+              render: (p) =>
+                `${p.periodStart?.slice(0, 10) ?? "---"} → ${p.periodEnd?.slice(0, 10) ?? "---"}`,
+            },
+            {
+              header: "Base",
+              key: "base",
+              className: "w-32",
+              render: (p) => `$${p.baseSalary?.toFixed(2) ?? "0.00"}`,
+            },
+            {
+              header: "Adjustment",
+              key: "adjustment",
+              className: "w-32",
+              render: (p) =>
+                p.adjustment != null && p.adjustment !== 0 ? (
+                  <span
+                    className={
+                      p.adjustment > 0
+                        ? transactionColors.inflow
+                        : transactionColors.outflow
+                    }
+                  >
+                    {p.adjustment > 0 ? "+" : "-"}$
+                    {Math.abs(p.adjustment).toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">---</span>
+                ),
+            },
+            {
+              header: "Prepared",
+              key: "prepared",
+              className: "w-32",
+              render: (p) => (
+                <span className="font-medium">
+                  ${p.preparedAmount?.toFixed(2) ?? "0.00"}
                 </span>
-              ) : (
-                <span className="text-muted-foreground">---</span>
               ),
-          },
-          {
-            header: "Prepared",
-            key: "prepared",
-            render: (p) => (
-              <span className="font-medium">
-                ${p.preparedAmount?.toFixed(2) ?? "0.00"}
-              </span>
-            ),
-          },
-          {
-            header: "Date",
-            key: "date",
-            render: (p) => p.createdAt?.slice(0, 10) ?? "---",
-          },
-        ]}
-        rowKey={(p) => p.id}
-        actions={[
-          ...(can("employee-payments:write")
-            ? [
-                {
-                  label: "Edit Adjustment",
-                  icon: <Pencil className="size-3.5" />,
-                  onClick: (p: SalaryPreparation) => setEditingAdjustment(p),
-                },
-              ]
-            : []),
-          ...(can("employee-payments:delete")
-            ? [
-                {
-                  label: "Delete",
-                  icon: <Trash2 className="size-3.5" />,
-                  destructive: true,
-                  onClick: (p: SalaryPreparation) => handleDeletePreparation(p),
-                },
-              ]
-            : []),
-        ]}
-        limit={10}
-        hideSearch
-        refreshKey={preparedSalariesKey}
-        emptyMessage="No prepared salaries."
-      />
-
-      <DataList<AuditLogEntry>
-        title="Actions"
-        endpoint={`/employees/${id}/actions`}
-        columns={[
-          {
-            header: "Action",
-            key: "action",
-            render: (a) => (
-              <Badge
-                variant={
-                  a.action?.startsWith("POST")
-                    ? "default"
-                    : a.action?.startsWith("DELETE")
-                      ? "destructive"
-                      : "secondary"
-                }
-              >
-                {a.action}
-              </Badge>
-            ),
-          },
-          {
-            header: "Entity",
-            key: "entity",
-            render: (a) => a.entityType ?? "---",
-          },
-          {
-            header: "Details",
-            key: "details",
-            render: (a) => (
-              <span className="truncate text-muted-foreground">
-                {a.details || "---"}
-              </span>
-            ),
-          },
-          {
-            header: "Date",
-            key: "date",
-            render: (a) => a.createdAt?.slice(0, 10) ?? "---",
-          },
-        ]}
-        rowKey={(a) => a.id}
-        limit={10}
-        searchPlaceholder="Search actions…"
-        emptyMessage="No recent actions."
-      />
+            },
+            {
+              header: "Date",
+              key: "date",
+              className: "w-32",
+              render: (p) => beirutDayKey(p.createdAt) || "---",
+            },
+          ]}
+          rowKey={(p) => p.id}
+          actions={[
+            ...(can("employee-payments:write")
+              ? [
+                  {
+                    label: "Edit Adjustment",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (p: SalaryPreparation) => setEditingAdjustment(p),
+                  },
+                ]
+              : []),
+            ...(can("employee-payments:delete")
+              ? [
+                  {
+                    label: "Delete",
+                    icon: <Trash2 className="size-3.5" />,
+                    destructive: true,
+                    onClick: (p: SalaryPreparation) =>
+                      handleDeletePreparation(p),
+                  },
+                ]
+              : []),
+          ]}
+          limit={10}
+          hideSearch
+          refreshKey={preparedSalariesKey}
+          emptyMessage="No prepared salaries."
+        />
+      </div>
 
       <EmployeeForm
         open={editOpen}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -46,31 +45,41 @@ export default function MedicinesPage() {
     {
       key: "name",
       header: "Name",
+      className: "w-80",
       sortable: true,
       sortKey: "name",
       render: (m) => <span className="font-medium">{m.name}</span>,
     },
-    { key: "desc", header: "Description", render: (m) => m.description || "---" },
+    {
+      key: "desc",
+      header: "Description",
+      className: "truncate",
+      render: (m) => m.description || "---",
+    },
   ];
 
   const actions: RowAction<Medicine>[] = [
     ...(can("medicines:write")
-      ? [{
-          label: "Edit",
-          icon: <Pencil className="size-3.5" />,
-          onClick: (m: Medicine) => {
-            setEditing(m);
-            setFormOpen(true);
+      ? [
+          {
+            label: "Edit",
+            icon: <Pencil className="size-3.5" />,
+            onClick: (m: Medicine) => {
+              setEditing(m);
+              setFormOpen(true);
+            },
           },
-        }]
+        ]
       : []),
     ...(can("medicines:delete")
-      ? [{
-          label: "Delete",
-          icon: <Trash2 className="size-3.5" />,
-          destructive: true,
-          onClick: (m: Medicine) => handleDelete(m),
-        }]
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="size-3.5" />,
+            destructive: true,
+            onClick: (m: Medicine) => handleDelete(m),
+          },
+        ]
       : []),
   ];
 
@@ -86,7 +95,7 @@ export default function MedicinesPage() {
         headerActions={
           can("medicines:write") ? (
             <AddButton
-              label="Add Medicine"
+              label="New"
               onClick={() => {
                 setEditing(undefined);
                 setFormOpen(true);

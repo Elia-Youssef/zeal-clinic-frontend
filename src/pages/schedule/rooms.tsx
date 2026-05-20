@@ -46,6 +46,7 @@ export default function RoomsPage() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "name",
       render: (r) => <span className="font-medium">{r.name}</span>,
@@ -53,6 +54,7 @@ export default function RoomsPage() {
     {
       key: "type",
       header: "Type",
+      className: "w-54",
       sortable: true,
       sortKey: "type",
       render: (r) => <Badge variant="outline">{r.type}</Badge>,
@@ -60,6 +62,7 @@ export default function RoomsPage() {
     {
       key: "avail",
       header: "Available",
+      className: "w-36",
       render: (r) =>
         r.isAvailable ? (
           <Badge>Yes</Badge>
@@ -106,7 +109,7 @@ export default function RoomsPage() {
         headerActions={
           can("rooms:write") ? (
             <AddButton
-              label="Add Room"
+              label="New"
               onClick={() => {
                 setEditing(undefined);
                 setFormOpen(true);

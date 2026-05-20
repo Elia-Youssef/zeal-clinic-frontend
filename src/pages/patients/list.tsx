@@ -17,6 +17,7 @@ export default function PatientsListPage() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "firstName",
       render: (p) => (
@@ -29,6 +30,7 @@ export default function PatientsListPage() {
     {
       key: "contact",
       header: "Contact",
+      className: "w-60",
       sortable: true,
       sortKey: "contact",
       render: (p) => p.contact,
@@ -36,6 +38,7 @@ export default function PatientsListPage() {
     {
       key: "email",
       header: "Email",
+      className: "w-60",
       sortable: true,
       sortKey: "email",
       render: (p) => p.email || "---",
@@ -43,7 +46,7 @@ export default function PatientsListPage() {
     {
       key: "dob",
       header: "Date of Birth",
-      className: "w-35",
+      className: "w-36",
       sortable: true,
       sortKey: "dateOfBirth",
       render: (p) => p.dateOfBirth?.slice(0, 10) ?? "---",
@@ -57,7 +60,6 @@ export default function PatientsListPage() {
         endpoint="/patients"
         columns={columns}
         rowKey={(p) => p.id}
-        searchPlaceholder="Search patients…"
         emptyMessage={
           can("patients:write")
             ? "No patients yet. Click Add Patient to get started."
@@ -67,7 +69,7 @@ export default function PatientsListPage() {
         onRowClick={(p) => navigate(`/patients/${p.id}`)}
         headerActions={
           can("patients:write") ? (
-            <AddButton label="Add Patient" onClick={() => setFormOpen(true)} />
+            <AddButton label="New" onClick={() => setFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}

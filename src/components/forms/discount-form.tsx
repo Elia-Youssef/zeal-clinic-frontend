@@ -7,7 +7,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import { discountValueTypeOptions } from "@/lib/constants";
 import type { Discount } from "@/lib/types";
 import { DatePicker } from "../ui/date-picker";
@@ -151,7 +151,7 @@ export function DiscountForm({
               step="0.01"
               min="0"
               value={form.value}
-              onChange={(e) => update("value", e.target.value)}
+              onChange={(e) => update("value", clampNonNegative(e.target.value))}
               required
             />
           </div>
@@ -163,6 +163,7 @@ export function DiscountForm({
             <DatePicker
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
+              max={form.endDate}
             />
           </div>
           <div className="space-y-1.5">
@@ -170,6 +171,7 @@ export function DiscountForm({
             <DatePicker
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
+              min={form.startDate}
             />
           </div>
         </div>

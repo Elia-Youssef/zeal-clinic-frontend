@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { api } from "@/lib/api";
 import { formatTimeRange, getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { usePatientsStore } from "@/lib/stores/patients-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { appointmentStatusTint, transactionColors } from "@/lib/constants";
@@ -272,7 +273,7 @@ function PatientDetailContent() {
               {
                 header: "Date",
                 key: "date",
-                render: (i) => i.startTime?.slice(0, 10) ?? "---",
+                render: (i) => beirutDayKey(i.startTime) || "---",
               },
               {
                 header: "Time",
@@ -392,14 +393,14 @@ function PatientDetailContent() {
             title="Invoices"
             columns={[
               {
-                header: "#",
-                key: "#",
+                header: "Invoice No.",
+                key: "Invoice No.",
                 render: (i) => `#${i.invoiceNumber}`,
               },
               {
                 header: "Date",
                 key: "date",
-                render: (i) => i.createdAt.slice(0, 10),
+                render: (i) => beirutDayKey(i.createdAt),
               },
               {
                 header: "Amount",
@@ -467,7 +468,7 @@ function PatientDetailContent() {
                 {
                   header: "Date",
                   key: "date",
-                  render: (i) => i.createdAt.slice(0, 10),
+                  render: (i) => beirutDayKey(i.createdAt),
                 },
                 {
                   header: "Method",
@@ -652,6 +653,8 @@ function PatientDetailContent() {
                 endTime: viewAppointment.endTime.slice(0, 16),
                 status: viewAppointment.status,
                 notes: viewAppointment.notes,
+                cancelNotes: viewAppointment.cancelNotes,
+                completionNotes: viewAppointment.completionNotes,
               }
             : undefined
         }
@@ -659,7 +662,7 @@ function PatientDetailContent() {
           viewAppointment
             ? () =>
                 navigate(
-                  `/schedule/calendar?date=${viewAppointment.startTime.slice(0, 10)}`,
+                  `/schedule/calendar?date=${beirutDayKey(viewAppointment.startTime)}`,
                 )
             : undefined
         }

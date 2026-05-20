@@ -12,6 +12,7 @@ import {
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutNow } from "@/lib/tz";
 import type { SalaryPreparation } from "@/lib/types";
 
 export function SalaryPreparationForm({
@@ -32,8 +33,9 @@ export function SalaryPreparationForm({
 
   useEffect(() => {
     if (!open) return;
-    // Default to previous calendar month.
-    const today = new Date();
+    // Default to previous calendar month, anchored on Beirut so the month
+    // doesn't flip for a clinic user opening the form from a different zone.
+    const today = beirutNow();
     const firstOfThisMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -57,8 +59,7 @@ export function SalaryPreparationForm({
     setResult(null);
   }, [open]);
 
-  const canSubmit =
-    !!periodStart && !!periodEnd && periodStart <= periodEnd && !result;
+  const canSubmit = !!periodStart && !!periodEnd && !result;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +92,7 @@ export function SalaryPreparationForm({
     {
       key: "employee",
       header: "Employee",
+      className: "truncate",
       render: (i) => (
         <span className="font-medium">{i.employeeName ?? i.employeeId}</span>
       ),
@@ -98,11 +100,13 @@ export function SalaryPreparationForm({
     {
       key: "base",
       header: "Base",
+      className: "w-28",
       render: (i) => i.baseSalary?.toFixed(2) ?? "---",
     },
     {
       key: "adjustment",
       header: "Adjustment",
+      className: "w-32",
       render: (i) =>
         i.adjustment != null ? (
           <span
@@ -124,6 +128,7 @@ export function SalaryPreparationForm({
     {
       key: "amount",
       header: "Prepared",
+      className: "w-32",
       render: (i) => (
         <span className="font-medium">{i.preparedAmount?.toFixed(2)}</span>
       ),
@@ -150,11 +155,17 @@ export function SalaryPreparationForm({
                 value={periodStart}
                 onChange={setPeriodStart}
                 required
+                max={periodEnd}
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Period End *</label>
-              <DatePicker value={periodEnd} onChange={setPeriodEnd} required />
+              <DatePicker
+                value={periodEnd}
+                onChange={setPeriodEnd}
+                required
+                min={periodStart}
+              />
             </div>
           </div>
 

@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { cn, formatTimeRange } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { beirutNow } from "@/lib/tz";
+import { format as fnsFormat } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,7 +99,7 @@ export function EmployeeWeekSchedule({
   canEditGeneral: boolean;
   canRequestVacation: boolean;
 }) {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(beirutNow()));
   const [data, setData] = useState<ScheduleResponse>({
     days: [],
     templates: [],
@@ -160,14 +162,15 @@ export function EmployeeWeekSchedule({
     return map;
   }, [data.vacations]);
 
-  const todayIso = toIsoDate(new Date());
+  const todayIso = toIsoDate(beirutNow());
 
   const headerLabel = useMemo(() => {
     const first = weekDates[0]?.date;
     const last = weekDates[6]?.date;
     if (!first || !last) return "";
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    // weekDates Dates are Beirut-anchored via beirutNow(); read local fields
+    // directly with date-fns format to keep wall-clock interpretation.
+    const fmt = (d: Date) => fnsFormat(d, "d MMM");
     return `${fmt(first)} - ${fmt(last)} ${last.getFullYear()}`;
   }, [weekDates]);
 
@@ -271,7 +274,7 @@ export function EmployeeWeekSchedule({
               variant="outline"
               size="icon"
               className="size-8"
-              onClick={() => setWeekStart(startOfWeek(new Date()))}
+              onClick={() => setWeekStart(startOfWeek(beirutNow()))}
               title="Go to this week"
             >
               <RotateCcw className="size-4" />

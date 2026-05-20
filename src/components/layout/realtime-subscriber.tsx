@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { realtimeClient } from "@/lib/realtime/realtime-client";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -6,16 +7,18 @@ import { useNotificationsStore } from "@/lib/stores/notifications-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { useLoadingStore } from "@/lib/stores/loading-store";
 import { useRealtimeStore } from "@/lib/stores/realtime-store";
+import { showNotificationToast } from "@/lib/notification-toast";
 import type { Notification } from "@/lib/types";
 
 export function RealtimeSubscriber() {
   const token = useAuthStore((s) => s.token);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { fetchUnreadCount, addIncoming } = useNotificationsStore.getState();
     const { addAlert } = useAlertStore.getState();
     const { setConnected, setCloudConnected } = useRealtimeStore.getState();
-    const { refreshAuth } = useAuthStore.getState();
+    const { refreshAuth, logout } = useAuthStore.getState();
 
     realtimeClient.setListeners({
       onOpen: () => setConnected(true),
@@ -30,7 +33,7 @@ export function RealtimeSubscriber() {
             const notification = JSON.parse(e.data) as Notification;
             addIncoming(notification);
             if (!notification.isRead) {
-              addAlert("info", notification.title);
+              showNotificationToast(notification);
             }
           } catch {
             // Next hello reconciles missed notifications.
@@ -38,7 +41,7 @@ export function RealtimeSubscriber() {
         },
         scopes_changed: () => {
           const loading = useLoadingStore.getState();
-          loading.show("Updating permissions...");
+          loading.show("Updating permissions");
           refreshAuth()
             .catch(() => {})
             .finally(() => {
@@ -48,6 +51,10 @@ export function RealtimeSubscriber() {
         },
         data_changed: () => {
           addAlert("info", "Syncing completed.");
+        },
+        account_disabled: () => {
+          logout();
+          navigate("/", { replace: true });
         },
         cloud_connection: (e) => {
           try {
@@ -67,7 +74,7 @@ export function RealtimeSubscriber() {
     return () => {
       realtimeClient.stop();
     };
-  }, [token]);
+  }, [token, navigate]);
 
   return null;
 }

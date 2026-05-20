@@ -30,6 +30,7 @@ export default function ProductsPage() {
     {
       key: "name",
       header: "Name",
+      className: "truncate",
       sortable: true,
       sortKey: "name",
       render: (p) => <span className="font-medium">{p.name}</span>,
@@ -37,6 +38,7 @@ export default function ProductsPage() {
     {
       key: "category",
       header: "Category",
+      className: "w-64",
       render: (p) => {
         let cat = p.category?.name || "";
         let parentcat = p.category?.parent?.name || "";
@@ -52,6 +54,7 @@ export default function ProductsPage() {
     {
       key: "quantity",
       header: "Stock",
+      className: "w-24",
       sortable: true,
       sortKey: "quantity",
       render: (p) => `${p.quantity}`,
@@ -59,7 +62,7 @@ export default function ProductsPage() {
     {
       key: "price",
       header: "Unit Price",
-      className: "text-right",
+      className: "w-40 text-right",
       sortable: true,
       sortKey: "unitPrice",
       render: (p) => (
@@ -77,16 +80,12 @@ export default function ProductsPage() {
         endpoint="/products"
         columns={prodColumns}
         rowKey={(p) => p.id}
-        searchPlaceholder="Search products…"
         emptyMessage="No products yet."
         emptySearchMessage="No products match."
         onRowClick={(p) => navigate(`/inventory/products/${p.id}`)}
         headerActions={
           can("products:write") ? (
-            <AddButton
-              label="Add Product"
-              onClick={() => setProdFormOpen(true)}
-            />
+            <AddButton label="New" onClick={() => setProdFormOpen(true)} />
           ) : undefined
         }
         refreshKey={refreshKey}

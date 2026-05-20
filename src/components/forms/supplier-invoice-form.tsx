@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative } from "@/lib/utils";
 import { ProductForm } from "./product-form";
 import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -44,6 +45,8 @@ export function SupplierInvoiceForm({
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
   const [supplierId, setSupplierId] = useState("");
   const [currencyId, setCurrencyId] = useState("");
   const [notes, setNotes] = useState("");
@@ -52,6 +55,8 @@ export function SupplierInvoiceForm({
 
   useEffect(() => {
     if (!open) return;
+    setInvoiceNumber("");
+    setInvoiceNumberAuto(true);
     setSupplierId(defaultSupplierId ?? "");
     setCurrencyId("");
     setNotes("");
@@ -84,6 +89,7 @@ export function SupplierInvoiceForm({
   const canSubmit =
     supplierId &&
     currencyId &&
+    (invoiceNumberAuto || Number(invoiceNumber) > 0) &&
     items.length > 0 &&
     items.every((it) => it.itemId && Number(it.quantity) > 0);
 
@@ -92,6 +98,9 @@ export function SupplierInvoiceForm({
     setSubmitting(true);
     try {
       await api.post("/supplier-invoices", {
+        ...(invoiceNumberAuto
+          ? {}
+          : { invoiceNumber: Number(invoiceNumber) }),
         supplierId,
         currencyId,
         notes: notes || undefined,
@@ -116,6 +125,41 @@ export function SupplierInvoiceForm({
   return (
     <Modal open={open} onClose={onClose} title="New Supplier Invoice">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="supplierInvoiceNumber"
+              className="text-sm font-medium"
+            >
+              Invoice Number *
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                id="supplierInvoiceNumberAuto"
+                checked={invoiceNumberAuto}
+                onCheckedChange={(value) => {
+                  const next = Boolean(value);
+                  setInvoiceNumberAuto(next);
+                  if (next) setInvoiceNumber("");
+                }}
+              />
+              <span>Auto</span>
+            </label>
+          </div>
+          <Input
+            id="supplierInvoiceNumber"
+            type="number"
+            min="1"
+            step="1"
+            value={invoiceNumber}
+            onChange={(e) =>
+              setInvoiceNumber(clampNonNegative(e.target.value))
+            }
+            disabled={invoiceNumberAuto}
+            placeholder={invoiceNumberAuto ? "Auto-generated" : ""}
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Supplier *</label>
@@ -247,7 +291,9 @@ export function SupplierInvoiceForm({
                     min="1"
                     value={item.quantity}
                     onChange={(e) =>
-                      updateItem(idx, { quantity: e.target.value })
+                      updateItem(idx, {
+                        quantity: clampNonNegative(e.target.value),
+                      })
                     }
                   />
                 </div>
@@ -261,7 +307,9 @@ export function SupplierInvoiceForm({
                     min="0"
                     value={item.amount}
                     onChange={(e) =>
-                      updateItem(idx, { amount: e.target.value })
+                      updateItem(idx, {
+                        amount: clampNonNegative(e.target.value),
+                      })
                     }
                   />
                   <p className="text-xs text-muted-foreground">

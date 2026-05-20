@@ -10,6 +10,7 @@ import { DetailField } from "@/components/shared/detail-field";
 import { DataList } from "@/components/data/data-list";
 import { api } from "@/lib/api";
 import { formatTimeRange, getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import type {
   Procedure,
@@ -169,11 +170,13 @@ function ProcedureDetailContent() {
             {
               header: "Allergy",
               key: "allergy",
+              className: "w-70",
               render: (i) => i.allergyName ?? i.allergyId,
             },
             {
               header: "Notes",
               key: "notes",
+              className: "truncate",
               render: (i) => i.notes ?? "---",
             },
           ]}
@@ -215,16 +218,19 @@ function ProcedureDetailContent() {
             {
               header: "Patient",
               key: "patient",
+              className: "truncate",
               render: (i) => i.patientName ?? "---",
             },
             {
               header: "Date",
               key: "date",
-              render: (i) => i.startTime?.slice(0, 10) ?? "---",
+              className: "w-32",
+              render: (i) => beirutDayKey(i.startTime) || "---",
             },
             {
               header: "Time",
               key: "time",
+              className: "w-40",
               render: (i) =>
                 i.startTime && i.endTime
                   ? formatTimeRange(i.startTime, i.endTime)
@@ -233,6 +239,7 @@ function ProcedureDetailContent() {
             {
               header: "Status",
               key: "status",
+              className: "w-32",
               render: (i) => (
                 <Badge
                   variant="outline"
@@ -249,9 +256,7 @@ function ProcedureDetailContent() {
           hideSearch
           emptyMessage="No appointments."
           onRowClick={
-            can("appointments:read")
-              ? (i) => setViewAppointment(i)
-              : undefined
+            can("appointments:read") ? (i) => setViewAppointment(i) : undefined
           }
         />
 
@@ -261,12 +266,13 @@ function ProcedureDetailContent() {
             {
               header: "",
               key: "status",
-              className: "w-24",
+              className: "w-26",
               render: (i) => (i.isActive ? <Badge>Current</Badge> : null),
             },
             {
               header: "Price",
               key: "price",
+              className: "truncate",
               render: (i) => (
                 <span className="font-medium">${i.price.toFixed(2)}</span>
               ),
@@ -274,7 +280,8 @@ function ProcedureDetailContent() {
             {
               header: "Date",
               key: "createdAt",
-              render: (i) => i.createdAt?.slice(0, 10) ?? "---",
+              className: "w-40",
+              render: (i) => beirutDayKey(i.createdAt) || "---",
             },
           ]}
           endpoint={`/procedures/${id}/prices`}
@@ -325,6 +332,8 @@ function ProcedureDetailContent() {
                 endTime: viewAppointment.endTime.slice(0, 16),
                 status: viewAppointment.status,
                 notes: viewAppointment.notes,
+                cancelNotes: viewAppointment.cancelNotes,
+                completionNotes: viewAppointment.completionNotes,
               }
             : undefined
         }
@@ -332,7 +341,7 @@ function ProcedureDetailContent() {
           viewAppointment
             ? () =>
                 navigate(
-                  `/schedule/calendar?date=${viewAppointment.startTime.slice(0, 10)}`,
+                  `/schedule/calendar?date=${beirutDayKey(viewAppointment.startTime)}`,
                 )
             : undefined
         }

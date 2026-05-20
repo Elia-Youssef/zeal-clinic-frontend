@@ -2,6 +2,7 @@ import { type Column } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogEntry } from "@/lib/types";
+import { formatInBeirut } from "@/lib/tz";
 
 const actionClasses: Record<string, string> = {
   POST: "bg-positive/10 text-positive border-positive/30",
@@ -13,30 +14,31 @@ const columns: Column<AuditLogEntry>[] = [
   {
     key: "time",
     header: "Time",
-    className: "w-40",
+    className: "w-45",
     sortable: true,
     sortKey: "createdAt",
     render: (e) => (
       <span className="text-xs">
-        {e.createdAt?.slice(0, 19).replace("T", " ")}
+        {formatInBeirut(e.createdAt, "yyyy-MM-dd HH:mm:ss")}
       </span>
     ),
   },
   {
     key: "user",
     header: "Staff",
-    sortable: true,
-    sortKey: "userName",
-    render: (e) => <span className="font-medium">{e.userName}</span>,
+    className: "w-42",
+    render: (e) => <span className="font-medium">{e.username}</span>,
   },
   {
     key: "role",
     header: "Role",
+    className: "w-36",
     render: (e) => <Badge variant="outline">{e.userRole}</Badge>,
   },
   {
     key: "action",
     header: "Action",
+    className: "w-32",
     sortable: true,
     sortKey: "action",
     render: (e) => (
@@ -48,6 +50,7 @@ const columns: Column<AuditLogEntry>[] = [
   {
     key: "entity",
     header: "Entity",
+    className: "truncate",
     render: (e) => `${e.entityType} #${e.entityId.slice(0, 8)}`,
   },
 ];
@@ -59,7 +62,6 @@ export default function AuditLogPage() {
       endpoint="/audit-log"
       columns={columns}
       rowKey={(e) => e.id}
-      searchPlaceholder="Search log…"
       emptyMessage="No entries."
       emptySearchMessage="No entries match your search."
       limit={50}
