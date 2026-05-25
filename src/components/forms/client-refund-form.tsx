@@ -93,7 +93,7 @@ export function ClientRefundForm({
               value: p.id,
               label: p.name,
             })}
-            placeholder="Select patient..."
+            placeholder="Select patient…"
             required
             renderAddForm={
               can("patients:write")
@@ -140,7 +140,7 @@ export function ClientRefundForm({
                 value: c.id,
                 label: c.name,
               })}
-              placeholder="Select currency..."
+              placeholder="Select currency…"
               required
               defaultFirst={!defaultCurrencyId}
             />
@@ -151,7 +151,7 @@ export function ClientRefundForm({
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={transactionMethodOptions}
-              placeholder="Select method..."
+              placeholder="Select method…"
               defaultFirst
             />
           </div>
@@ -172,7 +172,7 @@ export function ClientRefundForm({
             Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording..." : "Record Refund"}
+            {submitting ? "Recording…" : "Record Refund"}
           </Button>
         </div>
       </form>

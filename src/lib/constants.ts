@@ -135,6 +135,20 @@ export const transactionColors = {
   neutral: "text-muted-foreground",
 } as const;
 
+/** Audit-log action badge colors (POST/PUT/DELETE). */
+export const auditActionStyles: Record<string, string> = {
+  POST: "bg-positive/10 text-positive border-positive/30",
+  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
+  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+/** Holiday styling shared across schedule views and detail rows. */
+export const holidayTint = "bg-warning/10";
+export const holidayBadgeClass = "bg-warning/15 text-warning border-warning/40";
+
+/** Adjustment / write-off row highlight in balance transaction tables. */
+export const adjustmentRowTint = "bg-warning/10";
+
 const dayOfWeekLabels: Record<number, string> = {
   0: "Sunday",
   1: "Monday",

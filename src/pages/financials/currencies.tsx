@@ -37,7 +37,7 @@ export default function CurrenciesPage() {
     {
       key: "exchangeRate",
       header: "Exchange Rate",
-      className: "w-36",
+      className: "w-36 text-right",
       render: (c) => c.exchangeRate,
     },
   ];

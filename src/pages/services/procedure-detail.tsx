@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
 import { DataList } from "@/components/data/data-list";
 import { api } from "@/lib/api";
-import { formatTimeRange, getErrorMessage } from "@/lib/utils";
+import { formatTimeRange, getErrorMessage, formatMoney } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import type {
@@ -76,13 +76,22 @@ function ProcedureDetailContent() {
     try {
       await api.del(`/procedures/${id}`);
       addAlert("success", "Procedure deleted.");
-      navigate("/services");
+      navigate("/services/procedures");
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
   };
 
   const handleRemoveConflict = async (conflictId: string) => {
+    if (
+      !(await confirm({
+        title: "Remove conflict?",
+        description: "Remove this allergy conflict?",
+        confirmText: "Remove",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/procedure-allergy-conflicts/${conflictId}`);
       addAlert("success", "Conflict removed.");
@@ -103,7 +112,7 @@ function ProcedureDetailContent() {
   return (
     <div className="space-y-4">
       <PageHeader
-        backHref="/services"
+        backHref="/services/procedures"
         title={procedure.name}
         onEdit={can("procedures:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("procedures:delete") ? handleDelete : undefined}
@@ -117,7 +126,7 @@ function ProcedureDetailContent() {
           <DetailField label="Price" className="sm:col-span-2">
             <div>
               {procedure.price ? (
-                <span className="font-semibold">${procedure.price}</span>
+                <span className="font-semibold">{formatMoney(procedure.price)}</span>
               ) : null}
               {procedure.priceNote && procedure.price ? (
                 <span className="text-muted-foreground">{" - "}</span>

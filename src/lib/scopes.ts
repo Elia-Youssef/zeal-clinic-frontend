@@ -77,6 +77,8 @@ export const ALL_SCOPES = [
   "suppliers:read",
   "suppliers:write",
   "suppliers:delete",
+  "update:read",
+  "update:write",
   "users:read",
   "users:write",
 ] as const;

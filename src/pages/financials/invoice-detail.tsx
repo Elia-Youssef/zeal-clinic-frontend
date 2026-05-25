@@ -214,7 +214,7 @@ export default function InvoiceDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Items</CardTitle>
+          <CardTitle className="text-base font-semibold">Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <DataTable

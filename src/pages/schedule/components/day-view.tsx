@@ -11,6 +11,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import {
   appointmentStatusStyles,
   defaultAppointmentStatusStyle,
+  holidayBadgeClass,
 } from "@/lib/constants";
 import type { Appointment, Holiday, Room } from "@/lib/types";
 import { cn, formatTimeRange } from "@/lib/utils";
@@ -148,7 +149,7 @@ function DayHeader({
         <Badge
           key={h.id}
           variant="secondary"
-          className="bg-amber-500/20 text-amber-900 dark:text-amber-200"
+          className={holidayBadgeClass}
           title={h.notes || h.name}
         >
           {h.name}

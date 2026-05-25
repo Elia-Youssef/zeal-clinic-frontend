@@ -46,6 +46,7 @@ import SettingsRolesPage from "@/pages/settings/roles";
 import SettingsRoleDetailPage from "@/pages/settings/role-detail";
 import SettingsStaffPage from "@/pages/settings/users";
 import SettingsAuditLogPage from "@/pages/settings/audit-log";
+import SettingsAboutPage from "@/pages/settings/about";
 import SettingsConnectionPage from "@/pages/settings/connection";
 import StaffDetailPage from "@/pages/settings/user-detail";
 import { LoadingOverlay } from "@/components/shared/loading-overlay";
@@ -418,6 +419,14 @@ function App() {
                 element={
                   <RequireScopes scopes={["audit:read"]}>
                     <SettingsAuditLogPage />
+                  </RequireScopes>
+                }
+              />
+              <Route
+                path="settings/about"
+                element={
+                  <RequireScopes scopes={["update:read"]}>
+                    <SettingsAboutPage />
                   </RequireScopes>
                 }
               />

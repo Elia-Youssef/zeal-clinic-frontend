@@ -39,7 +39,7 @@ export function AnalyticsChartCard({
   to,
   groupBy = "day",
   kind = "area",
-  color = "var(--chart-1, #2563eb)",
+  color = "var(--chart-1)",
   valueLabel,
   endpoint = "/analytics/series",
   formatValue,

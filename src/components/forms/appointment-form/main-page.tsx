@@ -205,7 +205,7 @@ export function MainPage({
             value: p.id,
             label: p.name,
           })}
-          placeholder="Select patient..."
+          placeholder="Select patient…"
           required
           renderAddForm={
             canCreatePatient
@@ -238,7 +238,7 @@ export function MainPage({
             value: r.id,
             label: r.name,
           })}
-          placeholder="Select room..."
+          placeholder="Select room…"
           apiOptionsLimit={10}
           required
           renderAddForm={
@@ -299,7 +299,7 @@ export function MainPage({
         </div>
       </div>
       {showPastStartWarning && (
-        <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+        <p className="flex items-center gap-1.5 text-xs text-warning">
           <AlertTriangle className="size-3.5" />
           Start time has already passed.
         </p>
@@ -312,7 +312,7 @@ export function MainPage({
           rows={3}
           value={form.notes}
           onChange={(e) => update("notes", e.target.value)}
-          placeholder="Optional notes..."
+          placeholder="Optional notes…"
         />
       </div>
 
@@ -342,7 +342,7 @@ export function MainPage({
           </Button>
         )}
         <Button type="submit" disabled={submitting || !canSubmit}>
-          {submitting ? "Saving..." : isEdit ? "Update" : "Create"}
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
         </Button>
       </div>
     </form>
@@ -392,7 +392,7 @@ function ProceduresField({
           value: p.id,
           label: p.name,
         })}
-        placeholder="Add a procedure..."
+        placeholder="Add a procedure…"
         renderAddForm={
           canCreateProcedure
             ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
@@ -438,7 +438,7 @@ function ReschedulePhase({
           rows={3}
           value={reason}
           onChange={(e) => onReasonChange(e.target.value)}
-          placeholder="Reason for rescheduling..."
+          placeholder="Reason for rescheduling…"
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
@@ -451,7 +451,7 @@ function ReschedulePhase({
           Back
         </Button>
         <Button disabled={submitting} onClick={onConfirm}>
-          {submitting ? "Rescheduling..." : "Confirm Reschedule"}
+          {submitting ? "Rescheduling…" : "Confirm Reschedule"}
         </Button>
       </div>
     </div>

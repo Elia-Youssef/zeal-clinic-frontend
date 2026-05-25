@@ -87,7 +87,7 @@ export function ExpensePaymentForm({
                 value: c.id,
                 label: c.name,
               })}
-              placeholder="Select currency..."
+              placeholder="Select currency…"
               required
               defaultFirst
             />
@@ -98,7 +98,7 @@ export function ExpensePaymentForm({
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={transactionMethodOptions}
-              placeholder="Select method..."
+              placeholder="Select method…"
               defaultFirst
             />
           </div>
@@ -119,7 +119,7 @@ export function ExpensePaymentForm({
             Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording..." : "Record Payment"}
+            {submitting ? "Recording…" : "Record Payment"}
           </Button>
         </div>
       </form>

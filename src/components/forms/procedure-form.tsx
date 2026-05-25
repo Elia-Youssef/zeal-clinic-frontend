@@ -156,7 +156,7 @@ export function ProcedureForm({
               onChange={(v) => update("typeId", v)}
               apiEndpoint="/procedure-types/dropdown"
               mapItem={(t: any) => ({ value: t.id, label: t.name })}
-              placeholder="Select type"
+              placeholder="Select type…"
               defaultApiOption={
                 form.typeName
                   ? { value: form.typeId, label: form.typeName }
@@ -189,7 +189,7 @@ export function ProcedureForm({
                 value: c.id,
                 label: c.name,
               })}
-              placeholder="Select category"
+              placeholder="Select category…"
               defaultApiOption={
                 form.categoryName
                   ? { value: form.categoryId, label: form.categoryName }

@@ -107,7 +107,7 @@ export function ExpenseForm({
             Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving..." : isEdit ? "Update" : "Create"}
+            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
           </Button>
         </div>
       </form>

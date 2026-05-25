@@ -196,7 +196,7 @@ export function EmployeeForm({
             onChange={(v) => update("dateOfBirth", v)}
           />
           {isUnder18(form.dateOfBirth) && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               Employee is under 18 years old.
             </p>
           )}

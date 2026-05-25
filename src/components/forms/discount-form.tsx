@@ -112,7 +112,7 @@ export function DiscountForm({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Discount" : "New Offer"}
+      title={isEdit ? "Edit Discount" : "New Discount"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

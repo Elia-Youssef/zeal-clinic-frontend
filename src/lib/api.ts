@@ -1,11 +1,11 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
 import { wallClockToUtc } from "@/lib/tz";
 
-export const BASE_URL = "http://localhost:8080/api";
-// export const BASE_URL =
-//   typeof window !== "undefined"
-//     ? `${window.location.protocol}//${window.location.host}/api`
-//     : "http://localhost:8080/api";
+export const BASE_URL = import.meta.env.DEV
+  ? "http://localhost:8080/api"
+  : typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.host}/api`
+    : "";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -110,6 +110,10 @@ export const api = {
     const { url } = await request<{ url: string }>(endpoint, { method: "GET" });
     if (typeof window === "undefined") return;
     const host = BASE_URL.replace(/\/api\/?$/, "");
-    window.open(`${host}${url}`, "_blank", "noopener,noreferrer");
+    window.open(
+      `${host}${url}?access_token=${getToken()}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   },
 };

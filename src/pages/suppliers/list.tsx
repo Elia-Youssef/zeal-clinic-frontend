@@ -57,13 +57,13 @@ function SuppliersContent() {
   return (
     <>
       <DataList<Supplier>
-        title="All Suppliers"
+        title="Suppliers"
         endpoint="/suppliers"
         columns={columns}
         rowKey={(s) => s.id}
         emptyMessage={
           can("suppliers:write")
-            ? "No suppliers yet. Click Add Supplier to get started."
+            ? "No suppliers yet. Click New to get started."
             : "No suppliers yet."
         }
         emptySearchMessage="No suppliers match your search."

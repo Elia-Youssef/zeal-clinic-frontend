@@ -241,7 +241,7 @@ export function PatientForm({
               required
             />
             {isUnder18(form.dateOfBirth) && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-warning">
                 Patient is under 18 years old.
               </p>
             )}

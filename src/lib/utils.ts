@@ -13,6 +13,14 @@ export function getErrorMessage(
   return err instanceof Error ? err.message : fallback;
 }
 
+export function formatMoney(
+  amount: number | null | undefined,
+  symbol = "$",
+): string {
+  const n = typeof amount === "number" && !Number.isNaN(amount) ? amount : 0;
+  return `${symbol}${n.toFixed(2)}`;
+}
+
 export function clampNonNegative(value: string): string {
   if (value === "" || value === "-") return "";
   const n = Number(value);

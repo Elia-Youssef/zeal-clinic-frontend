@@ -80,7 +80,7 @@ export function SearchableDropdown({
           `${apiEndpoint}${apiEndpoint.includes("?") ? "&" : "?"}${params}`,
         )
         .then((res) => {
-          const items = Array.isArray(res) ? res : res.items;
+          const items = Array.isArray(res) ? res : [];
           setApiOptions(items.map(mapItem));
         })
         .catch(() => {});

@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Loading } from "@/components/shared/loading";
@@ -112,9 +112,9 @@ export function SalaryPreparationForm({
           <span
             className={
               i.adjustment > 0
-                ? "text-emerald-600"
+                ? "text-positive"
                 : i.adjustment < 0
-                  ? "text-red-600"
+                  ? "text-negative"
                   : "text-muted-foreground"
             }
           >
@@ -171,7 +171,9 @@ export function SalaryPreparationForm({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Notes</label>
-            <Input
+            <textarea
+              className={textareaClass}
+              rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional"

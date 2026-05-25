@@ -4,6 +4,7 @@ import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { type Column } from "@/components/data/data-table";
 import type { Patient } from "@/lib/types";
+import { beirutDayKey } from "@/lib/tz";
 import { PatientForm } from "@/components/forms/patient-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -49,20 +50,20 @@ export default function PatientsListPage() {
       className: "w-36",
       sortable: true,
       sortKey: "dateOfBirth",
-      render: (p) => p.dateOfBirth?.slice(0, 10) ?? "---",
+      render: (p) => beirutDayKey(p.dateOfBirth) || "---",
     },
   ];
 
   return (
     <>
       <DataList<Patient>
-        title="All Patients"
+        title="Patients"
         endpoint="/patients"
         columns={columns}
         rowKey={(p) => p.id}
         emptyMessage={
           can("patients:write")
-            ? "No patients yet. Click Add Patient to get started."
+            ? "No patients yet. Click New to get started."
             : "No patients yet."
         }
         emptySearchMessage="No patients match your search."

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { format as fnsFormat } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import type { Holiday, Room, RoomDayCount } from "@/lib/types";
+import { holidayBadgeClass, holidayTint } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { beirutNow } from "@/lib/tz";
 import { getWeekDays, toDateStr } from "./sched-utils";
@@ -120,7 +121,7 @@ function WeekDayRow({
       className={cn(
         "grid border-b border-border",
         isToday && "bg-primary/10",
-        isHoliday && "bg-amber-500/10",
+        isHoliday && holidayTint,
       )}
       style={{ gridTemplateColumns: gridCols }}
     >
@@ -137,7 +138,7 @@ function WeekDayRow({
           <Badge
             key={h.id}
             variant="secondary"
-            className="mt-1 bg-amber-500/20 text-amber-900 dark:text-amber-200"
+            className={cn("mt-1", holidayBadgeClass)}
             title={h.notes || h.name}
           >
             {h.name}

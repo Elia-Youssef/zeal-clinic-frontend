@@ -12,7 +12,11 @@ import { formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { usePatientsStore } from "@/lib/stores/patients-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { appointmentStatusTint, transactionColors } from "@/lib/constants";
+import {
+  appointmentStatusTint,
+  transactionColors,
+  adjustmentRowTint,
+} from "@/lib/constants";
 import { PatientForm } from "@/components/forms/patient-form";
 import { ClientInvoiceForm } from "@/components/forms/client-invoice-form";
 import { ClientPaymentForm } from "@/components/forms/client-payment-form";
@@ -59,7 +63,12 @@ function PatientDetailContent() {
   const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
   const [writeOffFormOpen, setWriteOffFormOpen] = useState(false);
   const [allergyFormOpen, setAllergyFormOpen] = useState(false);
+  const [editingAllergy, setEditingAllergy] = useState<PatientAllergy | null>(
+    null,
+  );
   const [medicineFormOpen, setMedicineFormOpen] = useState(false);
+  const [editingMedicine, setEditingMedicine] =
+    useState<PatientMedicine | null>(null);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [viewAppointment, setViewAppointment] = useState<Appointment | null>(
     null,
@@ -131,7 +140,7 @@ function PatientDetailContent() {
             </div>
           </DetailField>
           <DetailField label="Date of Birth">
-            {patient.dateOfBirth?.slice(0, 10) ?? "---"}
+            {beirutDayKey(patient.dateOfBirth) || "---"}
           </DetailField>
           <DetailField className="sm:col-span-2" label="Address">
             <div>
@@ -177,6 +186,14 @@ function PatientDetailContent() {
             can("patient-allergies:write")
               ? [
                   {
+                    label: "Edit",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (i) => {
+                      setEditingAllergy(i);
+                      setAllergyFormOpen(true);
+                    },
+                  },
+                  {
                     label: "Delete",
                     icon: <Trash2 className="size-3.5" />,
                     destructive: true,
@@ -217,6 +234,14 @@ function PatientDetailContent() {
           actions={
             can("patient-medicines:write")
               ? [
+                  {
+                    label: "Edit",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (i) => {
+                      setEditingMedicine(i);
+                      setMedicineFormOpen(true);
+                    },
+                  },
                   {
                     label: "Delete",
                     icon: <Trash2 className="size-3.5" />,
@@ -321,9 +346,11 @@ function PatientDetailContent() {
           title="Prescriptions"
           columns={[
             {
-              header: "Prescribed By",
-              key: "prescribedById",
-              render: (i) => i.prescribedByName ?? "---",
+              header: "Medicines",
+              key: "medicines",
+              className: "truncate",
+              render: (i) =>
+                i.medicines?.map((i) => i.medicineName).join(", ") ?? "---",
             },
             {
               header: "Start Date",
@@ -336,10 +363,9 @@ function PatientDetailContent() {
               render: (i) => i.endDate ?? "---",
             },
             {
-              header: "Medicines",
-              key: "medicines",
-              render: (i) =>
-                i.medicines?.map((i) => i.medicineName).join(", ") ?? "---",
+              header: "Prescribed By",
+              key: "prescribedById",
+              render: (i) => i.prescribedByName ?? "---",
             },
           ]}
           actions={[
@@ -513,7 +539,7 @@ function PatientDetailContent() {
               rowClassName={(i: BalanceTransaction) =>
                 i.transactionType === "adjustment" ||
                 i.transactionType === "write-off"
-                  ? "bg-muted/40"
+                  ? adjustmentRowTint
                   : undefined
               }
               endpoint={`/patients/${id}/payments`}
@@ -615,15 +641,23 @@ function PatientDetailContent() {
       />
       <PatientAllergyForm
         open={allergyFormOpen}
-        onClose={() => setAllergyFormOpen(false)}
+        onClose={() => {
+          setAllergyFormOpen(false);
+          setEditingAllergy(null);
+        }}
         onSaved={bumpAllergies}
         patientId={id}
+        initial={editingAllergy}
       />
       <PatientMedicineForm
         open={medicineFormOpen}
-        onClose={() => setMedicineFormOpen(false)}
+        onClose={() => {
+          setMedicineFormOpen(false);
+          setEditingMedicine(null);
+        }}
         onSaved={bumpMedicines}
         patientId={id}
+        initial={editingMedicine}
       />
       <AppointmentForm
         open={appointmentFormOpen}
@@ -701,6 +735,15 @@ function PatientDetailContent() {
   }
 
   async function handleRemoveAllergy(allergyId: string) {
+    if (
+      !(await confirm({
+        title: "Remove allergy?",
+        description: "Remove this allergy from the patient?",
+        confirmText: "Remove",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/patient-allergies/${allergyId}`);
       addAlert("success", "Allergy removed.");
@@ -711,6 +754,15 @@ function PatientDetailContent() {
   }
 
   async function handleRemoveMedicine(pmId: string) {
+    if (
+      !(await confirm({
+        title: "Remove medicine?",
+        description: "Remove this medicine from the patient?",
+        confirmText: "Remove",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/patient-medicines/${pmId}`);
       addAlert("success", "Medicine removed.");

@@ -170,10 +170,10 @@ function DiscountDetailContent() {
           )}
 
           <DetailField label="Start Date">
-            {discount.startDate?.slice(0, 10) ?? "---"}
+            {beirutDayKey(discount.startDate) || "---"}
           </DetailField>
           <DetailField label="End Date">
-            {discount.endDate?.slice(0, 10) ?? "---"}
+            {beirutDayKey(discount.endDate) || "---"}
           </DetailField>
           <DetailField label="Created">
             {beirutDayKey(discount.createdAt) || "---"}

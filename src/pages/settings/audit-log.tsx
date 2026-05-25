@@ -3,12 +3,7 @@ import { DataList } from "@/components/data/data-list";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogEntry } from "@/lib/types";
 import { formatInBeirut } from "@/lib/tz";
-
-const actionClasses: Record<string, string> = {
-  POST: "bg-positive/10 text-positive border-positive/30",
-  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
-  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
-};
+import { auditActionStyles } from "@/lib/constants";
 
 const columns: Column<AuditLogEntry>[] = [
   {
@@ -42,7 +37,7 @@ const columns: Column<AuditLogEntry>[] = [
     sortable: true,
     sortKey: "action",
     render: (e) => (
-      <Badge variant="outline" className={actionClasses[e.action]}>
+      <Badge variant="outline" className={auditActionStyles[e.action]}>
         {e.action}
       </Badge>
     ),

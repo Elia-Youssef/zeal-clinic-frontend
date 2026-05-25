@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -212,58 +211,60 @@ function RevenueReport() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full min-w-150 border-collapse text-sm">
-            <thead>
-              <tr className="border-b-2 border-foreground/80">
-                <th className="px-3 py-2 text-left font-semibold">
-                  {levelHeader(data.level)}
-                </th>
-                <th className="w-24 px-3 py-2 text-right font-semibold">Qty</th>
-                <th className="w-32 px-3 py-2 text-right font-semibold">
-                  Amount
-                </th>
-                <th className="w-20 px-3 py-2 text-right font-semibold">%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((it, idx) => (
-                <tr
-                  key={`${it.entityId}-${idx}`}
-                  className="border-b border-foreground/10"
-                >
-                  <td className="px-3 py-2">
-                    {it.entityName}
-                    {!it.entityId && (
-                      <span className="ml-1 text-muted-foreground">
-                        (uncategorized)
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {it.quantity}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(it.amount)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {it.percentage.toFixed(1)}
-                  </td>
+            <table className="w-full min-w-150 border-collapse text-sm">
+              <thead>
+                <tr className="border-b-2 border-foreground/80">
+                  <th className="px-3 py-2 text-left font-semibold">
+                    {levelHeader(data.level)}
+                  </th>
+                  <th className="w-24 px-3 py-2 text-right font-semibold">
+                    Qty
+                  </th>
+                  <th className="w-32 px-3 py-2 text-right font-semibold">
+                    Amount
+                  </th>
+                  <th className="w-20 px-3 py-2 text-right font-semibold">%</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-foreground/80 font-semibold">
-                <td className="px-3 py-2 text-left">Total</td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {data.totals.quantity}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {formatMoney(data.totals.amount)}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">100.0</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {data.items.map((it, idx) => (
+                  <tr
+                    key={`${it.entityId}-${idx}`}
+                    className="border-b border-foreground/10"
+                  >
+                    <td className="px-3 py-2">
+                      {it.entityName}
+                      {!it.entityId && (
+                        <span className="ml-1 text-muted-foreground">
+                          (uncategorized)
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {it.quantity}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(it.amount)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {it.percentage.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-foreground/80 font-semibold">
+                  <td className="px-3 py-2 text-left">Total</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.totals.quantity}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatMoney(data.totals.amount)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">100.0</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </PrintableSheet>
@@ -361,81 +362,87 @@ function ExpensesReport() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full min-w-225 border-collapse text-sm">
-            <thead>
-              <tr className="border-b-2 border-foreground/80">
-                <th className="w-28 px-3 py-2 text-left font-semibold">Date</th>
-                <th className="px-3 py-2 text-left font-semibold">Supplier</th>
-                <th className="px-3 py-2 text-left font-semibold">
-                  Description
-                </th>
-                <th className="w-16 px-3 py-2 text-right font-semibold">Qty</th>
-                <th className="w-28 px-3 py-2 text-right font-semibold">
-                  Amt/Unit
-                </th>
-                <th className="w-28 px-3 py-2 text-right font-semibold">
-                  Amount
-                </th>
-                <th className="w-28 px-3 py-2 text-right font-semibold">
-                  Remaining
-                </th>
-                <th className="w-28 px-3 py-2 text-right font-semibold">
-                  Total
-                </th>
-                <th className="px-3 py-2 text-left font-semibold">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={idx} className="border-b border-foreground/10">
-                  <td className="px-3 py-2 tabular-nums">
-                    {formatDate(r.date)}
-                  </td>
-                  <td className="px-3 py-2">{r.supplier}</td>
-                  <td className="px-3 py-2">{r.description}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {r.quantity}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(r.amountPerUnit)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(r.amount)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(r.remainingBalance)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(r.total)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {r.notes || ""}
-                  </td>
+            <table className="w-full min-w-225 border-collapse text-sm">
+              <thead>
+                <tr className="border-b-2 border-foreground/80">
+                  <th className="w-28 px-3 py-2 text-left font-semibold">
+                    Date
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold">
+                    Supplier
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold">
+                    Description
+                  </th>
+                  <th className="w-16 px-3 py-2 text-right font-semibold">
+                    Qty
+                  </th>
+                  <th className="w-28 px-3 py-2 text-right font-semibold">
+                    Amt/Unit
+                  </th>
+                  <th className="w-28 px-3 py-2 text-right font-semibold">
+                    Amount
+                  </th>
+                  <th className="w-28 px-3 py-2 text-right font-semibold">
+                    Remaining
+                  </th>
+                  <th className="w-28 px-3 py-2 text-right font-semibold">
+                    Total
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold">Notes</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-foreground/80 font-semibold">
-                <td className="px-3 py-2" colSpan={3}>
-                  Total
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {totals.quantity}
-                </td>
-                <td className="px-3 py-2"></td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {formatMoney(totals.amount)}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {formatMoney(totals.remainingBalance)}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {formatMoney(totals.total)}
-                </td>
-                <td className="px-3 py-2"></td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r, idx) => (
+                  <tr key={idx} className="border-b border-foreground/10">
+                    <td className="px-3 py-2 tabular-nums">
+                      {formatDate(r.date)}
+                    </td>
+                    <td className="px-3 py-2">{r.supplier}</td>
+                    <td className="px-3 py-2">{r.description}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {r.quantity}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(r.amountPerUnit)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(r.amount)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(r.remainingBalance)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatMoney(r.total)}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {r.notes || ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-foreground/80 font-semibold">
+                  <td className="px-3 py-2" colSpan={3}>
+                    Total
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {totals.quantity}
+                  </td>
+                  <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatMoney(totals.amount)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatMoney(totals.remainingBalance)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatMoney(totals.total)}
+                  </td>
+                  <td className="px-3 py-2"></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </PrintableSheet>
@@ -467,6 +474,7 @@ function DateField({
         min={min}
         max={max}
         className="w-full sm:w-40"
+        required
       />
     </div>
   );

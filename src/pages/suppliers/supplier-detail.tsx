@@ -14,7 +14,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { useSuppliersStore } from "@/lib/stores/suppliers-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { transactionColors } from "@/lib/constants";
+import { transactionColors, adjustmentRowTint } from "@/lib/constants";
 import type { Invoice, BalanceTransaction } from "@/lib/types";
 import { SupplierForm } from "@/components/forms/supplier-form";
 import { SupplierInvoiceForm } from "@/components/forms/supplier-invoice-form";
@@ -35,12 +35,9 @@ function TagList({ values }: { values: string | null | undefined }) {
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((item, idx) => (
-        <span
-          key={`${item}-${idx}`}
-          className="inline-flex items-center rounded-md bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
-        >
+        <Badge key={`${item}-${idx}`} variant="secondary">
           {item}
-        </span>
+        </Badge>
       ))}
     </div>
   );
@@ -145,7 +142,7 @@ function SupplierDetailContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Supplier Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 text-sm">
           <DetailField label="Emails">
@@ -289,7 +286,7 @@ function SupplierDetailContent() {
               rowClassName={(i) =>
                 i.transactionType === "adjustment" ||
                 i.transactionType === "write-off"
-                  ? "bg-amber-50 dark:bg-amber-950/30"
+                  ? adjustmentRowTint
                   : undefined
               }
               endpoint={`/suppliers/${id}/payments`}

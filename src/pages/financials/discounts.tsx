@@ -7,6 +7,8 @@ import { AddButton } from "@/components/shared/add-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Discount } from "@/lib/types";
+import { beirutDayKey } from "@/lib/tz";
+import { formatMoney } from "@/lib/utils";
 import { DiscountForm } from "@/components/forms/discount-form";
 import { GiftRedeemForm } from "@/components/forms/gift-redeem-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -42,7 +44,7 @@ export default function DiscountsPage() {
       header: "Value",
       className: "w-32",
       render: (d) =>
-        d.valueType === "percentage" ? `${d.value}%` : `$${d.value.toFixed(2)}`,
+        d.valueType === "percentage" ? `${d.value}%` : formatMoney(d.value),
     },
     {
       key: "code",
@@ -54,7 +56,7 @@ export default function DiscountsPage() {
             {d.code}
           </code>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground">---</span>
         ),
     },
     {
@@ -62,10 +64,10 @@ export default function DiscountsPage() {
       header: "Period",
       className: "w-65",
       render: (d) => {
-        const s = d.startDate?.slice(0, 10);
-        const e = d.endDate?.slice(0, 10);
+        const s = beirutDayKey(d.startDate);
+        const e = beirutDayKey(d.endDate);
         if (!s && !e) return "---";
-        return `${s ?? "…"} -> ${e ?? "…"}`;
+        return `${s || "---"} → ${e || "---"}`;
       },
     },
     {

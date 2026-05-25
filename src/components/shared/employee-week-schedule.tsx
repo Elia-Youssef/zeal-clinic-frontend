@@ -37,7 +37,7 @@ const GRID_COLS = `50px 12px repeat(7, 1fr)`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const offReasonStyle: Record<string, string> = {
-  holiday: "bg-status-cancelled/15 border-status-cancelled/40",
+  holiday: "bg-warning/15 border-warning/40",
   vacation: "bg-status-progress/15 border-status-progress/40",
   "no-schedule": "bg-muted/30 border-border",
 };

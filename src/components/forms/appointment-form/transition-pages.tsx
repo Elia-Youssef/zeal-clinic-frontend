@@ -46,7 +46,7 @@ export function CancelPage({
           rows={3}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Reason for cancellation..."
+          placeholder="Reason for cancellation…"
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
@@ -58,7 +58,7 @@ export function CancelPage({
           disabled={submitting}
           onClick={handleCancel}
         >
-          {submitting ? "Cancelling..." : "Confirm Cancellation"}
+          {submitting ? "Cancelling…" : "Confirm Cancellation"}
         </Button>
       </div>
     </div>
@@ -107,7 +107,7 @@ export function CompletePage({
           rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notes about the appointment..."
+          placeholder="Notes about the appointment…"
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
@@ -120,7 +120,7 @@ export function CompletePage({
           disabled={submitting}
           onClick={() => handleComplete(false)}
         >
-          {submitting ? "Completing..." : "Complete"}
+          {submitting ? "Completing…" : "Complete"}
         </Button>
         {canContinue && (
           <Button
@@ -173,7 +173,7 @@ export function InProgressPage({
           Back
         </Button>
         <Button disabled={submitting} onClick={handleStart}>
-          {submitting ? "Starting..." : "Confirm"}
+          {submitting ? "Starting…" : "Confirm"}
         </Button>
       </div>
     </div>

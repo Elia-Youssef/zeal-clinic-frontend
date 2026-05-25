@@ -5,6 +5,7 @@ import { Modal } from "@/components/shared/modal";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 import type { SalaryPreparation } from "@/lib/types";
 
 export function SalaryAdjustmentForm({
@@ -75,8 +76,8 @@ export function SalaryAdjustmentForm({
           </div>
           <div>
             <span className="text-muted-foreground">Period: </span>
-            {preparation.periodStart?.slice(0, 10)} →{" "}
-            {preparation.periodEnd?.slice(0, 10)}
+            {beirutDayKey(preparation.periodStart)} →{" "}
+            {beirutDayKey(preparation.periodEnd)}
           </div>
           <div>
             <span className="text-muted-foreground">Base: </span>
@@ -87,7 +88,7 @@ export function SalaryAdjustmentForm({
           <div>
             <span className="text-muted-foreground">New prepared: </span>
             <span
-              className={`font-medium ${wouldGoNegative ? "text-red-600" : ""}`}
+              className={`font-medium ${wouldGoNegative ? "text-destructive" : ""}`}
             >
               ${newPrepared.toFixed(2)}
             </span>
@@ -105,7 +106,7 @@ export function SalaryAdjustmentForm({
             required
           />
           {wouldGoNegative && (
-            <p className="text-xs text-red-600">
+            <p className="text-xs text-destructive">
               Adjustment would make prepared amount negative.
             </p>
           )}

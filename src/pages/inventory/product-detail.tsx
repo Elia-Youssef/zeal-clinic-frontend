@@ -72,13 +72,22 @@ function ProductDetailContent() {
     try {
       await api.del(`/products/${id}`);
       addAlert("success", "Product deleted.");
-      navigate("/inventory");
+      navigate("/inventory/products");
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     }
   };
 
   const handleRemoveConflict = async (conflictId: string) => {
+    if (
+      !(await confirm({
+        title: "Remove conflict?",
+        description: "Remove this allergy conflict?",
+        confirmText: "Remove",
+      }))
+    ) {
+      return;
+    }
     try {
       await api.del(`/product-allergy-conflicts/${conflictId}`);
       addAlert("success", "Conflict removed.");
@@ -99,7 +108,7 @@ function ProductDetailContent() {
   return (
     <div className="space-y-4">
       <PageHeader
-        backHref="/inventory"
+        backHref="/inventory/products"
         title={product.name}
         onEdit={can("products:write") ? () => setEditOpen(true) : undefined}
         onDelete={can("products:delete") ? handleDelete : undefined}

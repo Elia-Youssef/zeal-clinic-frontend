@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataList } from "@/components/data/data-list";
 import { type Column } from "@/components/data/data-table";
-import { AddButton } from "@/components/shared/add-button";
+import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/shared/detail-field";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
@@ -21,7 +21,7 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import type { BalanceTransaction, Expense } from "@/lib/types";
-import { transactionColors } from "@/lib/constants";
+import { transactionColors, adjustmentRowTint } from "@/lib/constants";
 
 function formatMoney(amount: number | undefined) {
   if (amount == null) return "---";
@@ -176,7 +176,7 @@ function ExpenseDetailContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Expense Details</CardTitle>
+          <CardTitle className="text-base font-semibold">Details</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm">
           <DetailField label="Created">
@@ -210,13 +210,19 @@ function ExpenseDetailContent() {
         rowClassName={(t) =>
           t.transactionType === "adjustment" ||
           t.transactionType === "write-off"
-            ? "bg-amber-50 dark:bg-amber-950/30"
+            ? adjustmentRowTint
             : undefined
         }
         headerActions={
           can("payments:write") ? (
             <div className="flex items-center gap-2">
-              <AddButton label="New" onClick={() => setPaymentOpen(true)} />
+              <Button
+                size="sm"
+                className="gap-1"
+                onClick={() => setPaymentOpen(true)}
+              >
+                <Plus className="size-3.5" />
+              </Button>
               <PaymentActionsMenu
                 actions={[
                   {

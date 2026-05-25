@@ -30,7 +30,6 @@ export type Patient = {
   notes?: string;
   referralId?: string;
   referralSource?: string;
-  referral?: { id: string; firstName: string; lastName: string };
   createdAt: string;
   updatedAt: string;
   country?: Country;
@@ -53,8 +52,6 @@ export type AppointmentProcedure = {
   createdAt?: string;
   updatedAt?: string;
   procedureName?: string;
-  patientName?: string;
-  appointment?: Appointment;
 };
 
 export type PrescriptionMedicine = {
@@ -62,7 +59,6 @@ export type PrescriptionMedicine = {
   medicineId: string;
   prescriptionId: string;
   instructions: string;
-  status: string;
   createdAt?: string;
   medicineName?: string;
 };
@@ -192,7 +188,11 @@ export type ScheduleAvailability = {
   employeeName?: string;
 };
 
-export type EmployeeScheduleOffReason = "" | "holiday" | "vacation" | "no-schedule";
+export type EmployeeScheduleOffReason =
+  | ""
+  | "holiday"
+  | "vacation"
+  | "no-schedule";
 
 export type EmployeeScheduleShift = {
   startTime: string;
@@ -339,7 +339,6 @@ export type Supplier = {
 export type Expense = {
   id: string;
   name: string;
-  category: string;
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -524,4 +523,17 @@ export type Notification = {
   description: string;
   isRead: boolean;
   createdAt: string;
+};
+
+export type UpdateStatus = {
+  available: boolean;
+  current: string;
+  latest: string;
+  releasedAt: string;
+  installing: boolean;
+};
+
+export type StartUpdateResult = {
+  status: "installing";
+  warning?: string; // present only if the cloud-peer trigger failed
 };

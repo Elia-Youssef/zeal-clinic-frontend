@@ -20,7 +20,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { useEmployeesStore } from "@/lib/stores/employees-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { transactionColors } from "@/lib/constants";
+import { transactionColors, adjustmentRowTint } from "@/lib/constants";
 import type { Salary, SalaryPreparation, Transaction } from "@/lib/types";
 import { EmployeeForm } from "@/components/forms/employee-form";
 import { EmployeePaymentForm } from "@/components/forms/employee-payment-form";
@@ -192,7 +192,7 @@ export default function EmployeeDetailPage() {
       key: "effectiveDate",
       header: "Effective",
       className: "w-40",
-      render: (s) => s.effectiveDate?.slice(0, 10) ?? "---",
+      render: (s) => beirutDayKey(s.effectiveDate) || "---",
     },
     {
       key: "notes",
@@ -240,7 +240,7 @@ export default function EmployeeDetailPage() {
           <DetailField label="Contact">{employee.contact}</DetailField>
           <DetailField label="Email">{employee.email || "---"}</DetailField>
           <DetailField label="Date of Birth">
-            {employee.dateOfBirth?.slice(0, 10) ?? "---"}
+            {beirutDayKey(employee.dateOfBirth) || "---"}
           </DetailField>
         </CardContent>
       </Card>
@@ -371,7 +371,7 @@ export default function EmployeeDetailPage() {
               rowClassName={(p) =>
                 p.transactionType === "adjustment" ||
                 p.transactionType === "write-off"
-                  ? "bg-amber-50 dark:bg-amber-950/30"
+                  ? adjustmentRowTint
                   : undefined
               }
               rowKey={(p) => p.id}
@@ -430,7 +430,7 @@ export default function EmployeeDetailPage() {
               key: "period",
               className: "truncate",
               render: (p) =>
-                `${p.periodStart?.slice(0, 10) ?? "---"} → ${p.periodEnd?.slice(0, 10) ?? "---"}`,
+                `${beirutDayKey(p.periodStart) || "---"} → ${beirutDayKey(p.periodEnd) || "---"}`,
             },
             {
               header: "Base",

@@ -5,6 +5,7 @@ import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { Badge } from "@/components/ui/badge";
 import type { Procedure } from "@/lib/types";
+import { formatMoney } from "@/lib/utils";
 import { ProcedureForm } from "@/components/forms/procedure-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -53,7 +54,7 @@ export default function ProceduresPage() {
       sortKey: "price",
       render: (p) => (
         <span className="font-medium">
-          {p.price ? <span>${p.price}</span> : null}
+          {p.price ? <span>{formatMoney(p.price)}</span> : null}
           {p.priceNote && p.price ? (
             <span className="text-muted-foreground">{" - "}</span>
           ) : null}

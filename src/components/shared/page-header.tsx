@@ -31,7 +31,7 @@ export function PageHeader({
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Button variant="ghost" size="sm" onClick={handleBack}>
-          <ArrowLeft className="size-4 mr-1" />
+          <ArrowLeft className="size-4" />
         </Button>
         <h2 className="min-w-0 truncate text-xl font-semibold">{title}</h2>
       </div>
@@ -40,12 +40,12 @@ export function PageHeader({
           {extraActions}
           {onEdit && (
             <Button variant="outline" size="sm" onClick={onEdit}>
-              <Pencil className="size-4 mr-1" /> Edit
+              <Pencil className="size-4" /> Edit
             </Button>
           )}
           {onDelete && (
             <Button variant="destructive" size="sm" onClick={onDelete}>
-              <Trash2 className="size-4 mr-1" /> Delete
+              <Trash2 className="size-4" /> Delete
             </Button>
           )}
         </div>

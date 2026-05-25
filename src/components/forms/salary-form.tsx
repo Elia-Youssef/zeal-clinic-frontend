@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -97,7 +98,9 @@ export function SalaryForm({
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Notes</label>
-            <Input
+            <textarea
+              className={textareaClass}
+              rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />

@@ -9,6 +9,7 @@ const tabs = [
     href: "/settings/audit-log",
     scopes: ["audit:read"],
   },
+  { label: "About", href: "/settings/about", scopes: ["update:read"] },
 ];
 
 export default function SettingsTabsLayout({

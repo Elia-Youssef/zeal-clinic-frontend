@@ -46,7 +46,7 @@ function StaffContent() {
       sortable: true,
       sortKey: "isActive",
       render: (u) => (
-        <Badge variant={u.isActive ? "default" : "secondary"}>
+        <Badge variant={u.isActive ? "default" : "outline"}>
           {u.isActive ? "Active" : "Inactive"}
         </Badge>
       ),

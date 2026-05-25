@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
@@ -272,7 +273,9 @@ export function EmployeeVacationForm({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Notes</label>
-          <Input
+          <textarea
+            className={textareaClass}
+            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"

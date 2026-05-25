@@ -16,12 +16,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { UserForm } from "@/components/forms/user-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { AuditLogEntry } from "@/lib/types";
-
-const actionClasses: Record<string, string> = {
-  POST: "bg-positive/10 text-positive border-positive/30",
-  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
-  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
-};
+import { auditActionStyles } from "@/lib/constants";
 
 const actionColumns: Column<AuditLogEntry>[] = [
   {
@@ -43,7 +38,7 @@ const actionColumns: Column<AuditLogEntry>[] = [
     sortable: true,
     sortKey: "action",
     render: (e) => (
-      <Badge variant="outline" className={actionClasses[e.action]}>
+      <Badge variant="outline" className={auditActionStyles[e.action]}>
         {e.action}
       </Badge>
     ),
@@ -116,7 +111,7 @@ function StaffDetailContent() {
           <DetailField label="Role">{user.role}</DetailField>
           <DetailField label="Status">
             <Badge
-              variant={user.isActive ? "default" : "secondary"}
+              variant={user.isActive ? "default" : "outline"}
               className={can("users:write") ? "cursor-pointer" : undefined}
               onClick={can("users:write") ? handleToggleActive : undefined}
             >

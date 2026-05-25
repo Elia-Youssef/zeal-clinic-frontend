@@ -11,6 +11,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
+import { beirutDayKey } from "@/lib/tz";
 
 function HolidaysContent() {
   const { can } = usePermissions();
@@ -34,8 +35,8 @@ function HolidaysContent() {
   };
 
   const fmtRange = (h: Holiday) => {
-    const start = h.startDate?.slice(0, 10) ?? "";
-    const end = h.endDate?.slice(0, 10) ?? "";
+    const start = beirutDayKey(h.startDate);
+    const end = beirutDayKey(h.endDate);
     if (!start) return "---";
     if (!end || start === end) return start;
     return `${start} → ${end}`;

@@ -6,6 +6,7 @@ import { AddButton } from "@/components/shared/add-button";
 import { Badge } from "@/components/ui/badge";
 import { useProductsStore } from "@/lib/stores/products-store";
 import type { Product } from "@/lib/types";
+import { formatMoney } from "@/lib/utils";
 import { ProductForm } from "@/components/forms/product-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -54,7 +55,7 @@ export default function ProductsPage() {
     {
       key: "quantity",
       header: "Stock",
-      className: "w-24",
+      className: "w-24 text-right",
       sortable: true,
       sortKey: "quantity",
       render: (p) => `${p.quantity}`,
@@ -67,7 +68,7 @@ export default function ProductsPage() {
       sortKey: "unitPrice",
       render: (p) => (
         <span className="font-medium">
-          {p.unitPrice != null ? `$${p.unitPrice.toFixed(2)}` : "---"}
+          {p.unitPrice != null ? formatMoney(p.unitPrice) : "---"}
         </span>
       ),
     },
