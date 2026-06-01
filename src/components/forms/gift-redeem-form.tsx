@@ -27,17 +27,15 @@ export function GiftRedeemForm({
   const { can } = usePermissions();
   const [code, setCode] = useState("");
   const [patientId, setPatientId] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setCode(prefilledCode ?? "");
     setPatientId("");
-    setCurrencyId("");
   }, [open, prefilledCode]);
 
-  const canSubmit = code.trim() && patientId && currencyId;
+  const canSubmit = code.trim() && patientId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +44,6 @@ export function GiftRedeemForm({
       await api.post("/gift-cards/redeem", {
         code: code.trim(),
         patientId,
-        currencyId,
       });
       addAlert("success", "Gift card redeemed.");
       onRedeemed();
@@ -104,21 +101,6 @@ export function GiftRedeemForm({
                   )
                 : undefined
             }
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Currency *</label>
-          <SearchableDropdown
-            value={currencyId}
-            onChange={setCurrencyId}
-            apiEndpoint="/currencies/dropdown"
-            mapItem={(c: { id: string; name: string }) => ({
-              value: c.id,
-              label: c.name,
-            })}
-            placeholder="Select currency…"
-            required
-            defaultFirst
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">

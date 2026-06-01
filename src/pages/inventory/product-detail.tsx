@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
@@ -42,6 +42,8 @@ function ProductDetailContent() {
   const [editOpen, setEditOpen] = useState(false);
 
   const [conflictFormOpen, setConflictFormOpen] = useState(false);
+  const [editingConflict, setEditingConflict] =
+    useState<ProductAllergyConflict | null>(null);
 
   const load = async () => {
     try {
@@ -168,6 +170,14 @@ function ProductDetailContent() {
             can("product-allergy-conflicts:write")
               ? [
                   {
+                    label: "Edit",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (i) => {
+                      setEditingConflict(i);
+                      setConflictFormOpen(true);
+                    },
+                  },
+                  {
                     label: "Delete",
                     icon: <Trash2 className="size-3.5" />,
                     destructive: true,
@@ -270,9 +280,13 @@ function ProductDetailContent() {
 
       <ProductAllergyConflictForm
         open={conflictFormOpen}
-        onClose={() => setConflictFormOpen(false)}
+        onClose={() => {
+          setConflictFormOpen(false);
+          setEditingConflict(null);
+        }}
         onSaved={bumpConflicts}
         productId={id}
+        initial={editingConflict}
       />
 
       <ProductForm

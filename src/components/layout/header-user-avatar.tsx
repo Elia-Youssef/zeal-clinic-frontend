@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Sun, Moon, ZoomIn } from "lucide-react";
+import { LogOut, Sun, Moon, ZoomIn, User } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -116,6 +116,14 @@ export function HeaderUserAvatar() {
         </div>
 
         <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={() => navigate("/profile")}
+          className="flex items-center gap-2"
+        >
+          <User className="size-4" />
+          <span>My Profile</span>
+        </DropdownMenuItem>
 
         <DropdownMenuItem
           closeOnClick={false}

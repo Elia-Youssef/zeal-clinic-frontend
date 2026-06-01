@@ -17,6 +17,8 @@ function clearAuthSession(): void {
   sessionStorage.removeItem("auth_user");
   sessionStorage.removeItem("auth_role");
   sessionStorage.removeItem("auth_scopes");
+  sessionStorage.removeItem("auth_user_id");
+  sessionStorage.removeItem("auth_employee_id");
 }
 
 async function request<T>(

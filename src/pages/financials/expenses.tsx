@@ -50,6 +50,7 @@ export default function ExpensesPage() {
       <DataList<Expense>
         title="Expenses"
         endpoint="/expenses"
+        dateFilter
         columns={expenseColumns}
         rowKey={(e) => e.id}
         onRowClick={(e) => navigate(`/financials/expenses/${e.id}`)}

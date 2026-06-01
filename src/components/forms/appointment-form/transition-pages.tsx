@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { textareaClass } from "@/lib/form-styles";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
+import type { AppointmentProcedureSelection } from "./types";
 
 export function CancelPage({
   appointmentId,
@@ -138,21 +140,54 @@ export function CompletePage({
 
 export function InProgressPage({
   appointmentId,
+  procedures,
   onBack,
   onSaved,
 }: {
   appointmentId: string;
+  procedures: AppointmentProcedureSelection[];
   onBack: () => void;
   onSaved: () => void;
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [submitting, setSubmitting] = useState(false);
+  const [rows, setRows] = useState<AppointmentProcedureSelection[]>(procedures);
+
+  const allAssigned = useMemo(
+    () => rows.length > 0 && rows.every((r) => !!r.assignedToId),
+    [rows],
+  );
+
+  const setEmployee = (
+    procedureId: string,
+    employeeId: string,
+    employeeLabel?: string,
+  ) =>
+    setRows((prev) =>
+      prev.map((p) =>
+        p.id === procedureId
+          ? {
+              ...p,
+              assignedToId: employeeId || undefined,
+              assignedToLabel: employeeId ? employeeLabel : undefined,
+            }
+          : p,
+      ),
+    );
 
   const handleStart = async () => {
+    if (!allAssigned) {
+      addAlert("error", "Assign an employee to every procedure first.");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.put(`/appointments/${appointmentId}`, {
         status: "In-Progress",
+        appointmentProcedures: rows.map((r) => ({
+          procedureId: r.id,
+          assignedToId: r.assignedToId ?? "",
+        })),
       });
       addAlert("success", "Appointment marked in-progress.");
       onSaved();
@@ -166,13 +201,55 @@ export function InProgressPage({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Mark this appointment as in-progress?
+        Assign an employee to each procedure before starting this appointment.
       </p>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          This appointment has no procedures.
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {rows.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-2 rounded-md border border-input bg-muted/30 px-2 py-1.5"
+            >
+              <span className="flex-1 text-sm">{p.label}</span>
+              <div className="w-56 shrink-0">
+                <SearchableDropdown
+                  value={p.assignedToId ?? ""}
+                  onChange={(v) => {
+                    if (!v) setEmployee(p.id, "", undefined);
+                  }}
+                  onSelectItem={(opt) =>
+                    setEmployee(p.id, opt.value, opt.label)
+                  }
+                  defaultApiOption={
+                    p.assignedToId && p.assignedToLabel
+                      ? { value: p.assignedToId, label: p.assignedToLabel }
+                      : undefined
+                  }
+                  apiEndpoint="/employees/dropdown"
+                  mapItem={(item: { id: string; name: string }) => ({
+                    value: item.id,
+                    label: item.name,
+                  })}
+                  placeholder="Assign employee…"
+                  clearable
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button disabled={submitting} onClick={handleStart}>
+        <Button
+          disabled={submitting || !allAssigned}
+          onClick={handleStart}
+        >
           {submitting ? "Starting…" : "Confirm"}
         </Button>
       </div>

@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format as fnsFormat } from "date-fns";
+import { Loader2, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Holiday, Room, RoomDayCount } from "@/lib/types";
 import { holidayBadgeClass, holidayTint } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useAlertStore } from "@/lib/stores/alert-store";
 import { beirutNow } from "@/lib/tz";
 import { getWeekDays, toDateStr } from "./sched-utils";
 
@@ -26,9 +30,22 @@ export function WeekView({
   holidays: Holiday[];
   onDayClick: (day: Date) => void;
 }) {
+  const addAlert = useAlertStore((s) => s.addAlert);
+  const [printing, setPrinting] = useState(false);
   const weekDays = useMemo(() => getWeekDays(date), [date]);
   const today = toDateStr(beirutNow());
   const gridCols = `6.25rem repeat(${rooms.length}, 1fr)`;
+
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      await api.openPdf(`/appointments/pdf?date=${toDateStr(date)}&range=week`);
+    } catch (err) {
+      addAlert("error", getErrorMessage(err, "Failed to generate PDF."));
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const countsByRoom = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
@@ -54,10 +71,25 @@ export function WeekView({
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">
           {shortDate(weekDays[0])} - {shortDate(weekDays[6])}
         </h2>
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-8"
+          onClick={handlePrint}
+          disabled={printing}
+          title="Print week schedule"
+          aria-label="Print week schedule"
+        >
+          {printing ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Printer className="size-4" />
+          )}
+        </Button>
       </div>
 
       <div className="overflow-x-auto">

@@ -86,6 +86,7 @@ export function CompletionWizard({
             open={open}
             defaultPatientId={initialData.patientId}
             defaultPatientLabel={initialData.patientLabel}
+            defaultProcedures={initialData.procedures}
             submitLabel="Create Invoice & Continue"
             cancelLabel="Close"
             onSubmitted={onInvoiceCreated}

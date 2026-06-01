@@ -83,6 +83,7 @@ export default function InvoicesPage() {
           />
         }
         endpoint={`/invoices?type=${entityEndpointKey(entityTab)}`}
+        dateFilter
         columns={invoiceColumns}
         rowKey={(i) => i.id}
         onRowClick={invoiceRowClick}

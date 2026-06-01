@@ -48,6 +48,8 @@ export type AppointmentProcedure = {
   patientId: string;
   procedureId: string;
   appointmentId: string;
+  assignedToId?: string;
+  assignedToName?: string;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -169,11 +171,10 @@ export type Employee = {
   employmentType: "Full-time" | "Part-time";
   createdAt: string;
   updatedAt: string;
-  salaries: Salary[];
   user?: EmployeeUser;
 };
 
-export type ScheduleAvailability = {
+export type EmployeeSchedule = {
   id: string;
   employeeId: string;
   /** 0 = Sunday, 6 = Saturday. */
@@ -191,15 +192,18 @@ export type ScheduleAvailability = {
 export type EmployeeScheduleOffReason =
   | ""
   | "holiday"
-  | "vacation"
+  | "timeoff"
   | "no-schedule";
+
+export type EmployeeScheduleShiftKind = "regular" | "overtime";
 
 export type EmployeeScheduleShift = {
   startTime: string;
   endTime: string;
+  kind: EmployeeScheduleShiftKind;
 };
 
-/** Projected schedule day after holidays and vacations are applied. */
+/** Projected schedule day after holidays and schedule changes are applied. */
 export type EmployeeScheduleDay = {
   employeeId: string;
   employeeName?: string;
@@ -209,24 +213,47 @@ export type EmployeeScheduleDay = {
   shifts: EmployeeScheduleShift[];
   isOff: boolean;
   offReason: EmployeeScheduleOffReason;
+  /** Total hours including overtime. */
   hours: number;
+  overtimeHours: number;
 };
 
-export type EmployeeVacationStatus = "pending" | "accepted" | "rejected";
+export type EmployeeScheduleChangeType = "timeoff" | "overtime";
+export type EmployeeScheduleChangeStatus = "pending" | "accepted" | "rejected";
 
-export type EmployeeVacation = {
+export type EmployeeScheduleChange = {
   id: string;
   employeeId: string;
   employeeName?: string;
+  type: EmployeeScheduleChangeType;
   startDate: string;
   endDate: string;
-  /** Empty for full-day vacation. */
+  /** Empty for full-day timeoff; required for overtime. */
   startTime: string;
   endTime: string;
-  status: EmployeeVacationStatus;
+  status: EmployeeScheduleChangeStatus;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type EmployeeMonthHours = {
+  employeeId: string;
+  employeeName?: string;
+  hours: number;
+  overtimeHours: number;
+};
+
+export type EmployeeScheduleResponse = {
+  weekStart: string;
+  weekEnd: string;
+  monthStart: string;
+  monthEnd: string;
+  days: EmployeeScheduleDay[];
+  templates: EmployeeSchedule[];
+  scheduleChanges: EmployeeScheduleChange[];
+  holidays: Holiday[];
+  monthHours: EmployeeMonthHours[];
 };
 
 export type Holiday = {
@@ -386,7 +413,6 @@ export type BalanceTransaction = {
 export type ClientRefundRequest = {
   patientId: string;
   amount: number;
-  currencyId: string;
   transactionMethod?: string;
   description?: string;
 };
@@ -405,6 +431,7 @@ export type InvoiceItem = {
   giftPatientId?: string | null;
   giftCode?: string | null;
   giftName?: string | null;
+  categoryName?: string | null;
 };
 
 export type Invoice = {

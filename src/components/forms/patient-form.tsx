@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { DateInput } from "@/components/shared/date-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import { FormDraftsLayout } from "@/components/shared/form-drafts";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -12,6 +13,7 @@ import { genderOptions, bloodTypeOptions } from "@/lib/constants";
 import type { Patient } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useFormDrafts } from "@/hooks/use-form-drafts";
 
 type PatientFormFields = {
   firstName: string;
@@ -118,6 +120,28 @@ export function PatientForm({
   const update = (field: keyof PatientFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  // Autosave drafts for new patients only (not when editing an existing one).
+  const applyDraft = useCallback((d: PatientFormFields) => {
+    setForm(d);
+    setIsLebanon(d.countryName === "Lebanon" || !!d.cityId);
+  }, []);
+
+  const drafts = useFormDrafts<PatientFormFields>({
+    group: isEdit ? undefined : "patient",
+    mode: "auto",
+    open,
+    snapshot: form,
+    apply: applyDraft,
+    blank: () => {
+      setForm(emptyForm);
+      setIsLebanon(false);
+    },
+    // gender defaults to "Male"; country/cityName are labels that mirror their ids.
+    isEmpty: ({ gender: _g, countryName: _cn, cityName: _ccn, ...rest }) =>
+      Object.values(rest).every((v) => !v),
+    label: (d) => `${d.firstName} ${d.lastName}`.trim() || "Untitled patient",
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -179,6 +203,7 @@ export function PatientForm({
           payload,
         );
         addAlert("success", "Patient created.");
+        drafts.discardActive();
         onSaved(created);
       }
       onClose();
@@ -189,13 +214,8 @@ export function PatientForm({
     }
   };
 
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Patient" : "New Patient"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
+  const formEl = (
+    <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">First Name *</label>
@@ -446,6 +466,16 @@ export function PatientForm({
           </Button>
         </div>
       </form>
+  );
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? "Edit Patient" : "New Patient"}
+      size={drafts.enabled ? "wide" : "default"}
+    >
+      <FormDraftsLayout drafts={drafts}>{formEl}</FormDraftsLayout>
     </Modal>
   );
 }

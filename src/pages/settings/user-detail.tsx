@@ -132,7 +132,7 @@ function StaffDetailContent() {
         endpoint={`/users/${id}/actions`}
         columns={actionColumns}
         rowKey={(a) => a.id}
-        limit={50}
+        limit={10}
         emptyMessage="No entries."
         emptySearchMessage="No entries match your search."
       />

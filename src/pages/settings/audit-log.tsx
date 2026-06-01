@@ -55,6 +55,7 @@ export default function AuditLogPage() {
     <DataList<AuditLogEntry>
       title="Audit Log"
       endpoint="/audit-log"
+      dateFilter
       columns={columns}
       rowKey={(e) => e.id}
       emptyMessage="No entries."

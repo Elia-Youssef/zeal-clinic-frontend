@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
@@ -48,7 +49,6 @@ export function SupplierInvoiceForm({
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
   const [supplierId, setSupplierId] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([blankItem()]);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +58,6 @@ export function SupplierInvoiceForm({
     setInvoiceNumber("");
     setInvoiceNumberAuto(true);
     setSupplierId(defaultSupplierId ?? "");
-    setCurrencyId("");
     setNotes("");
     setItems([blankItem()]);
   }, [open, defaultSupplierId]);
@@ -88,7 +87,6 @@ export function SupplierInvoiceForm({
 
   const canSubmit =
     supplierId &&
-    currencyId &&
     (invoiceNumberAuto || Number(invoiceNumber) > 0) &&
     items.length > 0 &&
     items.every((it) => it.itemId && Number(it.quantity) > 0);
@@ -102,7 +100,6 @@ export function SupplierInvoiceForm({
           ? {}
           : { invoiceNumber: Number(invoiceNumber) }),
         supplierId,
-        currencyId,
         notes: notes || undefined,
         items: items.map((it) => ({
           itemType: "product",
@@ -160,7 +157,7 @@ export function SupplierInvoiceForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Supplier *</label>
             <SearchableDropdown
@@ -193,21 +190,6 @@ export function SupplierInvoiceForm({
                     )
                   : undefined
               }
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Currency *</label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="Select currency…"
-              required
-              defaultFirst
             />
           </div>
         </div>
@@ -301,9 +283,7 @@ export function SupplierInvoiceForm({
                   <label className="text-xs text-muted-foreground">
                     Amount
                   </label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <MoneyInput
                     min="0"
                     value={item.amount}
                     onChange={(e) =>

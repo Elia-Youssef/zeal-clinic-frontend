@@ -229,12 +229,11 @@ export function EmployeeForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Password *</label>
+                  <label className="text-sm font-medium">Password</label>
                   <Input
                     type="password"
                     value={form.password}
                     onChange={(e) => update("password", e.target.value)}
-                    required
                   />
                 </div>
                 <div className="space-y-1.5">

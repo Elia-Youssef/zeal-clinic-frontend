@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
+import { MultilineText } from "@/components/shared/multiline-text";
 import { DataList } from "@/components/data/data-list";
 import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
 import { api } from "@/lib/api";
@@ -153,7 +154,7 @@ function SupplierDetailContent() {
           </DetailField>
           <DetailField label="Address">{supplier.address || "---"}</DetailField>
           <DetailField label="Notes" className="sm:col-span-2 md:col-span-3">
-            {supplier.notes || "---"}
+            <MultilineText value={supplier.notes} />
           </DetailField>
         </CardContent>
       </Card>

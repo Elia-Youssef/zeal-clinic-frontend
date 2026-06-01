@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -115,9 +116,7 @@ export function ProductForm({
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Unit Price *</label>
-            <Input
-              type="number"
-              step="0.01"
+            <MoneyInput
               min="0"
               value={unitPrice}
               onChange={(e) => setUnitPrice(clampNonNegative(e.target.value))}

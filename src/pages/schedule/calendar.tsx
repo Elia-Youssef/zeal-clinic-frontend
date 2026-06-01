@@ -121,6 +121,11 @@ function CalendarPageContent() {
     [can, currentDate, openForm],
   );
 
+  const handleAddClick = useCallback(() => {
+    if (!can("appointments:write")) return;
+    openForm({ date: toDateStr(currentDate), status: "Scheduled" });
+  }, [can, currentDate, openForm]);
+
   const handleAppointmentClick = useCallback(
     (appt: Appointment) => {
       if (!can("appointments:write")) return;
@@ -133,6 +138,8 @@ function CalendarPageContent() {
           appt.appointmentProcedures?.map((ap) => ({
             id: ap.procedureId,
             label: ap.procedureName ?? "",
+            assignedToId: ap.assignedToId || undefined,
+            assignedToLabel: ap.assignedToName || undefined,
           })) ?? [],
         startTime: formatInBeirut(appt.startTime, "yyyy-MM-dd'T'HH:mm"),
         endTime: formatInBeirut(appt.endTime, "yyyy-MM-dd'T'HH:mm"),
@@ -180,6 +187,7 @@ function CalendarPageContent() {
                 holidays={dayHolidays}
                 onCellClick={handleCellClick}
                 onAppointmentClick={handleAppointmentClick}
+                onAddAppointment={handleAddClick}
               />
             ) : (
               <WeekView

@@ -7,6 +7,7 @@ import { DataList } from "@/components/data/data-list";
 import { type Column } from "@/components/data/data-table";
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/shared/detail-field";
+import { MultilineText } from "@/components/shared/multiline-text";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaymentActionsMenu } from "@/components/shared/payment-actions-menu";
@@ -182,7 +183,9 @@ function ExpenseDetailContent() {
           <DetailField label="Created">
             {beirutDayKey(expense.createdAt) || "---"}
           </DetailField>
-          <DetailField label="Notes">{expense.notes || "---"}</DetailField>
+          <DetailField label="Notes">
+            <MultilineText value={expense.notes} />
+          </DetailField>
         </CardContent>
       </Card>
 

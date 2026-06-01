@@ -9,6 +9,7 @@ import {
 import Home from "@/pages/login";
 import AuthenticatedLayout from "@/pages/layouts/authenticated-layout";
 import DashboardPage from "@/pages/dashboard";
+import ProfilePage from "@/pages/profile";
 import PatientsTabsLayout from "@/pages/layouts/patients-tabs-layout";
 import PatientsListPage from "@/pages/patients/list";
 import PatientsAllergiesPage from "@/pages/patients/allergies";
@@ -74,6 +75,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route element={<LayoutRoute layout={AuthenticatedLayout} />}>
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="profile" element={<ProfilePage />} />
 
             <Route
               path="patients"

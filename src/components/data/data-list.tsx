@@ -9,8 +9,17 @@ import { DataPagination } from "@/components/data/data-pagination";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loading } from "@/components/shared/loading";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { api, type Paginated } from "@/lib/api";
+import { dateRangeToUtc } from "@/lib/tz";
 import { cn } from "@/lib/utils";
+import { Filter } from "lucide-react";
 
 const DEFAULT_LIMIT = 100;
 
@@ -28,6 +37,8 @@ function useListData<T>({
   offset,
   limit,
   filter,
+  from,
+  to,
   sort,
   refreshKey,
 }: {
@@ -35,6 +46,8 @@ function useListData<T>({
   offset: number;
   limit: number;
   filter: string;
+  from: string;
+  to: string;
   sort: SortState | null;
   refreshKey: number;
 }) {
@@ -49,6 +62,11 @@ function useListData<T>({
       params.set("offset", String(offset));
       params.set("limit", String(limit));
       if (filter) params.set("filter", filter);
+      if (from && to) {
+        const range = dateRangeToUtc(from, to);
+        params.set("from", range.from);
+        params.set("to", range.to);
+      }
       if (sort) {
         params.set("sort", sort.id);
         params.set("order", sort.dir);
@@ -70,7 +88,7 @@ function useListData<T>({
     } finally {
       setLoading(false);
     }
-  }, [endpoint, offset, limit, filter, sort]);
+  }, [endpoint, offset, limit, filter, from, to, sort]);
 
   useEffect(() => {
     fetchData();
@@ -94,6 +112,7 @@ export function DataList<T>({
   refreshKey = 0,
   resetKey,
   hideSearch = false,
+  dateFilter = false,
   className = "",
   rowClassName,
 }: {
@@ -110,12 +129,15 @@ export function DataList<T>({
   refreshKey?: number;
   resetKey?: unknown;
   hideSearch?: boolean;
+  dateFilter?: boolean;
   className?: string;
   rowClassName?: (item: T) => string | undefined;
 }) {
   const [offset, setOffset] = useState(0);
   const [filterInput, setFilterInput] = useState("");
   const [filter, setFilter] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [sort, setSort] = useState<SortState | null>(null);
 
   useEffect(() => {
@@ -130,6 +152,8 @@ export function DataList<T>({
     setOffset(0);
     setFilterInput("");
     setFilter("");
+    setFrom("");
+    setTo("");
     setSort(null);
   }, [resetKey]);
 
@@ -138,11 +162,13 @@ export function DataList<T>({
     offset,
     limit,
     filter,
+    from,
+    to,
     sort,
     refreshKey,
   });
 
-  const hasHeader = !!(title || !hideSearch || headerActions);
+  const hasHeader = !!(title || !hideSearch || dateFilter || headerActions);
   const hasPagination = total > limit;
   const isEmpty = !loading && data.length === 0;
 
@@ -169,6 +195,17 @@ export function DataList<T>({
                   placeholder="Search..."
                 />
               </div>
+            )}
+            {dateFilter && (
+              <DateFilterButton
+                from={from}
+                to={to}
+                onApply={(f, t) => {
+                  setFrom(f);
+                  setTo(t);
+                  setOffset(0);
+                }}
+              />
             )}
             {headerActions && (
               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -218,5 +255,80 @@ export function DataList<T>({
         </div>
       )}
     </Card>
+  );
+}
+
+function DateFilterButton({
+  from,
+  to,
+  onApply,
+}: {
+  from: string;
+  to: string;
+  onApply: (from: string, to: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draftFrom, setDraftFrom] = useState(from);
+  const [draftTo, setDraftTo] = useState(to);
+  const active = !!(from && to);
+
+  // Seed the draft from the applied range each time the popover opens.
+  useEffect(() => {
+    if (open) {
+      setDraftFrom(from);
+      setDraftTo(to);
+    }
+  }, [open, from, to]);
+
+  const apply = () => {
+    onApply(draftFrom, draftTo);
+    setOpen(false);
+  };
+
+  const clear = () => {
+    setDraftFrom("");
+    setDraftTo("");
+    onApply("", "");
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant={active ? "secondary" : "outline"}
+            size="sm"
+            className="gap-1"
+          />
+        }
+      >
+        <Filter className="size-4" />
+        Filter
+        {active && (
+          <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+        )}
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            From
+          </label>
+          <DatePicker value={draftFrom} onChange={setDraftFrom} max={draftTo} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">To</label>
+          <DatePicker value={draftTo} onChange={setDraftTo} min={draftFrom} />
+        </div>
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Button variant="ghost" size="sm" onClick={clear} disabled={!active}>
+            Clear
+          </Button>
+          <Button size="sm" onClick={apply} disabled={!draftFrom || !draftTo}>
+            Apply
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

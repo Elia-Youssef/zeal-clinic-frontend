@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
@@ -67,7 +67,6 @@ export function BalanceAdjustmentForm({
   const isWriteOff = mode === "write-off";
 
   const [amount, setAmount] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [direction, setDirection] = useState<"incoming" | "outgoing">(
     defaultDirection,
@@ -78,7 +77,6 @@ export function BalanceAdjustmentForm({
   useEffect(() => {
     if (!open) return;
     setAmount("");
-    setCurrencyId("");
     setTransactionMethod("cash");
     setDirection(defaultDirection);
     setDescription("");
@@ -86,7 +84,6 @@ export function BalanceAdjustmentForm({
 
   const canSubmit =
     !!entityId &&
-    !!currencyId &&
     Number(amount) > 0 &&
     !!description.trim() &&
     !!direction;
@@ -100,7 +97,6 @@ export function BalanceAdjustmentForm({
       const payload: Record<string, unknown> = {
         [config.idField]: entityId,
         amount: Number(amount),
-        currencyId,
         direction,
         description: description.trim(),
       };
@@ -128,32 +124,15 @@ export function BalanceAdjustmentForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div
-          className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-3" : "sm:grid-cols-2 md:grid-cols-4"} gap-3`}
+          className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}
         >
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
-            <Input
-              type="number"
-              step="0.01"
+            <MoneyInput
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Currency *</label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="Select currency…"
-              required
-              defaultFirst
             />
           </div>
           <div className="space-y-1.5">

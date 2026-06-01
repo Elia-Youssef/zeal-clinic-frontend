@@ -37,7 +37,10 @@ function buildPayload(form: AppointmentFormData) {
   return {
     patientId: form.patientId,
     roomId: form.roomId,
-    procedureIds: form.procedures.map((p) => p.id),
+    appointmentProcedures: form.procedures.map((p) => ({
+      procedureId: p.id,
+      assignedToId: p.assignedToId ?? "",
+    })),
     startTime: toISODateTime(`${form.date}T${form.startTime}`),
     endTime: toISODateTime(`${form.date}T${form.endTime}`),
     notes: form.notes || undefined,
@@ -105,6 +108,24 @@ export function MainPage({
     setForm((prev) => ({
       ...prev,
       procedures: prev.procedures.filter((p) => p.id !== id),
+    }));
+
+  const setProcedureEmployee = (
+    procedureId: string,
+    employeeId: string,
+    employeeLabel?: string,
+  ) =>
+    setForm((prev) => ({
+      ...prev,
+      procedures: prev.procedures.map((p) =>
+        p.id === procedureId
+          ? {
+              ...p,
+              assignedToId: employeeId || undefined,
+              assignedToLabel: employeeId ? employeeLabel : undefined,
+            }
+          : p,
+      ),
     }));
 
   const submitSave = async (e: React.FormEvent) => {
@@ -239,7 +260,7 @@ export function MainPage({
             label: r.name,
           })}
           placeholder="Select room…"
-          apiOptionsLimit={10}
+          apiOptionsLimit={100}
           required
           renderAddForm={
             canCreateRoom
@@ -263,6 +284,7 @@ export function MainPage({
         procedures={form.procedures}
         onAdd={addProcedure}
         onRemove={removeProcedure}
+        onSetEmployee={setProcedureEmployee}
         canCreateProcedure={canCreateProcedure}
       />
 
@@ -280,7 +302,7 @@ export function MainPage({
           <Input
             type="time"
             value={form.startTime}
-            step={900}
+            step={300}
             max={form.endTime || undefined}
             onChange={(v) => update("startTime", v.target.value)}
             required
@@ -291,7 +313,7 @@ export function MainPage({
           <Input
             type="time"
             value={form.endTime}
-            step={900}
+            step={300}
             min={form.startTime || undefined}
             onChange={(v) => update("endTime", v.target.value)}
             required
@@ -353,33 +375,64 @@ function ProceduresField({
   procedures,
   onAdd,
   onRemove,
+  onSetEmployee,
   canCreateProcedure,
 }: {
   procedures: AppointmentProcedureSelection[];
   onAdd: (option: AppointmentProcedureSelection) => void;
   onRemove: (id: string) => void;
+  onSetEmployee: (
+    procedureId: string,
+    employeeId: string,
+    employeeLabel?: string,
+  ) => void;
   canCreateProcedure: boolean;
 }) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">Procedures *</label>
       {procedures.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="space-y-1.5">
           {procedures.map((p) => (
-            <span
+            <div
               key={p.id}
-              className="inline-flex items-center gap-1 rounded-md border border-input bg-muted/50 px-2 py-0.5 text-xs"
+              className="flex items-center gap-2 rounded-md border border-input bg-muted/30 px-2.5 py-1.5"
             >
-              {p.label}
+              <span className="flex-1 min-w-0 text-sm font-medium wrap-break-word">
+                {p.label}
+              </span>
+              <div className="w-40 shrink-0">
+                <SearchableDropdown
+                  value={p.assignedToId ?? ""}
+                  onChange={(v) => {
+                    if (!v) onSetEmployee(p.id, "", undefined);
+                  }}
+                  onSelectItem={(opt) =>
+                    onSetEmployee(p.id, opt.value, opt.label)
+                  }
+                  defaultApiOption={
+                    p.assignedToId && p.assignedToLabel
+                      ? { value: p.assignedToId, label: p.assignedToLabel }
+                      : undefined
+                  }
+                  apiEndpoint="/employees/dropdown"
+                  mapItem={(item: { id: string; name: string }) => ({
+                    value: item.id,
+                    label: item.name,
+                  })}
+                  placeholder="Assign employee…"
+                  clearable
+                />
+              </div>
               <button
                 type="button"
                 aria-label={`Remove ${p.label}`}
                 onClick={() => onRemove(p.id)}
-                className="text-muted-foreground hover:text-foreground"
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                <X className="size-3" />
+                <X className="size-4" />
               </button>
-            </span>
+            </div>
           ))}
         </div>
       )}

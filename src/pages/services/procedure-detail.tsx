@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,8 @@ function ProcedureDetailContent() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [conflictFormOpen, setConflictFormOpen] = useState(false);
+  const [editingConflict, setEditingConflict] =
+    useState<ProcedureAllergyConflict | null>(null);
   const [viewAppointment, setViewAppointment] = useState<Appointment | null>(
     null,
   );
@@ -193,6 +195,14 @@ function ProcedureDetailContent() {
             can("procedure-allergy-conflicts:write")
               ? [
                   {
+                    label: "Edit",
+                    icon: <Pencil className="size-3.5" />,
+                    onClick: (i) => {
+                      setEditingConflict(i);
+                      setConflictFormOpen(true);
+                    },
+                  },
+                  {
                     label: "Delete",
                     icon: <Trash2 className="size-3.5" />,
                     destructive: true,
@@ -314,9 +324,13 @@ function ProcedureDetailContent() {
 
       <ProcedureAllergyConflictForm
         open={conflictFormOpen}
-        onClose={() => setConflictFormOpen(false)}
+        onClose={() => {
+          setConflictFormOpen(false);
+          setEditingConflict(null);
+        }}
         onSaved={bumpConflicts}
         procedureId={id}
+        initial={editingConflict}
       />
 
       <AppointmentForm
@@ -336,6 +350,8 @@ function ProcedureDetailContent() {
                   viewAppointment.appointmentProcedures?.map((ap) => ({
                     id: ap.procedureId,
                     label: ap.procedureName ?? "",
+                    assignedToId: ap.assignedToId || undefined,
+                    assignedToLabel: ap.assignedToName || undefined,
                   })) ?? [],
                 startTime: viewAppointment.startTime.slice(0, 16),
                 endTime: viewAppointment.endTime.slice(0, 16),

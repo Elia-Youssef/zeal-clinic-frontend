@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +8,11 @@ import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { dayOfWeekOptions } from "@/lib/constants";
-import type { ScheduleAvailability } from "@/lib/types";
+import type { EmployeeSchedule } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
 
-export function ScheduleAvailabilityForm({
+export function EmployeeScheduleForm({
   open,
   onClose,
   onSaved,
@@ -27,7 +26,7 @@ export function ScheduleAvailabilityForm({
   onClose: () => void;
   onSaved: () => void;
   employeeId: string;
-  initial?: ScheduleAvailability | null;
+  initial?: EmployeeSchedule | null;
   /** 0 = Sunday, 6 = Saturday. */
   defaultDayOfWeek?: number;
   defaultStartTime?: string;
@@ -79,11 +78,11 @@ export function ScheduleAvailabilityForm({
       };
       if (startDate) payload.startDate = startDate;
       if (isEdit) {
-        await api.put(`/schedule-availability/${initial!.id}`, payload);
-        addAlert("success", "Availability slot updated.");
+        await api.put(`/employee-schedules/${initial!.id}`, payload);
+        addAlert("success", "Schedule updated.");
       } else {
-        await api.post("/schedule-availability", payload);
-        addAlert("success", "Availability slot added.");
+        await api.post("/employee-schedules", payload);
+        addAlert("success", "Schedule added.");
       }
       onSaved();
       onClose();
@@ -98,8 +97,8 @@ export function ScheduleAvailabilityForm({
     if (!initial) return;
     if (
       !(await confirm({
-        title: "Delete slot?",
-        description: "Delete this slot?",
+        title: "Delete schedule?",
+        description: "Delete this schedule entry?",
         confirmText: "Delete",
       }))
     ) {
@@ -107,8 +106,8 @@ export function ScheduleAvailabilityForm({
     }
     setSubmitting(true);
     try {
-      await api.del(`/schedule-availability/${initial.id}`);
-      addAlert("success", "Slot removed.");
+      await api.del(`/employee-schedules/${initial.id}`);
+      addAlert("success", "Schedule removed.");
       onSaved();
       onClose();
     } catch (err) {
@@ -122,7 +121,7 @@ export function ScheduleAvailabilityForm({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Availability Slot" : "Add Availability Slot"}
+      title={isEdit ? "Edit Schedule" : "Add to Schedule"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -161,13 +160,13 @@ export function ScheduleAvailabilityForm({
           <label className="text-sm font-medium">Effective From</label>
           <DatePicker value={startDate} onChange={setStartDate} />
           <p className="text-xs text-muted-foreground">
-            Leave blank to start today. Editing time/day on an active slot
+            Leave blank to start today. Editing time/day on an active schedule
             archives the previous version.
           </p>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          {isEdit && can("schedule-availability:delete") && (
+          {isEdit && can("employee-schedules:delete") && (
             <Button
               type="button"
               variant="destructive"
@@ -182,7 +181,7 @@ export function ScheduleAvailabilityForm({
             Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Add Slot"}
+            {submitting ? "Saving…" : isEdit ? "Update" : "Add"}
           </Button>
         </div>
       </form>

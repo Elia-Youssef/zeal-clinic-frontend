@@ -77,6 +77,8 @@ export type AppointmentStatusStyle = {
   card: string;
   badge: string;
   tint: string;
+  /** Solid left-border color for the on-grid appointment card's status rail. */
+  rail: string;
 };
 
 export const appointmentStatusStyles: Record<string, AppointmentStatusStyle> = {
@@ -84,30 +86,35 @@ export const appointmentStatusStyles: Record<string, AppointmentStatusStyle> = {
     card: "bg-primary/10 border-primary/30",
     badge: "bg-primary text-primary-foreground hover:bg-primary/90",
     tint: "border-primary/20 bg-primary/10 text-foreground",
+    rail: "border-l-primary",
   },
   "In-Progress": {
     card: "bg-status-progress/10 border-status-progress/40",
     badge:
       "bg-status-progress text-status-progress-foreground hover:bg-status-progress/90",
     tint: "border-status-progress/30 bg-status-progress/10 text-status-progress",
+    rail: "border-l-status-progress",
   },
   Completed: {
     card: "bg-status-completed/10 border-status-completed/40",
     badge:
       "bg-status-completed text-status-completed-foreground hover:bg-status-completed/90",
     tint: "border-status-completed/30 bg-status-completed/10 text-status-completed",
+    rail: "border-l-status-completed",
   },
   Cancelled: {
     card: "bg-status-cancelled/10 border-status-cancelled/40",
     badge:
       "bg-status-cancelled text-status-cancelled-foreground hover:bg-status-cancelled/90",
     tint: "border-status-cancelled/30 bg-status-cancelled/10 text-status-cancelled",
+    rail: "border-l-status-cancelled",
   },
   Rescheduled: {
     card: "bg-status-rescheduled/10 border-status-rescheduled/40",
     badge:
       "bg-status-rescheduled text-status-rescheduled-foreground hover:bg-status-rescheduled/90",
     tint: "border-status-rescheduled/30 bg-status-rescheduled/10 text-status-rescheduled",
+    rail: "border-l-status-rescheduled",
   },
 };
 
@@ -115,6 +122,7 @@ export const defaultAppointmentStatusStyle: AppointmentStatusStyle = {
   card: "bg-muted/30 border-border",
   badge: "bg-muted text-foreground hover:bg-muted/80",
   tint: "border-border bg-muted/40 text-muted-foreground",
+  rail: "border-l-muted-foreground",
 };
 
 /** Accepts ProperCase and lowercase backend values. */

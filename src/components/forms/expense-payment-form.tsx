@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
@@ -23,7 +23,6 @@ export function ExpensePaymentForm({
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [amount, setAmount] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -31,12 +30,11 @@ export function ExpensePaymentForm({
   useEffect(() => {
     if (!open) return;
     setAmount("");
-    setCurrencyId("");
     setTransactionMethod("cash");
     setDescription("");
   }, [open]);
 
-  const canSubmit = Number(amount) > 0 && !!currencyId;
+  const canSubmit = Number(amount) > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +44,6 @@ export function ExpensePaymentForm({
         "/expense-payments",
         {
           amount: Number(amount),
-          currencyId,
           transactionMethod,
           description: description.trim(),
           expenseId,
@@ -65,31 +62,14 @@ export function ExpensePaymentForm({
   return (
     <Modal open={open} onClose={onClose} title="New Expense Payment">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount *</label>
-            <Input
-              type="number"
-              step="0.01"
+            <MoneyInput
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Currency *</label>
-            <SearchableDropdown
-              value={currencyId}
-              onChange={setCurrencyId}
-              apiEndpoint="/currencies/dropdown"
-              mapItem={(c: { id: string; name: string }) => ({
-                value: c.id,
-                label: c.name,
-              })}
-              placeholder="Select currency…"
-              required
-              defaultFirst
             />
           </div>
           <div className="space-y-1.5">

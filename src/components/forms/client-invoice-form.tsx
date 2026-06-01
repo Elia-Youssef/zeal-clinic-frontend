@@ -1,15 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import { FormDraftsLayout } from "@/components/shared/form-drafts";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -21,6 +18,7 @@ import { PatientForm } from "./patient-form";
 import { ProductForm } from "./product-form";
 import { DiscountForm } from "./discount-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useFormDrafts, type DraftMode } from "@/hooks/use-form-drafts";
 
 const VOUCHER_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -37,6 +35,7 @@ type GiftMode = "code" | "patient";
 type ItemDraft = {
   itemType: "product" | "procedure" | "gift" | "other";
   itemId: string;
+  itemLabel: string;
   unitPrice: number | null;
   quantity: string;
   amount: string;
@@ -50,6 +49,7 @@ type ItemDraft = {
 const blankItem = (itemType: ItemDraft["itemType"] = "product"): ItemDraft => ({
   itemType,
   itemId: "",
+  itemLabel: "",
   unitPrice: null,
   quantity: "1",
   amount: "",
@@ -60,25 +60,59 @@ const blankItem = (itemType: ItemDraft["itemType"] = "product"): ItemDraft => ({
   giftName: "",
 });
 
+// Serializable snapshot of the form, persisted as a draft.
+type InvoiceDraftData = {
+  invoiceNumber: string;
+  invoiceNumberAuto: boolean;
+  patientId: string;
+  patientName: string;
+  discountId: string;
+  discountValue: number;
+  discountValueType: "percentage" | "fixed" | "";
+  notes: string;
+  items: ItemDraft[];
+};
+
 export function ClientInvoiceForm({
   open,
   onClose,
   onSaved,
   defaultPatientId,
   defaultPatientLabel,
+  defaultProcedures,
+  draftGroup = "client-invoice",
+  draftMode = "auto",
+  draftId,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   defaultPatientId?: string;
   defaultPatientLabel?: string;
+  /** Pre-fill the items list with these procedures (e.g. from an appointment). */
+  defaultProcedures?: { id: string; label?: string }[];
+  /** Drafts namespace; pass `undefined` to disable the drafts panel. */
+  draftGroup?: string;
+  draftMode?: DraftMode;
+  /** Auto-load this draft on open if it exists (e.g. an appointment id). */
+  draftId?: string;
 }) {
+  const draftsEnabled = !!draftGroup && draftMode !== "off";
   return (
-    <Modal open={open} onClose={onClose} title="New Client Invoice">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="New Client Invoice"
+      size={draftsEnabled ? "wide" : "default"}
+    >
       <ClientInvoiceFormBody
         open={open}
         defaultPatientId={defaultPatientId}
         defaultPatientLabel={defaultPatientLabel}
+        defaultProcedures={defaultProcedures}
+        draftGroup={draftGroup}
+        draftMode={draftMode}
+        draftId={draftId}
         onSubmitted={() => {
           onSaved();
           onClose();
@@ -93,16 +127,25 @@ export function ClientInvoiceFormBody({
   open,
   defaultPatientId,
   defaultPatientLabel,
+  defaultProcedures,
   submitLabel = "Create Invoice",
   cancelLabel = "Cancel",
+  draftGroup,
+  draftMode = "off",
+  draftId,
   onSubmitted,
   onCancel,
 }: {
   open: boolean;
   defaultPatientId?: string;
   defaultPatientLabel?: string;
+  /** Pre-fill items with these procedures (e.g. from an appointment). */
+  defaultProcedures?: { id: string; label?: string }[];
   submitLabel?: string;
   cancelLabel?: string;
+  draftGroup?: string;
+  draftMode?: DraftMode;
+  draftId?: string;
   onSubmitted: (invoice: Invoice) => void;
   onCancel: () => void;
 }) {
@@ -122,7 +165,8 @@ export function ClientInvoiceFormBody({
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
   const [patientId, setPatientId] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
+  // Tracked alongside patientId so a draft can show the patient name as its title.
+  const [patientName, setPatientName] = useState(defaultPatientLabel ?? "");
   const [discountId, setDiscountId] = useState("");
   const [discountValue, setDiscountValue] = useState(0);
   const [discountValueType, setDiscountValueType] = useState<
@@ -139,18 +183,127 @@ export function ClientInvoiceFormBody({
   >([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const makeBlank = useCallback(
+    (): InvoiceDraftData => ({
+      invoiceNumber: "",
+      invoiceNumberAuto: true,
+      patientId: defaultPatientId ?? "",
+      patientName: defaultPatientLabel ?? "",
+      discountId: "",
+      discountValue: 0,
+      discountValueType: "",
+      notes: "",
+      items:
+        defaultProcedures && defaultProcedures.length > 0
+          ? defaultProcedures.map((p) => ({
+              ...blankItem("procedure"),
+              itemId: p.id,
+              itemLabel: p.label ?? "",
+            }))
+          : [blankItem(defaultItemType)],
+    }),
+    [defaultItemType, defaultPatientId, defaultPatientLabel, defaultProcedures],
+  );
+
+  const applySnapshot = useCallback(
+    (d: InvoiceDraftData) => {
+      setInvoiceNumber(d.invoiceNumber);
+      setInvoiceNumberAuto(d.invoiceNumberAuto);
+      setPatientId(d.patientId);
+      setPatientName(d.patientName);
+      setDiscountId(d.discountId);
+      setDiscountValue(d.discountValue);
+      setDiscountValueType(d.discountValueType);
+      setNotes(d.notes);
+      setItems(d.items.length ? d.items : [blankItem(defaultItemType)]);
+    },
+    [defaultItemType],
+  );
+
+  // Reset to blank on open; the drafts hook may then auto-load a draft (below).
   useEffect(() => {
     if (!open) return;
-    setInvoiceNumber("");
-    setInvoiceNumberAuto(true);
-    setPatientId(defaultPatientId ?? "");
-    setCurrencyId("");
-    setDiscountId("");
-    setDiscountValue(0);
-    setDiscountValueType("");
-    setNotes("");
-    setItems([blankItem(defaultItemType)]);
-  }, [open, defaultItemType, defaultPatientId]);
+    applySnapshot(makeBlank());
+  }, [open, applySnapshot, makeBlank]);
+
+  const snapshot = useMemo<InvoiceDraftData>(
+    () => ({
+      invoiceNumber,
+      invoiceNumberAuto,
+      patientId,
+      patientName,
+      discountId,
+      discountValue,
+      discountValueType,
+      notes,
+      items,
+    }),
+    [
+      invoiceNumber,
+      invoiceNumberAuto,
+      patientId,
+      patientName,
+      discountId,
+      discountValue,
+      discountValueType,
+      notes,
+      items,
+    ],
+  );
+
+  const drafts = useFormDrafts<InvoiceDraftData>({
+    group: draftGroup,
+    mode: draftMode,
+    open,
+    snapshot,
+    apply: applySnapshot,
+    blank: () => applySnapshot(makeBlank()),
+    initialId: draftId,
+    // Patient can be pre-filled on open (defaultPatientId), so a draft only counts as having
+    // content once there are real line items / notes / discount / number.
+    isEmpty: (d) => {
+      const first = d.items[0];
+      const noItems =
+        d.items.length <= 1 &&
+        (!first ||
+          (!first.itemId &&
+            !first.amount &&
+            !first.giftName &&
+            !first.giftCode &&
+            !first.giftPatientId));
+      return noItems && !d.notes && !d.discountId && !d.invoiceNumber;
+    },
+    label: (d) => d.patientName.trim() || "No patient yet",
+  });
+
+  // Autofill prices for procedures seeded from `defaultProcedures`.
+  useEffect(() => {
+    if (!open || !defaultProcedures?.length) return;
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        defaultProcedures.map((p) =>
+          api
+            .get<{ price?: number }>(`/procedures/${p.id}`)
+            .then((res) => ({ id: p.id, price: res.price ?? null }))
+            .catch(() => ({ id: p.id, price: null as number | null })),
+        ),
+      );
+      if (cancelled) return;
+      const priceById = new Map(results.map((r) => [r.id, r.price]));
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.itemType !== "procedure") return it;
+          const price = priceById.get(it.itemId);
+          if (price == null) return it;
+          return { ...it, unitPrice: price, amount: `${price}` };
+        }),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, defaultProcedures]);
 
   useEffect(() => {
     if (!open) return;
@@ -197,8 +350,12 @@ export function ClientInvoiceFormBody({
     );
   };
 
-  const handleItemSelected = async (idx: number, itemId: string) => {
-    updateItem(idx, { itemId, unitPrice: null, amount: "" });
+  const handleItemSelected = async (
+    idx: number,
+    itemId: string,
+    itemLabel = "",
+  ) => {
+    updateItem(idx, { itemId, itemLabel, unitPrice: null, amount: "" });
     const type = items[idx].itemType;
     if (!itemId || type === "other" || type === "gift") return;
     try {
@@ -236,7 +393,6 @@ export function ClientInvoiceFormBody({
 
   const canSubmit =
     patientId &&
-    currencyId &&
     (invoiceNumberAuto || Number(invoiceNumber) > 0) &&
     items.length > 0 &&
     items.every((it) => {
@@ -262,7 +418,6 @@ export function ClientInvoiceFormBody({
       const created = await api.post<Invoice>("/client-invoices", {
         ...(invoiceNumberAuto ? {} : { invoiceNumber: Number(invoiceNumber) }),
         patientId,
-        currencyId,
         ...(discountId ? { discountId } : {}),
         notes: notes || undefined,
         items: items.map((it) => {
@@ -294,6 +449,7 @@ export function ClientInvoiceFormBody({
         }),
       });
       addAlert("success", "Client invoice created.");
+      drafts.discardActive();
       onSubmitted(created);
     } catch (err) {
       addAlert("error", getErrorMessage(err));
@@ -302,7 +458,14 @@ export function ClientInvoiceFormBody({
     }
   };
 
-  return (
+  const patientDropdownOption =
+    patientId && patientName
+      ? { value: patientId, label: patientName }
+      : defaultPatientId && defaultPatientLabel
+        ? { value: defaultPatientId, label: defaultPatientLabel }
+        : undefined;
+
+  const formEl = (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
@@ -334,17 +497,20 @@ export function ClientInvoiceFormBody({
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Patient</label>
           <SearchableDropdown
             value={patientId}
-            onChange={setPatientId}
-            defaultApiOption={
-              defaultPatientId && defaultPatientLabel
-                ? { value: defaultPatientId, label: defaultPatientLabel }
-                : undefined
-            }
+            onChange={(v) => {
+              setPatientId(v);
+              if (!v) setPatientName("");
+            }}
+            onSelectItem={(opt) => {
+              setPatientId(opt.value);
+              setPatientName(opt.label);
+            }}
+            defaultApiOption={patientDropdownOption}
             apiEndpoint="/patients/dropdown"
             mapItem={(p: { id: string; name: string }) => ({
               value: p.id,
@@ -360,33 +526,17 @@ export function ClientInvoiceFormBody({
                       onClose={closeAdd}
                       onSaved={(created) => {
                         if (created) {
-                          onCreated(
-                            String(created.id),
-                            `${created.firstName ?? ""} ${
-                              created.lastName ?? ""
-                            }`.trim(),
-                          );
+                          const name = `${created.firstName ?? ""} ${
+                            created.lastName ?? ""
+                          }`.trim();
+                          setPatientName(name);
+                          onCreated(String(created.id), name);
                         }
                       }}
                     />
                   )
                 : undefined
             }
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium">Currency</label>
-          <SearchableDropdown
-            value={currencyId}
-            onChange={setCurrencyId}
-            apiEndpoint="/currencies/dropdown"
-            mapItem={(c: { id: string; name: string }) => ({
-              value: c.id,
-              label: c.name,
-            })}
-            placeholder="Select currency…"
-            required
-            defaultFirst
           />
         </div>
       </div>
@@ -470,7 +620,17 @@ export function ClientInvoiceFormBody({
                     {item.itemType === "product" ? (
                       <SearchableDropdown
                         value={item.itemId}
-                        onChange={(v) => handleItemSelected(idx, v)}
+                        onChange={(v) => {
+                          if (!v) handleItemSelected(idx, "");
+                        }}
+                        onSelectItem={(opt) =>
+                          handleItemSelected(idx, opt.value, opt.label)
+                        }
+                        defaultApiOption={
+                          item.itemId && item.itemLabel
+                            ? { value: item.itemId, label: item.itemLabel }
+                            : undefined
+                        }
                         apiEndpoint="/products/dropdown"
                         mapItem={(p: { id: string; name: string }) => ({
                           value: p.id,
@@ -498,7 +658,17 @@ export function ClientInvoiceFormBody({
                     ) : item.itemType === "procedure" ? (
                       <SearchableDropdown
                         value={item.itemId}
-                        onChange={(v) => handleItemSelected(idx, v)}
+                        onChange={(v) => {
+                          if (!v) handleItemSelected(idx, "");
+                        }}
+                        onSelectItem={(opt) =>
+                          handleItemSelected(idx, opt.value, opt.label)
+                        }
+                        defaultApiOption={
+                          item.itemId && item.itemLabel
+                            ? { value: item.itemId, label: item.itemLabel }
+                            : undefined
+                        }
                         apiEndpoint="/procedures/dropdown"
                         mapItem={(p: { id: string; name: string }) => ({
                           value: p.id,
@@ -669,29 +839,23 @@ export function ClientInvoiceFormBody({
                   <label className="text-sm font-medium">
                     {isGift ? "Value *" : "Amount *"}
                   </label>
-                  <InputGroup>
-                    <InputGroupAddon>$</InputGroupAddon>
-                    <InputGroupInput
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      value={item.amount}
-                      readOnly={
-                        !isGift &&
-                        !isOther &&
-                        item.unitPrice != null &&
-                        item.unitPrice > 0 &&
-                        (item.itemType === "product" ||
-                          item.itemType === "procedure")
-                      }
-                      onChange={(e) =>
-                        updateItem(idx, {
-                          amount: clampNonNegative(e.target.value),
-                        })
-                      }
-                    />
-                  </InputGroup>
+                  <MoneyInput
+                    min="0"
+                    value={item.amount}
+                    readOnly={
+                      !isGift &&
+                      !isOther &&
+                      item.unitPrice != null &&
+                      item.unitPrice > 0 &&
+                      (item.itemType === "product" ||
+                        item.itemType === "procedure")
+                    }
+                    onChange={(e) =>
+                      updateItem(idx, {
+                        amount: clampNonNegative(e.target.value),
+                      })
+                    }
+                  />
                   {item.itemType === "product" && item.unitPrice != null && (
                     <p className="text-xs text-muted-foreground">
                       Unit: ${item.unitPrice.toFixed(2)}
@@ -793,4 +957,6 @@ export function ClientInvoiceFormBody({
       </div>
     </form>
   );
+
+  return <FormDraftsLayout drafts={drafts}>{formEl}</FormDraftsLayout>;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
@@ -67,14 +67,8 @@ export function SalaryAdjustmentForm({
       description="Positive values add to the prepared amount, negative values deduct from it."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Employee: </span>
-            <span className="font-medium">
-              {preparation.employeeName ?? preparation.employeeId}
-            </span>
-          </div>
-          <div>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm">
+          <div className="col-span-full">
             <span className="text-muted-foreground">Period: </span>
             {beirutDayKey(preparation.periodStart)} →{" "}
             {beirutDayKey(preparation.periodEnd)}
@@ -97,9 +91,7 @@ export function SalaryAdjustmentForm({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Adjustment *</label>
-          <Input
-            type="number"
-            step="0.01"
+          <MoneyInput
             value={adjustment}
             onChange={(e) => setAdjustment(e.target.value)}
             placeholder="e.g. 100 or -50"

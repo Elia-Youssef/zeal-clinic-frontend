@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
+import { MultilineText } from "@/components/shared/multiline-text";
 import { api } from "@/lib/api";
 import { formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
@@ -165,7 +166,7 @@ function PatientDetailContent() {
             {patient.bloodType || "—--"}
           </DetailField>
           <DetailField className="sm:col-span-2 md:col-span-3" label="Notes">
-            {patient.notes || "---"}
+            <MultilineText value={patient.notes} />
           </DetailField>
         </CardContent>
       </Card>
@@ -619,7 +620,6 @@ function PatientDetailContent() {
         onSaved={bumpPayments}
         defaultPatientId={id}
         defaultPatientLabel={patientName}
-        defaultCurrencyId={balance?.currencyId}
       />
       <BalanceAdjustmentForm
         open={adjustmentFormOpen}
@@ -682,6 +682,8 @@ function PatientDetailContent() {
                   viewAppointment.appointmentProcedures?.map((ap) => ({
                     id: ap.procedureId,
                     label: ap.procedureName ?? "",
+                    assignedToId: ap.assignedToId || undefined,
+                    assignedToLabel: ap.assignedToName || undefined,
                   })) ?? [],
                 startTime: viewAppointment.startTime.slice(0, 16),
                 endTime: viewAppointment.endTime.slice(0, 16),

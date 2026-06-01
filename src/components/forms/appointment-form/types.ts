@@ -10,6 +10,8 @@ import {
 export type AppointmentProcedureSelection = {
   id: string;
   label: string;
+  assignedToId?: string;
+  assignedToLabel?: string;
 };
 
 export type AppointmentFormData = {

@@ -35,6 +35,8 @@ type BaseProps = {
   description?: string;
   hideClose?: boolean;
   headerAction?: React.ReactNode;
+  /** Widens the dialog, e.g. to fit a docked side rail next to the content. */
+  size?: "default" | "wide";
   children?: React.ReactNode;
 };
 
@@ -63,6 +65,7 @@ export function Modal(props: ModalProps) {
     description,
     hideClose,
     headerAction,
+    size = "default",
     children,
   } = props;
 
@@ -99,7 +102,10 @@ export function Modal(props: ModalProps) {
       >
         <DialogContent
           showCloseButton={!hideClose && !headerAction}
-          className={cn("sm:max-w-125", hidden && "hidden")}
+          className={cn(
+            size === "wide" ? "sm:max-w-3xl" : "sm:max-w-125",
+            hidden && "hidden",
+          )}
           onSubmit={(event) => {
             event.stopPropagation();
           }}

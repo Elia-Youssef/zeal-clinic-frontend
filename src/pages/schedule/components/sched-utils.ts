@@ -10,7 +10,7 @@ export const HOURS = Array.from(
 export const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
 
 export const gridColsFor = (roomCount: number) =>
-  `3.125rem 0.75rem repeat(${roomCount}, 1fr)`;
+  `3.3rem 0.75rem repeat(${roomCount}, 1fr)`;
 
 // Stored appointment times are RFC3339 UTC. Bucket and display them as the
 // clinic's wall-clock (Beirut) so a 1 AM Beirut slot doesn't bleed into the
@@ -27,6 +27,12 @@ export function formatHour(hour: number) {
   const h = hour % 12 || 12;
   const ampm = hour < 12 ? "AM" : "PM";
   return `${h} ${ampm}`;
+}
+
+export function formatQuarterHour(hour: number, minute: number) {
+  const h = hour % 12 || 12;
+  const ampm = hour < 12 ? "AM" : "PM";
+  return `${h}:${String(minute).padStart(2, "0")} ${ampm}`;
 }
 
 export function timeToDecimal(time: string) {

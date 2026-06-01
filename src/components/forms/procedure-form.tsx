@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
@@ -132,8 +133,7 @@ export function ProcedureForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Price</label>
-            <Input
-              type="number"
+            <MoneyInput
               min="0"
               value={form.price}
               onChange={(e) => update("price", clampNonNegative(e.target.value))}

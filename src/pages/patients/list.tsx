@@ -59,6 +59,7 @@ export default function PatientsListPage() {
       <DataList<Patient>
         title="Patients"
         endpoint="/patients"
+        dateFilter
         columns={columns}
         rowKey={(p) => p.id}
         emptyMessage={

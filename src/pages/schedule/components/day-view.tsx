@@ -1,12 +1,17 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { format as fnsFormat } from "date-fns";
-import { Link } from "react-router-dom";
+import { Loader2, MoreHorizontal, Plus, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DataTable, type Column } from "@/components/data/data-table";
+import { Tabs } from "@/components/shared/tabs";
+import { AppointmentCard } from "@/components/shared/appointment-card";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   appointmentStatusStyles,
@@ -14,7 +19,9 @@ import {
   holidayBadgeClass,
 } from "@/lib/constants";
 import type { Appointment, Holiday, Room } from "@/lib/types";
-import { cn, formatTimeRange } from "@/lib/utils";
+import { cn, formatTimeRange, getErrorMessage } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useAlertStore } from "@/lib/stores/alert-store";
 import { beirutNow } from "@/lib/tz";
 import {
   DAY_END_HOUR,
@@ -23,6 +30,7 @@ import {
   HOUR_HEIGHT,
   HOURS,
   formatHour,
+  formatQuarterHour,
   gridColsFor,
   isoToDate,
   isoToTime,
@@ -32,6 +40,8 @@ import {
 
 const EMPTY_APPTS: Appointment[] = [];
 
+type DayMode = "Calendar" | "Table";
+
 export function DayView({
   date,
   rooms,
@@ -39,6 +49,7 @@ export function DayView({
   holidays,
   onCellClick,
   onAppointmentClick,
+  onAddAppointment,
 }: {
   date: Date;
   rooms: Room[];
@@ -46,11 +57,27 @@ export function DayView({
   holidays: Holiday[];
   onCellClick: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
+  onAddAppointment: () => void;
 }) {
+  const { can } = usePermissions();
+  const addAlert = useAlertStore((s) => s.addAlert);
   const dateStr = toDateStr(date);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<DayMode>("Calendar");
+  const [printing, setPrinting] = useState(false);
 
-  useScrollToCurrentTime(scrollRef, dateStr);
+  useScrollToCurrentTime(scrollRef, dateStr, mode);
+
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      await api.openPdf(`/appointments/pdf?date=${dateStr}`);
+    } catch (err) {
+      addAlert("error", getErrorMessage(err, "Failed to generate PDF."));
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const appointmentsByRoom = useMemo(() => {
     const map: Record<string, Appointment[]> = {};
@@ -61,49 +88,111 @@ export function DayView({
     return map;
   }, [appointments, dateStr]);
 
-  const dayCount = Object.values(appointmentsByRoom).reduce(
-    (n, arr) => n + arr.length,
-    0,
+  // Flat, time-sorted list for the table view (stored times are UTC RFC3339,
+  // so lexical compare is chronological).
+  const dayAppointments = useMemo(
+    () =>
+      appointments
+        .filter((a) => isoToDate(a.startTime) === dateStr)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    [appointments, dateStr],
   );
+
+  const roomNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of rooms) map[r.id] = r.name;
+    return map;
+  }, [rooms]);
+
+  const dayCount = dayAppointments.length;
 
   // Store may include neighboring dates after navigation.
   const activeHolidays = useMemo(
-    () => holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
+    () =>
+      holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
     [holidays, dateStr],
   );
 
   return (
     <div>
-      <DayHeader date={date} dayCount={dayCount} holidays={activeHolidays} />
+      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <DayHeader date={date} dayCount={dayCount} holidays={activeHolidays} />
 
-      <div
-        ref={scrollRef}
-        className="overflow-auto max-h-[calc(100svh-18.5rem)]"
-      >
-        <div className="min-w-225">
-          <div className="sticky top-0 z-11 bg-card">
-            <RoomHeaders rooms={rooms} />
-          </div>
-
-          <div
-            className="relative grid"
-            style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
-          >
-            <TimeLabelsColumn />
-            <HourLinesColumn />
-            {rooms.map((room) => (
-              <RoomColumn
-                key={room.id}
-                roomId={room.id}
-                appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
-                onCellClick={onCellClick}
-                onAppointmentClick={onAppointmentClick}
-              />
-            ))}
-            <CurrentTimeLine dateStr={dateStr} />
-          </div>
+        <div className="flex flex-row gap-2 items-center justify-end">
+          <Tabs
+            tabs={["Calendar", "Table"]}
+            activeTab={mode}
+            onChange={(tab) => setMode(tab as DayMode)}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  aria-label="Day actions"
+                />
+              }
+            >
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={4} className="min-w-40">
+              <DropdownMenuItem disabled={printing} onClick={handlePrint}>
+                {printing ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Printer className="size-4" />
+                )}
+                <span>Print</span>
+              </DropdownMenuItem>
+              {can("appointments:write") && mode === "Table" && (
+                <DropdownMenuItem onClick={onAddAppointment}>
+                  <Plus className="size-4" />
+                  <span>Add appointment</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {mode === "Calendar" ? (
+        <div
+          ref={scrollRef}
+          className="overflow-auto max-h-[calc(100svh-18.5rem)]"
+        >
+          <div className="min-w-225">
+            <div className="sticky top-0 z-11 bg-card">
+              <RoomHeaders rooms={rooms} />
+            </div>
+
+            <div
+              className="relative grid"
+              style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
+            >
+              <TimeLabelsColumn />
+              <HourLinesColumn />
+              {rooms.map((room) => (
+                <RoomColumn
+                  key={room.id}
+                  roomId={room.id}
+                  appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
+                  onCellClick={onCellClick}
+                  onAppointmentClick={onAppointmentClick}
+                />
+              ))}
+              <CurrentTimeLine dateStr={dateStr} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <DayTable
+          appointments={dayAppointments}
+          roomNameById={roomNameById}
+          onAppointmentClick={onAppointmentClick}
+        />
+      )}
     </div>
   );
 }
@@ -111,8 +200,10 @@ export function DayView({
 function useScrollToCurrentTime(
   ref: React.RefObject<HTMLDivElement | null>,
   dateStr: string,
+  mode: DayMode,
 ) {
   useEffect(() => {
+    if (mode !== "Calendar") return;
     const el = ref.current;
     if (!el) return;
     const now = beirutNow();
@@ -123,7 +214,7 @@ function useScrollToCurrentTime(
       parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const topPx = (decimal - DAY_START_HOUR) * HOUR_HEIGHT * remPx;
     el.scrollTop = Math.max(0, topPx - el.clientHeight / 2);
-  }, [ref, dateStr]);
+  }, [ref, dateStr, mode]);
 }
 
 function DayHeader({
@@ -136,7 +227,7 @@ function DayHeader({
   holidays: Holiday[];
 }) {
   return (
-    <div className="mb-4 flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-3 flex-wrap">
       <h2 className="text-lg font-semibold">
         {/* date carries Beirut wall-clock via beirutNow(); format from local
             fields rather than re-projecting through the browser zone. */}
@@ -156,6 +247,95 @@ function DayHeader({
         </Badge>
       ))}
     </div>
+  );
+}
+
+function DayTable({
+  appointments,
+  roomNameById,
+  onAppointmentClick,
+}: {
+  appointments: Appointment[];
+  roomNameById: Record<string, string>;
+  onAppointmentClick: (appt: Appointment) => void;
+}) {
+  const columns = useMemo<Column<Appointment>[]>(
+    () => [
+      {
+        key: "room",
+        header: "Room",
+        className: "text-muted-foreground w-20",
+        sortable: true,
+        sortValue: (a) => roomNameById[a.roomId] ?? "",
+        render: (a) => roomNameById[a.roomId] || "---",
+      },
+      {
+        key: "time",
+        header: "Time",
+        className: "tabular-nums w-42",
+        sortable: true,
+        sortValue: (a) => a.startTime,
+        render: (a) => formatTimeRange(a.startTime, a.endTime),
+      },
+      {
+        key: "patient",
+        header: "Patient",
+        className: "font-medium w-60",
+        sortable: true,
+        sortValue: (a) => a.patientName ?? "",
+        render: (a) => a.patientName || "---",
+      },
+      {
+        key: "procedures",
+        header: "Procedures",
+        render: (a) =>
+          a.appointmentProcedures?.length ? (
+            <div className="flex flex-wrap gap-0.5">
+              {a.appointmentProcedures.map((p) => (
+                <Badge key={p.procedureId} variant="secondary">
+                  {p.procedureName || "---"}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            "---"
+          ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        className: "w-32",
+        sortable: true,
+        sortValue: (a) => a.status,
+        render: (a) => {
+          const style =
+            appointmentStatusStyles[a.status] ?? defaultAppointmentStatusStyle;
+          return (
+            <Badge className={cn("shrink-0", style.badge)}>{a.status}</Badge>
+          );
+        },
+      },
+    ],
+    [roomNameById],
+  );
+
+  if (appointments.length === 0) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        No appointments for this day.
+      </div>
+    );
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={appointments}
+      rowKey={(a) => a.id}
+      onRowClick={onAppointmentClick}
+      scrollable
+      maxBodyHeight="max-h-[calc(100svh-18.5rem)]"
+    />
   );
 }
 
@@ -180,16 +360,30 @@ const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
   );
 });
 
+const QUARTERS = [15, 30, 45];
+
 const TimeLabelsColumn = memo(function TimeLabelsColumn() {
   return (
     <div className="relative" style={{ height: `${GRID_HEIGHT}rem` }}>
       {HOURS.map((hour, i) => (
-        <div
-          key={hour}
-          className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
-          style={{ top: `${i * HOUR_HEIGHT}rem` }}
-        >
-          {i ? formatHour(hour) : ""}
+        <div key={hour}>
+          {i ? (
+            <div
+              className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
+              style={{ top: `${i * HOUR_HEIGHT}rem` }}
+            >
+              {formatHour(hour)}
+            </div>
+          ) : null}
+          {QUARTERS.map((m) => (
+            <div
+              key={m}
+              className="absolute left-2 -translate-y-1/2 text-[0.625rem] text-muted-foreground/50"
+              style={{ top: `${(i + m / 60) * HOUR_HEIGHT}rem` }}
+            >
+              {formatQuarterHour(hour, m)}
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -231,126 +425,21 @@ function RoomColumn({
           onClick={() => onCellClick(roomId, hour)}
         />
       ))}
-      {appointments.map((appt) => (
-        <AppointmentCard
-          key={appt.id}
-          appt={appt}
-          onClick={onAppointmentClick}
-        />
-      ))}
-    </div>
-  );
-}
-
-function AppointmentCard({
-  appt,
-  onClick,
-}: {
-  appt: Appointment;
-  onClick: (appt: Appointment) => void;
-}) {
-  const { can } = usePermissions();
-  const startDec = timeToDecimal(isoToTime(appt.startTime));
-  const endDec = timeToDecimal(isoToTime(appt.endTime));
-  const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
-  const height = (endDec - startDec) * HOUR_HEIGHT;
-  const style =
-    appointmentStatusStyles[appt.status] ?? defaultAppointmentStatusStyle;
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger
-        delay={150}
-        closeDelay={200}
-        render={
-          <div
-            className={cn(
-              "absolute cursor-pointer overflow-hidden rounded-md border transition-opacity w-full flex flex-col gap-1 justify-between",
-              style.card,
-            )}
+      {appointments.map((appt) => {
+        const startDec = timeToDecimal(isoToTime(appt.startTime));
+        const endDec = timeToDecimal(isoToTime(appt.endTime));
+        const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
+        const height = (endDec - startDec) * HOUR_HEIGHT;
+        return (
+          <AppointmentCard
+            key={appt.id}
+            appt={appt}
             style={{ top: `${top}rem`, height: `${height}rem` }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(appt);
-            }}
+            onClick={onAppointmentClick}
           />
-        }
-      >
-        <div className="flex flex-col">
-          <div
-            className={cn(
-              "truncate text-xs font-medium p-1 text-center",
-              style.badge,
-            )}
-          >
-            {appt.patientName || "---"}
-          </div>
-          <div className="flex flex-col gap-0.5 opacity-80 p-1">
-            {appt.appointmentProcedures?.map((p) =>
-              p.procedureName ? (
-                <Badge
-                  key={p.procedureId}
-                  variant="secondary"
-                  className="text-[0.7em]"
-                >
-                  {p.procedureName}
-                </Badge>
-              ) : null,
-            )}
-          </div>
-        </div>
-        <div
-          className={cn(
-            "absolute bottom-0 right-0 text-[0.6em] font-medium px-1 py-0.5 rounded-tl-sm",
-            style.badge,
-          )}
-        >
-          {appt.status}
-        </div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="right"
-        align="start"
-        className="space-y-2 min-w-70 min-h-30 w-fit"
-      >
-        <div className="flex flex-1 items-start justify-between gap-2">
-          {can("patients:read") ? (
-            <Link
-              to={`/patients/${appt.patientId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-heading font-medium leading-tight hover:underline"
-            >
-              {appt.patientName || "Unknown Patient"}
-            </Link>
-          ) : (
-            <span className="font-heading font-medium leading-tight">
-              {appt.patientName || "Unknown Patient"}
-            </span>
-          )}
-          <Badge className={cn("shrink-0", style.badge)}>{appt.status}</Badge>
-        </div>
-        <div className="flex-1 grid grid-cols-[7em_1fr] gap-y-1 text-xs">
-          <span className="text-muted-foreground">Time</span>
-          <span>{formatTimeRange(appt.startTime, appt.endTime)}</span>
-          <span className="text-muted-foreground">
-            {(appt.appointmentProcedures?.length || 0) > 1
-              ? "Procedures"
-              : "Procedure"}
-          </span>
-          <div className="flex flex-col gap-0.5">
-            {appt.appointmentProcedures?.map((p) => (
-              <Badge key={p.procedureId} variant="secondary">
-                {p.procedureName || "---"}
-              </Badge>
-            ))}
-          </div>
-          <span className="text-muted-foreground">Notes</span>
-          <span className="whitespace-pre-wrap wrap-break-word">
-            {appt.notes || "---"}
-          </span>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
+        );
+      })}
+    </div>
   );
 }
 
@@ -368,7 +457,7 @@ function CurrentTimeLine({ dateStr }: { dateStr: string }) {
 
   return (
     <div
-      className="pointer-events-none absolute left-12.5 right-0 z-10"
+      className="pointer-events-none absolute left-13.5 right-0 z-10"
       style={{ top: `${(decimal - DAY_START_HOUR) * HOUR_HEIGHT}rem` }}
     >
       <div className="h-2.5 w-2.5 bg-destructive absolute -translate-y-1/2 top-px left-0 rounded-2xl" />

@@ -148,6 +148,7 @@ export function AppointmentForm({
       {page === "in-progress" && isEdit && (
         <InProgressPage
           appointmentId={initialData!.id!}
+          procedures={initialData!.procedures ?? []}
           onBack={() => setPage("main")}
           onSaved={handleSaved}
         />

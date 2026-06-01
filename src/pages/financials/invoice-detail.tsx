@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { MoneyInput } from "@/components/shared/money-input";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
+import { MultilineText } from "@/components/shared/multiline-text";
 import { Loading } from "@/components/shared/loading";
 import { DataTable } from "@/components/data/data-table";
 import { api } from "@/lib/api";
@@ -204,7 +206,7 @@ export default function InvoiceDetailPage() {
             {beirutDayKey(invoice.createdAt) || "---"}
           </DetailField>
           <DetailField label="Notes" className="sm:col-span-2">
-            {invoice.notes || "---"}
+            <MultilineText value={invoice.notes} />
           </DetailField>
           <DetailField label="Created By" className="sm:col-span-2">
             {invoice.createdBy ?? "---"}
@@ -234,15 +236,18 @@ export default function InvoiceDetailPage() {
                 key: "name",
                 className: "w-69",
                 render: (i) => {
-                  const name = i.itemName ?? "---";
+                  const name =
+                    i.itemType === "procedure"
+                      ? ([i.categoryName, i.itemName].join(", ") ?? "---")
+                      : (i.itemName ?? "---");
                   const href =
                     i.itemType === "product" && can("products:read")
                       ? `/inventory/products/${i.itemId}`
                       : i.itemType === "procedure" && can("procedures:read")
-                      ? `/services/procedures/${i.itemId}`
-                      : i.itemType === "gift" && can("discounts:read")
-                      ? `/financials/discounts/${i.itemId}`
-                      : null;
+                        ? `/services/procedures/${i.itemId}`
+                        : i.itemType === "gift" && can("discounts:read")
+                          ? `/financials/discounts/${i.itemId}`
+                          : null;
                   return href ? (
                     <Link to={href} className="hover:underline">
                       {name}
@@ -319,9 +324,7 @@ export default function InvoiceDetailPage() {
         <form onSubmit={handleItemUpdate} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Amount</label>
-            <Input
-              type="number"
-              step="0.01"
+            <MoneyInput
               min="0"
               value={itemAmount}
               onChange={(e) => setItemAmount(clampNonNegative(e.target.value))}

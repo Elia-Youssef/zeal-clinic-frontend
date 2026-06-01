@@ -1,8 +1,10 @@
 import { useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/shared/detail-field";
+import { MultilineText } from "@/components/shared/multiline-text";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { formatTimeRange } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import type { AppointmentFormData } from "./types";
@@ -20,6 +22,7 @@ export function ViewPage({
 }) {
   const rooms = useRoomsStore((s) => s.rooms);
   const fetchRooms = useRoomsStore((s) => s.fetch);
+  const { can } = usePermissions();
 
   useEffect(() => {
     if (rooms.length === 0) fetchRooms();
@@ -37,28 +40,50 @@ export function ViewPage({
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
         <DetailField label="Patient">
-          {initialData.patientLabel || "---"}
+          {initialData.patientId && can("patients:read") ? (
+            <Link
+              to={`/patients/${initialData.patientId}`}
+              onClick={onClose}
+              className="font-medium hover:underline"
+            >
+              {initialData.patientLabel || "View patient"}
+            </Link>
+          ) : (
+            initialData.patientLabel || "---"
+          )}
         </DetailField>
         <DetailField label="Room">{roomLabel}</DetailField>
         <DetailField className="sm:col-span-2" label="Procedures">
-          {initialData.procedures?.map((p) =>
-            p.label ? (
-              <Badge key={p.id} variant="secondary" className="text-xs">
-                {p.label}
-              </Badge>
-            ) : null,
-          )}
+          <div className="flex flex-col gap-1">
+            {initialData.procedures?.map((p) =>
+              p.label ? (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-input bg-muted/30 px-3 py-1.5"
+                >
+                  <span className="text-sm font-medium">{p.label}</span>
+                  {p.assignedToLabel ? (
+                    <span className="text-xs text-muted-foreground">
+                      {p.assignedToLabel}
+                    </span>
+                  ) : (
+                    <span className="text-xs italic text-muted-foreground/70">
+                      Unassigned
+                    </span>
+                  )}
+                </div>
+              ) : null,
+            )}
+          </div>
         </DetailField>
         <DetailField label="Date">{date}</DetailField>
         <DetailField label="Time">{timeRange}</DetailField>
         <DetailField className="sm:col-span-2" label="Notes">
-          <p className="whitespace-pre-wrap">{initialData.notes || "---"}</p>
+          <MultilineText value={initialData.notes} />
         </DetailField>
         {initialData.status === "Completed" && (
           <DetailField className="sm:col-span-2" label="Completion Notes">
-            <p className="whitespace-pre-wrap">
-              {initialData.completionNotes || "---"}
-            </p>
+            <MultilineText value={initialData.completionNotes} />
           </DetailField>
         )}
         {showCancelReason && (
@@ -70,9 +95,7 @@ export function ViewPage({
                 : "Cancellation Reason"
             }
           >
-            <p className="whitespace-pre-wrap">
-              {initialData.cancelNotes || "---"}
-            </p>
+            <MultilineText value={initialData.cancelNotes} />
           </DetailField>
         )}
       </div>
