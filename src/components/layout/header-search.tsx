@@ -83,6 +83,7 @@ function joinName(...parts: (string | undefined)[]): string {
 async function fetchResults(query: string): Promise<GlobalSearchGroup[]> {
   const data = await api.get<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}`,
+    { silent: true },
   );
 
   return [
@@ -155,18 +156,25 @@ export function HeaderSearch() {
       setGroups([]);
       return;
     }
+    let cancelled = false;
     const timer = setTimeout(() => {
       fetchResults(query)
-        .then((results) =>
+        .then((results) => {
+          if (cancelled) return;
           setGroups(
             results.filter((group) =>
               scopes.includes(searchCategoryScopes[group.category] ?? ""),
             ),
-          ),
-        )
-        .catch(() => setGroups([]));
+          );
+        })
+        .catch(() => {
+          if (!cancelled) setGroups([]);
+        });
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [query, scopes]);
 
   useEffect(() => {

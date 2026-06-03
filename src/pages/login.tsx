@@ -17,14 +17,14 @@ import {
 } from "@/components/ui/input-group";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { api } from "@/lib/api";
-import { useLoading } from "@/hooks/use-loading";
+import { useLoadingStore } from "@/lib/stores/loading-store";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const hydrate = useAuthStore((s) => s.hydrate);
-  const { hide } = useLoading();
+  const unblock = useLoadingStore((s) => s.unblock);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +37,7 @@ export default function Home() {
     if (typeof window === "undefined") return;
     const token = sessionStorage.getItem("token");
     if (!token) {
-      hide();
+      unblock();
       return;
     }
 
@@ -50,13 +50,13 @@ export default function Home() {
         navigate("/dashboard", { replace: true });
       })
       .catch(() => {
-        if (!cancelled) hide();
+        if (!cancelled) unblock();
       });
 
     return () => {
       cancelled = true;
     };
-  }, [navigate, hydrate, hide]);
+  }, [navigate, hydrate, unblock]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

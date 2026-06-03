@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
 
 export type AdjustmentEntityType =
@@ -96,7 +96,7 @@ export function BalanceAdjustmentForm({
       const endpoint = isWriteOff ? config.writeOff : config.adjustment;
       const payload: Record<string, unknown> = {
         [config.idField]: entityId,
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         direction,
         description: description.trim(),
       };

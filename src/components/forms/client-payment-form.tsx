@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
 import type { Transaction } from "@/lib/types";
 import { PatientForm } from "./patient-form";
@@ -90,7 +90,7 @@ export function ClientPaymentFormBody({
     try {
       const created = await api.post<Transaction>("/client-payments", {
         patientId,
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         transactionMethod,
         description: description || undefined,
       });

@@ -1,9 +1,29 @@
 import { create } from "zustand";
 import { api, BASE_URL } from "@/lib/api";
 
+const AUTH_KEYS = [
+  "token",
+  "auth_user",
+  "auth_role",
+  "auth_scopes",
+  "auth_user_id",
+  "auth_employee_id",
+  "auth_expires_at",
+];
+
+function clearAuthStorage(): void {
+  for (const key of AUTH_KEYS) sessionStorage.removeItem(key);
+}
+
+function isExpired(raw: string | null): boolean {
+  if (!raw) return false;
+  const expiry = Date.parse(raw);
+  return Number.isFinite(expiry) && Date.now() >= expiry;
+}
+
 type LoginResponse = {
   token: string;
-  expiresAt: number;
+  expiresAt: string;
   user: string;
   role: string;
   scopes: string[];
@@ -78,6 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.setItem("auth_scopes", JSON.stringify(json.Data.scopes));
     sessionStorage.setItem("auth_user_id", json.Data.userId);
     sessionStorage.setItem("auth_employee_id", json.Data.employeeId ?? "");
+    sessionStorage.setItem("auth_expires_at", String(json.Data.expiresAt ?? ""));
     set({
       token: json.Data.token,
       isAuthenticated: true,
@@ -90,12 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("auth_user");
-    sessionStorage.removeItem("auth_role");
-    sessionStorage.removeItem("auth_scopes");
-    sessionStorage.removeItem("auth_user_id");
-    sessionStorage.removeItem("auth_employee_id");
+    clearAuthStorage();
     set({
       token: "",
       isAuthenticated: false,
@@ -127,6 +143,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   hydrate: () => {
     if (typeof window === "undefined") return false;
     const token = sessionStorage.getItem("token") ?? "";
+    if (token && isExpired(sessionStorage.getItem("auth_expires_at"))) {
+      clearAuthStorage();
+      return false;
+    }
     if (token) {
       const user = sessionStorage.getItem("auth_user") ?? "";
       const role = sessionStorage.getItem("auth_role") ?? "";

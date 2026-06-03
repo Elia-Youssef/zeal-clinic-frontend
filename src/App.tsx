@@ -160,14 +160,7 @@ function App() {
                 </RequireScopes>
               }
             />
-            <Route
-              path="connection"
-              element={
-                <RequireScopes scopes={["roles:read", "users:read"]}>
-                  <SettingsConnectionPage />
-                </RequireScopes>
-              }
-            />
+            <Route path="connection" element={<SettingsConnectionPage />} />
 
             <Route
               path="inventory"
@@ -175,7 +168,10 @@ function App() {
                 <ScopeRedirect
                   targets={[
                     { to: "/inventory/products", scopes: ["products:read"] },
-                    { to: "/inventory/categories", scopes: ["product-categories:read"] },
+                    {
+                      to: "/inventory/categories",
+                      scopes: ["product-categories:read"],
+                    },
                   ]}
                 />
               }
@@ -235,7 +231,10 @@ function App() {
                     },
                     { to: "/financials/expenses", scopes: ["expenses:read"] },
                     { to: "/financials/discounts", scopes: ["discounts:read"] },
-                    { to: "/financials/currencies", scopes: ["currencies:read"] },
+                    {
+                      to: "/financials/currencies",
+                      scopes: ["currencies:read"],
+                    },
                   ]}
                 />
               }
@@ -306,7 +305,10 @@ function App() {
                   targets={[
                     { to: "/services/procedures", scopes: ["procedures:read"] },
                     { to: "/services/types", scopes: ["procedure-types:read"] },
-                    { to: "/services/categories", scopes: ["procedure-categories:read"] },
+                    {
+                      to: "/services/categories",
+                      scopes: ["procedure-categories:read"],
+                    },
                   ]}
                 />
               }
@@ -395,6 +397,7 @@ function App() {
                       to: "/settings/audit-log",
                       scopes: ["audit:read"],
                     },
+                    { to: "/settings/about", scopes: ["update:read"] },
                   ]}
                 />
               }
@@ -449,10 +452,7 @@ function App() {
                 </RequireScopes>
               }
             />
-            <Route
-              path="*"
-              element={<Navigate to="/dashboard" replace />}
-            />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

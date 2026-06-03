@@ -7,7 +7,7 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { transactionMethodOptions } from "@/lib/constants";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { BalanceTransaction } from "@/lib/types";
 
 export function ExpensePaymentForm({
@@ -43,7 +43,7 @@ export function ExpensePaymentForm({
       const transaction = await api.post<BalanceTransaction>(
         "/expense-payments",
         {
-          amount: Number(amount),
+          amount: round2(Number(amount)),
           transactionMethod,
           description: description.trim(),
           expenseId,

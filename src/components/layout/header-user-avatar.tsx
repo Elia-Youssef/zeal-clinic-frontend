@@ -51,7 +51,7 @@ export function HeaderUserAvatar() {
   }, [scale]);
 
   const handleLogout = async () => {
-    useLoadingStore.getState().show("Signing out");
+    useLoadingStore.getState().block("Signing out");
     try {
       await api.post("/auth/logout");
     } catch {

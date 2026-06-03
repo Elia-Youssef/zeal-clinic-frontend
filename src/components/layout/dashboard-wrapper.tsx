@@ -15,7 +15,7 @@ import { useUIStore } from "@/lib/stores/ui-store";
 function AuthGate({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const hydrate = useAuthStore((s) => s.hydrate);
-  const hideLoading = useLoadingStore((s) => s.hide);
+  const unblock = useLoadingStore((s) => s.unblock);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -24,9 +24,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       navigate("/", { replace: true });
     } else {
       setChecked(true);
-      hideLoading();
+      unblock();
     }
-  }, [navigate, hydrate, hideLoading]);
+  }, [navigate, hydrate, unblock]);
 
   if (!checked) return null;
 

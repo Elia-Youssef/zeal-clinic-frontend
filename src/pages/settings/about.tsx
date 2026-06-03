@@ -30,7 +30,6 @@ export default function AboutPage() {
   const [starting, setStarting] = useState(false);
   const [installing, setInstalling] = useState(false);
   const activeRef = useRef(true);
-  console.log(status);
 
   useEffect(() => {
     activeRef.current = true;

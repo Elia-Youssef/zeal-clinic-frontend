@@ -9,7 +9,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { ProductForm } from "./product-form";
 import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -69,7 +69,7 @@ export function SupplierInvoiceForm({
         const updated = { ...it, ...patch };
         if ("quantity" in patch && updated.unitPrice != null) {
           const qty = Number(updated.quantity) || 0;
-          updated.amount = String(updated.unitPrice * qty);
+          updated.amount = String(round2(updated.unitPrice * qty));
         }
         return updated;
       }),
@@ -105,7 +105,7 @@ export function SupplierInvoiceForm({
           itemType: "product",
           itemId: it.itemId,
           quantity: Number(it.quantity) || 0,
-          amount: (Number(it.amount) || 0) * (Number(it.quantity) || 0),
+          amount: round2((Number(it.amount) || 0) * (Number(it.quantity) || 0)),
           notes: it.notes || "",
         })),
       });

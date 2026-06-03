@@ -8,7 +8,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { Procedure } from "@/lib/types";
 import { ProcedureTypeForm } from "./procedure-type-form";
 import { ProcedureCategoryForm } from "./procedure-category-form";
@@ -84,7 +84,7 @@ export function ProcedureForm({
 
     const payload: Record<string, unknown> = {
       name: form.name,
-      price: form.price ? Number(form.price) : 0,
+      price: form.price ? round2(Number(form.price)) : 0,
     };
     if (isEdit) payload.isActive = form.isActive;
     if (isEdit || form.typeId) payload.typeId = form.typeId;

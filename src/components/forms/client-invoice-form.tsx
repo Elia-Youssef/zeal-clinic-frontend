@@ -10,7 +10,7 @@ import { FormDraftsLayout } from "@/components/shared/form-drafts";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { cn, getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { cn, getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { invoiceItemTypeOptions } from "@/lib/constants";
 import type { Discount, Invoice } from "@/lib/types";
 import { ProcedureForm } from "./procedure-form";
@@ -343,7 +343,7 @@ export function ClientInvoiceFormBody({
             updated.itemType === "procedure"
               ? 1
               : Number(updated.quantity) || 0;
-          updated.amount = `${updated.unitPrice * qty}`;
+          updated.amount = String(round2(updated.unitPrice * qty));
         }
         return updated;
       }),
@@ -424,7 +424,7 @@ export function ClientInvoiceFormBody({
           if (it.itemType === "gift") {
             return {
               itemType: "gift",
-              amount: Number(it.amount),
+              amount: round2(Number(it.amount)),
               giftName: it.giftName,
               ...(it.notes ? { notes: it.notes } : {}),
               ...(it.giftMode === "code"
@@ -435,7 +435,7 @@ export function ClientInvoiceFormBody({
           if (it.itemType === "other") {
             return {
               itemType: "other",
-              amount: Number(it.amount),
+              amount: round2(Number(it.amount)),
               ...(it.notes ? { notes: it.notes } : {}),
             };
           }
@@ -443,7 +443,7 @@ export function ClientInvoiceFormBody({
             itemType: it.itemType,
             itemId: it.itemId,
             quantity: it.itemType === "procedure" ? 1 : Number(it.quantity),
-            amount: Number(it.amount),
+            amount: round2(Number(it.amount)),
             ...(it.notes ? { notes: it.notes } : {}),
           };
         }),

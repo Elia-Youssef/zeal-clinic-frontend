@@ -7,7 +7,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { discountValueTypeOptions } from "@/lib/constants";
 import type { Discount } from "@/lib/types";
 import { DatePicker } from "../ui/date-picker";
@@ -73,12 +73,13 @@ export function DiscountForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
         name: form.name,
         valueType: form.valueType,
-        value: Number(form.value),
+        value: round2(Number(form.value)),
         isActive: Number(form.isActive),
       };
       if (isEdit || form.description) payload.description = form.description;

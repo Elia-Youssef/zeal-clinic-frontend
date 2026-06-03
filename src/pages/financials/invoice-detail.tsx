@@ -14,7 +14,7 @@ import { Loading } from "@/components/shared/loading";
 import { DataTable } from "@/components/data/data-table";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -107,7 +107,7 @@ export default function InvoiceDetailPage() {
     setItemSubmitting(true);
     try {
       await api.put(`/supplier-invoices/${id}/items/${editItem.id}`, {
-        amount,
+        amount: round2(amount),
       });
       addAlert("success", "Item updated.");
       setEditItem(null);

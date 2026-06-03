@@ -224,63 +224,73 @@ const roomColumns: Column<RoomUtilization>[] = [
 type DashboardCard = {
   id: string;
   title: string;
-  scope: string;
+  // The caller must hold ALL listed scopes (matches the backend's scopeAll gate).
+  scopes: string[];
   // Full-width cards span every masonry column; the rest occupy one column.
   full?: boolean;
   render: (range: UtcRange) => ReactNode;
 };
 
+// Scopes required by /analytics/report/pdf (used to gate the Print button).
+const PDF_SCOPES = [
+  "analytics:read",
+  "balances:read",
+  "patients:read",
+  "appointments:read",
+  "products:read",
+];
+
 const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "financial-kpis",
     title: "Financial",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "balances:read"],
     full: true,
     render: (range) => <FinancialPanel range={range} />,
   },
   {
     id: "patient-kpis",
     title: "Patients",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "patients:read"],
     full: true,
     render: (range) => <PatientsPanel range={range} />,
   },
   {
     id: "operations-kpis",
     title: "Operations",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "appointments:read"],
     full: true,
     render: (range) => <OperationsPanel range={range} />,
   },
   {
     id: "demographics",
     title: "Demographics",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "patients:read"],
     full: true,
     render: () => <DemographicsCard />,
   },
   {
     id: "appointment-status",
     title: "Appointment Status",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "appointments:read"],
     render: (range) => <AppointmentStatusCard range={range} />,
   },
   {
     id: "inventory",
     title: "Inventory",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "products:read"],
     render: () => <InventoryCard />,
   },
   {
     id: "revenue-payment-mix",
     title: "Revenue & Payment Mix",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "balances:read"],
     render: (range) => <RevenueMixCard range={range} />,
   },
   {
     id: "referral-sources",
     title: "Referral Sources",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "patients:read"],
     render: (range) => (
       <AnalyticsListCard<ReferralSource>
         title="Referral Sources"
@@ -294,7 +304,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "staff-performance",
     title: "Staff Performance",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "employees:read"],
     render: (range) => (
       <AnalyticsListCard<StaffPerformance>
         title="Staff Performance"
@@ -308,7 +318,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "top-procedures",
     title: "Top Procedures",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "procedures:read"],
     render: (range) => (
       <AnalyticsListCard<TopProcedure>
         title="Top Procedures"
@@ -322,7 +332,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "top-products",
     title: "Top Products",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "products:read"],
     render: (range) => (
       <AnalyticsListCard<TopProduct>
         title="Top Products"
@@ -336,7 +346,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "rooms-utilization",
     title: "Room Utilization",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "rooms:read"],
     render: (range) => (
       <AnalyticsListCard<RoomUtilization>
         title="Room Utilization"
@@ -350,7 +360,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "appointments-today",
     title: "Today's Appointments",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "appointments:read"],
     render: () => (
       <AnalyticsListCard<Appointment>
         title="Today's Appointments"
@@ -364,7 +374,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "recent-transactions",
     title: "Recent Transactions",
-    scope: "analytics:read",
+    scopes: ["analytics:read", "balances:read"],
     render: () => (
       <AnalyticsListCard<BalanceTransaction>
         title="Recent Transactions"
@@ -457,7 +467,7 @@ function DateField({
 }
 
 function DashboardContent() {
-  const { can } = usePermissions();
+  const { canAll } = usePermissions();
   const { addAlert } = useAlertStore();
   const hidden = useDashboardStore((s) => s.hidden);
 
@@ -471,11 +481,12 @@ function DashboardContent() {
   );
 
   const inScopeCards = useMemo(
-    () => DASHBOARD_CARDS.filter((c) => can(c.scope)),
-    [can],
+    () => DASHBOARD_CARDS.filter((c) => canAll(...c.scopes)),
+    [canAll],
   );
 
   const visibleCards = inScopeCards.filter((c) => !hidden.includes(c.id));
+  const canPrint = canAll(...PDF_SCOPES);
 
   const handlePrint = async () => {
     setPdfLoading(true);
@@ -495,17 +506,19 @@ function DashboardContent() {
           <DateField label="From" value={from} onChange={setFrom} max={to} />
           <DateField label="To" value={to} onChange={setTo} min={from} />
         </div>
-        {can("analytics:read") && (
+        {(canPrint || inScopeCards.length > 0) && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              disabled={pdfLoading}
-            >
-              <Printer className="size-4" />
-              {pdfLoading ? "Loading…" : "Print"}
-            </Button>
+            {canPrint && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                disabled={pdfLoading}
+              >
+                <Printer className="size-4" />
+                {pdfLoading ? "Loading…" : "Print"}
+              </Button>
+            )}
             {inScopeCards.length > 0 && <CustomizeMenu cards={inScopeCards} />}
           </div>
         )}

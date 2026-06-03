@@ -1,5 +1,10 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
+import { useAlertStore } from "@/lib/stores/alert-store";
 import { wallClockToUtc } from "@/lib/tz";
+
+/** Per-call options. `silent` suppresses the default 403 permission alert for
+ *  background/optional fetches that already tolerate failure on their own. */
+export type RequestConfig = { silent?: boolean };
 
 export const BASE_URL = import.meta.env.DEV
   ? "http://localhost:8080/api"
@@ -19,11 +24,13 @@ function clearAuthSession(): void {
   sessionStorage.removeItem("auth_scopes");
   sessionStorage.removeItem("auth_user_id");
   sessionStorage.removeItem("auth_employee_id");
+  sessionStorage.removeItem("auth_expires_at");
 }
 
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
+  config: RequestConfig = {},
 ): Promise<T> {
   const token = getToken();
 
@@ -45,10 +52,15 @@ async function request<T>(
     }
     throw new Error("Session expired");
   }
+  // A 403 doesn't redirect: page-level access is enforced by route guards
+  // (RequireScopes). Here we just surface a permission alert and throw so the
+  // caller's own catch path can degrade gracefully. The stable toast id dedupes
+  // a burst of forbidden fetches into a single message.
   if (res.status === 403) {
-    if (typeof window !== "undefined") {
-      useLoadingStore.getState().show("Redirecting");
-      window.location.href = "/dashboard";
+    if (!config.silent) {
+      useAlertStore
+        .getState()
+        .addAlert("error", "You don't have permission to do that.", "forbidden");
     }
     throw new Error("Access denied");
   }
@@ -79,43 +91,78 @@ export function toISODateTime(dt: string): string {
 }
 
 export const api = {
-  get<T>(endpoint: string): Promise<T> {
-    return request<T>(endpoint, { method: "GET" });
+  get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
+    return request<T>(endpoint, { method: "GET" }, config);
   },
 
-  post<T>(endpoint: string, body?: unknown): Promise<T> {
-    return request<T>(endpoint, {
-      method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
-    });
+  post<T>(endpoint: string, body?: unknown, config?: RequestConfig): Promise<T> {
+    return request<T>(
+      endpoint,
+      {
+        method: "POST",
+        body: body ? JSON.stringify(body) : undefined,
+      },
+      config,
+    );
   },
 
-  put<T>(endpoint: string, body?: unknown): Promise<T> {
-    return request<T>(endpoint, {
-      method: "PUT",
-      body: body ? JSON.stringify(body) : undefined,
-    });
+  put<T>(endpoint: string, body?: unknown, config?: RequestConfig): Promise<T> {
+    return request<T>(
+      endpoint,
+      {
+        method: "PUT",
+        body: body ? JSON.stringify(body) : undefined,
+      },
+      config,
+    );
   },
 
-  patch<T>(endpoint: string, body?: unknown): Promise<T> {
-    return request<T>(endpoint, {
-      method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
-    });
+  patch<T>(
+    endpoint: string,
+    body?: unknown,
+    config?: RequestConfig,
+  ): Promise<T> {
+    return request<T>(
+      endpoint,
+      {
+        method: "PATCH",
+        body: body ? JSON.stringify(body) : undefined,
+      },
+      config,
+    );
   },
 
-  del<T>(endpoint: string): Promise<T> {
-    return request<T>(endpoint, { method: "DELETE" });
+  del<T>(endpoint: string, config?: RequestConfig): Promise<T> {
+    return request<T>(endpoint, { method: "DELETE" }, config);
   },
 
-  async openPdf(endpoint: string): Promise<void> {
-    const { url } = await request<{ url: string }>(endpoint, { method: "GET" });
+  async openPdf(endpoint: string, config?: RequestConfig): Promise<void> {
+    const { url } = await request<{ url: string }>(
+      endpoint,
+      { method: "GET" },
+      config,
+    );
     if (typeof window === "undefined") return;
     const host = BASE_URL.replace(/\/api\/?$/, "");
-    window.open(
-      `${host}${url}?access_token=${getToken()}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    const token = getToken();
+    const res = await fetch(`${host}${url}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error("Unable to open the document.");
+    }
+    const blobUrl = URL.createObjectURL(await res.blob());
+    // No noopener/noreferrer: they make window.open() return null even on
+    // success, which would falsely trip the download fallback below.
+    const win = window.open(blobUrl, "_blank");
+    if (!win) {
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "document.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   },
 };

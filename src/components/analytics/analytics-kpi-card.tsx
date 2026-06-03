@@ -58,7 +58,7 @@ export function KpiTile({
                 ? format(value)
                 : value.toLocaleString()}
           </p>
-          {!error && change != null && (
+          {!error && change != null && Number.isFinite(change) && (
             <Delta change={change} invert={invert} />
           )}
         </div>

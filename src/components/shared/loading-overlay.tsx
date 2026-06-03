@@ -1,7 +1,7 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
 
 export function LoadingOverlay() {
-  const visible = useLoadingStore((s) => s.count > 0);
+  const visible = useLoadingStore((s) => s.blocking || s.count > 0);
   const message = useLoadingStore((s) => s.message);
 
   if (!visible) return null;

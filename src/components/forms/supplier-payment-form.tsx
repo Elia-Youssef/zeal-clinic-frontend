@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { transactionMethodOptions } from "@/lib/constants";
 import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -50,7 +50,7 @@ export function SupplierPaymentForm({
     try {
       await api.post("/supplier-payments", {
         supplierId,
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         transactionMethod,
         description: description || "",
       });

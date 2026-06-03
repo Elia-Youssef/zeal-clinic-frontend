@@ -38,7 +38,10 @@ export const useEmployeesStore = create<EmployeesState>((set) => ({
     try {
       const [emp, balance] = await Promise.all([
         api.get<Employee>(`/employees/${id}`),
-        api.get<Balance>(`/balances/employee/${id}`).catch(() => null),
+        // Balance needs balances:read; fail quietly so the page still renders.
+        api.get<Balance>(`/balances/employee/${id}`, { silent: true }).catch(
+          () => null,
+        ),
       ]);
       set({ current: emp, currentBalance: balance });
     } finally {
@@ -48,7 +51,7 @@ export const useEmployeesStore = create<EmployeesState>((set) => ({
 
   fetchBalance: async (id) => {
     const balance = await api
-      .get<Balance>(`/balances/employee/${id}`)
+      .get<Balance>(`/balances/employee/${id}`, { silent: true })
       .catch(() => null);
     set({ currentBalance: balance });
   },

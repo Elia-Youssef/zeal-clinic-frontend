@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { DatePicker } from "@/components/ui/date-picker";
-import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import {
+  SearchableDropdown,
+  type DropdownOption,
+} from "@/components/shared/searchable-dropdown";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { getErrorMessage } from "@/lib/utils";
 import { MedicineForm } from "@/components/forms/medicine-form";
 import { EmployeeForm } from "@/components/forms/employee-form";
@@ -51,11 +55,33 @@ export function PrescriptionForm({
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const selfEmployeeId = useAuthStore((s) => s.employeeId);
+  const selfName = useAuthStore((s) => s.user);
   const [form, setForm] = useState<FormFields>(emptyForm);
   const [medicines, setMedicines] = useState<MedicineDraft[]>([blankMedicine()]);
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!initial;
+
+  // Without employees:read the /employees/dropdown endpoint 403s (which hard-
+  // redirects). Fall back to a static list seeded with the current user's own
+  // employee, plus the existing prescriber when editing.
+  const canReadEmployees = can("employees:read");
+  const selfOptions = useMemo<DropdownOption[]>(() => {
+    const opts: DropdownOption[] = [];
+    if (selfEmployeeId) opts.push({ value: selfEmployeeId, label: selfName });
+    if (
+      initial?.prescribedById &&
+      initial.prescribedById !== selfEmployeeId &&
+      initial.prescribedByName
+    ) {
+      opts.push({
+        value: initial.prescribedById,
+        label: initial.prescribedByName,
+      });
+    }
+    return opts;
+  }, [selfEmployeeId, selfName, initial]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +92,11 @@ export function PrescriptionForm({
             startDate: initial.startDate?.slice(0, 10) ?? "",
             endDate: initial.endDate?.slice(0, 10) ?? "",
           }
-        : emptyForm,
+        : {
+            ...emptyForm,
+            // No employee picker available: default to the current user.
+            prescribedById: canReadEmployees ? "" : selfEmployeeId,
+          },
     );
     setMedicines(
       initial?.medicines?.length
@@ -140,12 +170,19 @@ export function PrescriptionForm({
           <SearchableDropdown
             value={form.prescribedById}
             onChange={(v) => update("prescribedById", v)}
-            apiEndpoint="/employees/dropdown"
-            mapItem={(item: any) => ({ value: item.id, label: item.name })}
+            apiEndpoint={canReadEmployees ? "/employees/dropdown" : undefined}
+            mapItem={
+              canReadEmployees
+                ? (item: any) => ({ value: item.id, label: item.name })
+                : undefined
+            }
+            options={canReadEmployees ? undefined : selfOptions}
             placeholder="Select employee…"
             required
             defaultApiOption={
-              initial?.prescribedById && initial?.prescribedByName
+              canReadEmployees &&
+              initial?.prescribedById &&
+              initial?.prescribedByName
                 ? {
                     value: initial.prescribedById,
                     label: initial.prescribedByName,
@@ -153,7 +190,7 @@ export function PrescriptionForm({
                 : undefined
             }
             renderAddForm={
-              can("employees:write")
+              canReadEmployees && can("employees:write")
                 ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
                     <EmployeeForm
                       open={addOpen}

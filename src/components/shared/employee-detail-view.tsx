@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, UserCog } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,8 +39,9 @@ import { useConfirm } from "@/hooks/use-confirm";
 // Shared employee detail layout. `readOnly` (self view from /profile) hides every
 // management action and force-shows the financial/appointment sections that are
 // otherwise gated behind management scopes, so an employee can always view their
-// own salaries, payments and appointments. Self-read of every endpoint below
-// must return 200; a 403 hard-redirects to /dashboard (see api.ts).
+// own salaries, payments and appointments. It also force-enables self time-off /
+// overtime requests on the schedule (otherwise gated behind hr:write). Self-read
+// of every endpoint below must return 200; a 403 hard-redirects to /dashboard.
 export function EmployeeDetailView({
   employeeId,
   readOnly = false,
@@ -252,6 +253,17 @@ export function EmployeeDetailView({
       <PageHeader
         backHref={readOnly ? "/dashboard" : "/team"}
         title={`${employee.firstName} ${employee.lastName}`}
+        extraActions={
+          !readOnly && employee.userId && can("users:read") ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/settings/staff/${employee.userId}`)}
+            >
+              <UserCog className="size-4" /> User Account
+            </Button>
+          ) : undefined
+        }
         onEdit={
           !readOnly && can("employees:write")
             ? () => setEditOpen(true)
@@ -278,7 +290,7 @@ export function EmployeeDetailView({
       <EmployeeWeekSchedule
         employeeId={id}
         canEditGeneral={!readOnly && can("employee-schedules:write")}
-        canRequestChange={!readOnly && can("hr:write")}
+        canRequestChange={readOnly || can("hr:write")}
       />
 
       <div className="flex flex-col gap-4 lg:flex-row">

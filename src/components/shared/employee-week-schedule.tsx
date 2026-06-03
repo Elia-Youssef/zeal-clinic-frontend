@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -186,14 +187,17 @@ export function EmployeeWeekSchedule({
   }>({ open: false });
   const [apptFormKey, setApptFormKey] = useState(0);
 
+  // Drop out-of-order responses.
+  const reloadGen = useRef(0);
+
   const reload = useCallback(async () => {
+    const gen = ++reloadGen.current;
     const dateParam = toIsoDate(weekStart);
     try {
       const [res, apptsRes] = await Promise.all([
         api.get<EmployeeScheduleResponse>(
           `/employees/${employeeId}/schedule?date=${dateParam}`,
         ),
-        // Gate on the scope: a 403 from the API hard-redirects to /dashboard.
         canReadAppointments
           ? api
               .get<
@@ -202,6 +206,7 @@ export function EmployeeWeekSchedule({
               .catch(() => [] as Appointment[])
           : Promise.resolve<Appointment[]>([]),
       ]);
+      if (gen !== reloadGen.current) return;
       setData({
         days: res.days ?? [],
         templates: res.templates ?? [],
@@ -214,6 +219,7 @@ export function EmployeeWeekSchedule({
           : (apptsRes.items ?? []),
       });
     } catch {
+      if (gen !== reloadGen.current) return;
       setData(emptySchedule);
     }
   }, [employeeId, weekStart, canReadAppointments]);

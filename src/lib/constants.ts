@@ -22,9 +22,9 @@ export const employmentTypeOptions: DropdownOption[] = [
 ];
 
 export const userRoleOptions: DropdownOption[] = [
-  { value: "super-admin", label: "Super Admin" },
   { value: "admin", label: "Admin" },
-  { value: "user", label: "Staff" },
+  { value: "staff", label: "Staff" },
+  { value: "nurse", label: "Nurse" },
 ];
 
 export const transactionMethodOptions: DropdownOption[] = [

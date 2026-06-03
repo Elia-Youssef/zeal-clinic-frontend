@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { Currency } from "@/lib/types";
 
 export function CurrencyForm({
@@ -40,10 +40,10 @@ export function CurrencyForm({
     setSubmitting(true);
     try {
       if (isEdit) {
-        await api.put(`/currencies/${initial.id}`, { code, name, symbol, exchangeRate: Number(exchangeRate) });
+        await api.put(`/currencies/${initial.id}`, { code, name, symbol, exchangeRate: round2(Number(exchangeRate)) });
         addAlert("success", "Currency updated.");
       } else {
-        await api.post("/currencies", { code, name, symbol, exchangeRate: Number(exchangeRate) });
+        await api.post("/currencies", { code, name, symbol, exchangeRate: round2(Number(exchangeRate)) });
         addAlert("success", "Currency created.");
       }
       onSaved();

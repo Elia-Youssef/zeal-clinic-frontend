@@ -1,14 +1,32 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
-import { Printer } from "lucide-react";
+import { useState, useEffect, type ReactNode } from "react";
+import { ChevronDown, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs } from "@/components/shared/tabs";
 import { Loading } from "@/components/shared/loading";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   beirutDaysAgo,
   beirutToday,
@@ -19,12 +37,14 @@ import {
 const reportTabs = ["Revenue", "Expenses"];
 
 type RevenueLevel =
+  | "all"
   | "kind"
   | "procedure-type"
   | "procedure-category"
   | "product-category"
   | "procedure"
-  | "product";
+  | "product"
+  | "other";
 
 type RevenueItem = {
   groupType: string;
@@ -49,17 +69,58 @@ type ExpenseRow = {
   amountPerUnit: number;
   amount: number;
   remainingBalance: number;
-  total: number;
-  notes: string;
 };
 
-const levelOptions: { value: RevenueLevel; label: string }[] = [
-  { value: "kind", label: "Item kinds" },
-  { value: "procedure-type", label: "Procedure types" },
-  { value: "procedure-category", label: "Procedure categories" },
-  { value: "product-category", label: "Product categories" },
-  { value: "procedure", label: "Procedures" },
-  { value: "product", label: "Products" },
+type ExpensesResponse = {
+  rows: ExpenseRow[];
+  totals: { amount: number; remaining: number };
+};
+
+const levelOptions: {
+  value: RevenueLevel;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "all",
+    label: "All items",
+    description: "Every invoice line — procedures, products, and other.",
+  },
+  {
+    value: "kind",
+    label: "Item kind",
+    description: "Totals per kind: procedure, product, and other.",
+  },
+  {
+    value: "procedure-type",
+    label: "Procedure type",
+    description: "Procedure revenue grouped by procedure type.",
+  },
+  {
+    value: "procedure-category",
+    label: "Procedure category",
+    description: "Procedure revenue grouped by procedure category.",
+  },
+  {
+    value: "procedure",
+    label: "Procedure",
+    description: "Each individual procedure.",
+  },
+  {
+    value: "product-category",
+    label: "Product category",
+    description: "Product revenue grouped by product category.",
+  },
+  {
+    value: "product",
+    label: "Product",
+    description: "Each individual product.",
+  },
+  {
+    value: "other",
+    label: "Other items",
+    description: "Only the custom “other” invoice lines.",
+  },
 ];
 
 function formatMoney(n: number) {
@@ -90,6 +151,8 @@ function buildQuery(params: Record<string, string>) {
 
 function levelHeader(level: RevenueLevel | undefined): string {
   switch (level) {
+    case "all":
+      return "Item";
     case "kind":
       return "Item Kind";
     case "procedure-type":
@@ -102,6 +165,8 @@ function levelHeader(level: RevenueLevel | undefined): string {
       return "Procedure";
     case "product":
       return "Product";
+    case "other":
+      return "Item";
     default:
       return "Name";
   }
@@ -178,11 +243,7 @@ function RevenueReport() {
             <label className="text-xs font-medium text-muted-foreground">
               Group by
             </label>
-            <SearchableDropdown
-              value={level}
-              onChange={(v) => setLevel(v as RevenueLevel)}
-              options={levelOptions}
-            />
+            <LevelSelect value={level} onChange={setLevel} />
           </div>
           <div className="w-full sm:ml-auto sm:w-auto">
             <Button
@@ -210,62 +271,51 @@ function RevenueReport() {
             No data for the selected range.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-150 border-collapse text-sm">
-              <thead>
-                <tr className="border-b-2 border-foreground/80">
-                  <th className="px-3 py-2 text-left font-semibold">
-                    {levelHeader(data.level)}
-                  </th>
-                  <th className="w-24 px-3 py-2 text-right font-semibold">
-                    Qty
-                  </th>
-                  <th className="w-32 px-3 py-2 text-right font-semibold">
-                    Amount
-                  </th>
-                  <th className="w-20 px-3 py-2 text-right font-semibold">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((it, idx) => (
-                  <tr
-                    key={`${it.entityId}-${idx}`}
-                    className="border-b border-foreground/10"
-                  >
-                    <td className="px-3 py-2">
-                      {it.entityName}
-                      {!it.entityId && (
-                        <span className="ml-1 text-muted-foreground">
-                          (uncategorized)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {it.quantity}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(it.amount)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {it.percentage.toFixed(1)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-foreground/80 font-semibold">
-                  <td className="px-3 py-2 text-left">Total</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {data.totals.quantity}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(data.totals.amount)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">100.0</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <Table className="min-w-150">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{levelHeader(data.level)}</TableHead>
+                <TableHead className="w-24 text-right">Qty</TableHead>
+                <TableHead className="w-32 text-right">Amount</TableHead>
+                <TableHead className="w-20 text-right">%</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.items.map((it, idx) => (
+                <TableRow key={`${it.entityId}-${idx}`}>
+                  <TableCell className="whitespace-normal">
+                    {it.entityName}
+                    {!it.entityId && (
+                      <span className="ml-1 text-muted-foreground">
+                        (uncategorized)
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {it.quantity}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(it.amount)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {it.percentage.toFixed(1)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow className="hover:bg-transparent">
+                <TableCell>Total</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {data.totals.quantity}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(data.totals.amount)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">100.0</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
         )}
       </PrintableSheet>
     </>
@@ -276,7 +326,7 @@ function ExpensesReport() {
   const { addAlert } = useAlertStore();
   const [from, setFrom] = useState(beirutDaysAgo(30));
   const [to, setTo] = useState(beirutToday());
-  const [rows, setRows] = useState<ExpenseRow[] | null>(null);
+  const [data, setData] = useState<ExpensesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -297,9 +347,9 @@ function ExpensesReport() {
     const params: Record<string, string> = dateRangeToUtc(from, to);
     setLoading(true);
     api
-      .get<ExpenseRow[]>(`/reports/expenses${buildQuery(params)}`)
+      .get<ExpensesResponse>(`/reports/expenses${buildQuery(params)}`)
       .then((res) => {
-        if (!aborted) setRows(res);
+        if (!aborted) setData(res);
       })
       .catch((err) => {
         if (!aborted)
@@ -315,19 +365,6 @@ function ExpensesReport() {
       aborted = true;
     };
   }, [from, to, addAlert]);
-
-  const totals = useMemo(() => {
-    if (!rows) return { quantity: 0, amount: 0, remainingBalance: 0, total: 0 };
-    return rows.reduce(
-      (acc, r) => ({
-        quantity: acc.quantity + r.quantity,
-        amount: acc.amount + r.amount,
-        remainingBalance: acc.remainingBalance + r.remainingBalance,
-        total: acc.total + r.total,
-      }),
-      { quantity: 0, amount: 0, remainingBalance: 0, total: 0 },
-    );
-  }, [rows]);
 
   return (
     <>
@@ -356,97 +393,115 @@ function ExpensesReport() {
       >
         {loading ? (
           <Loading />
-        ) : !rows || rows.length === 0 ? (
+        ) : !data || data.rows.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-muted-foreground">
             No expenses in this range.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-225 border-collapse text-sm">
-              <thead>
-                <tr className="border-b-2 border-foreground/80">
-                  <th className="w-28 px-3 py-2 text-left font-semibold">
-                    Date
-                  </th>
-                  <th className="px-3 py-2 text-left font-semibold">
-                    Supplier
-                  </th>
-                  <th className="px-3 py-2 text-left font-semibold">
-                    Description
-                  </th>
-                  <th className="w-16 px-3 py-2 text-right font-semibold">
-                    Qty
-                  </th>
-                  <th className="w-28 px-3 py-2 text-right font-semibold">
-                    Amt/Unit
-                  </th>
-                  <th className="w-28 px-3 py-2 text-right font-semibold">
-                    Amount
-                  </th>
-                  <th className="w-28 px-3 py-2 text-right font-semibold">
-                    Remaining
-                  </th>
-                  <th className="w-28 px-3 py-2 text-right font-semibold">
-                    Total
-                  </th>
-                  <th className="px-3 py-2 text-left font-semibold">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, idx) => (
-                  <tr key={idx} className="border-b border-foreground/10">
-                    <td className="px-3 py-2 tabular-nums">
-                      {formatDate(r.date)}
-                    </td>
-                    <td className="px-3 py-2">{r.supplier}</td>
-                    <td className="px-3 py-2">{r.description}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {r.quantity}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(r.amountPerUnit)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(r.amount)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(r.remainingBalance)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(r.total)}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {r.notes || ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-foreground/80 font-semibold">
-                  <td className="px-3 py-2" colSpan={3}>
-                    Total
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {totals.quantity}
-                  </td>
-                  <td className="px-3 py-2"></td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(totals.amount)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(totals.remainingBalance)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {formatMoney(totals.total)}
-                  </td>
-                  <td className="px-3 py-2"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <Table className="min-w-175">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-28">Date</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-16 text-right">Qty</TableHead>
+                <TableHead className="w-28 text-right">Amt/Unit</TableHead>
+                <TableHead className="w-28 text-right">Amount</TableHead>
+                <TableHead className="w-28 text-right">Remaining</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.rows.map((r, idx) => (
+                <TableRow key={idx}>
+                  <TableCell className="tabular-nums">
+                    {formatDate(r.date)}
+                  </TableCell>
+                  <TableCell className="whitespace-normal">
+                    {r.supplier}
+                  </TableCell>
+                  <TableCell className="whitespace-normal">
+                    {r.description}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.quantity}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(r.amountPerUnit)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(r.amount)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(r.remainingBalance)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={5}>Total</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(data.totals.amount)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatMoney(data.totals.remaining)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
         )}
       </PrintableSheet>
     </>
+  );
+}
+
+function LevelSelect({
+  value,
+  onChange,
+}: {
+  value: RevenueLevel;
+  onChange: (value: RevenueLevel) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = levelOptions.find((o) => o.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
+        <span className="truncate">{selected?.label ?? "Select"}</span>
+        <ChevronDown className="ml-1 size-3.5 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="w-(--anchor-width) gap-0 p-1"
+      >
+        {levelOptions.map((opt) => (
+          <Tooltip key={opt.value}>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
+                    opt.value === value && "bg-accent font-medium",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              }
+            />
+            <TooltipContent side="right" sideOffset={8} className="max-w-56">
+              {opt.description}
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -499,7 +554,9 @@ function PrintableSheet({
           </p>
         )}
       </div>
-      <div className="px-2 py-2 print:px-0">{children}</div>
+      <div className="overflow-hidden rounded-b-lg print:rounded-none">
+        {children}
+      </div>
     </div>
   );
 }

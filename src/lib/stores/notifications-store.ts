@@ -28,6 +28,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     try {
       const res = await api.get<Paginated<Notification>>("/notifications");
       set({ items: res.items });
+      get().fetchUnreadCount().catch(() => {});
     } finally {
       set({ loading: false });
     }

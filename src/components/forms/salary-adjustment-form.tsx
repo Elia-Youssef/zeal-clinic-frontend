@@ -4,7 +4,7 @@ import { Modal } from "@/components/shared/modal";
 import { MoneyInput } from "@/components/shared/money-input";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, round2 } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import type { SalaryPreparation } from "@/lib/types";
 
@@ -47,7 +47,7 @@ export function SalaryAdjustmentForm({
     setSubmitting(true);
     try {
       await api.patch(`/employee-salary-preparations/${preparation.id}`, {
-        adjustment: parsedAdjustment,
+        adjustment: round2(parsedAdjustment),
       });
       addAlert("success", "Adjustment updated.");
       onSaved();

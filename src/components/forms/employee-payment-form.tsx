@@ -6,7 +6,7 @@ import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { employeePaymentTypeOptions } from "@/lib/constants";
 
 export function EmployeePaymentForm({
@@ -43,7 +43,7 @@ export function EmployeePaymentForm({
     try {
       await api.post("/employee-payments", {
         employeeId,
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         transactionMethod,
         description: description || undefined,
       });

@@ -78,6 +78,7 @@ export function SearchableDropdown({
       api
         .get<any>(
           `${apiEndpoint}${apiEndpoint.includes("?") ? "&" : "?"}${params}`,
+          { silent: true },
         )
         .then((res) => {
           const items = Array.isArray(res) ? res : [];

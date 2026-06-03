@@ -7,7 +7,7 @@ import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { transactionMethodOptions } from "@/lib/constants";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { BalanceTransaction, ClientRefundRequest } from "@/lib/types";
 import { PatientForm } from "./patient-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -52,7 +52,7 @@ export function ClientRefundForm({
     try {
       const payload: ClientRefundRequest = {
         patientId,
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         transactionMethod: transactionMethod || undefined,
         description: description.trim() || undefined,
       };

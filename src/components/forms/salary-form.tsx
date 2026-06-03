@@ -7,7 +7,7 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 
 export function SalaryForm({
   open,
@@ -41,7 +41,7 @@ export function SalaryForm({
     setSubmitting(true);
     try {
       await api.post(`/employees/${employeeId}/salaries`, {
-        amount: Number(amount),
+        amount: round2(Number(amount)),
         effectiveDate: effectiveDate || undefined,
         notes: notes || undefined,
       });

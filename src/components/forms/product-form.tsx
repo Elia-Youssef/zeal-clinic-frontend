@@ -7,7 +7,7 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { getErrorMessage, clampNonNegative } from "@/lib/utils";
+import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { CategoryForm } from "./category-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -48,7 +48,7 @@ export function ProductForm({
     setSubmitting(true);
     const payload: Record<string, unknown> = {
       name,
-      unitPrice: Number(unitPrice),
+      unitPrice: round2(Number(unitPrice)),
     };
     if (isEdit || categoryId) payload.categoryId = categoryId;
     if (isEdit || quantity) payload.quantity = quantity ? Number(quantity) : 0;

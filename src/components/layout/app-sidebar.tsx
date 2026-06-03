@@ -108,13 +108,13 @@ const navItems = {
       title: "Settings",
       href: "/settings",
       icon: Settings,
-      scopes: ["roles:read", "users:read", "audit:read"],
+      scopes: ["roles:read", "users:read", "audit:read", "update:read"],
     },
     {
       title: "Connection",
       href: "/connection",
       icon: Cable,
-      scopes: ["roles:read", "users:read"],
+      scopes: [],
     },
   ],
 };

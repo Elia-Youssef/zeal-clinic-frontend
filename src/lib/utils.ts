@@ -28,6 +28,13 @@ export function clampNonNegative(value: string): string {
   return value;
 }
 
+// The backend rounds all monetary amounts to 2 decimals; mirror that on the
+// frontend before sending/computing so displayed and stored values agree.
+export function round2(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 export function isUnder18(iso: string | null | undefined): boolean {
   if (!iso) return false;
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);

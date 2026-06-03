@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { api, type Paginated } from "@/lib/api";
 import type { Balance, Patient } from "@/lib/types";
+import { useAuthStore } from "@/lib/stores/auth-store";
+
+// A 403 from the balances endpoint hard-redirects to /dashboard (see api.ts),
+// so never hit it without the scope; skip the fetch instead.
+const canReadBalance = () =>
+  useAuthStore.getState().scopes.includes("balances:read");
 
 type PatientsState = {
   patients: Patient[];
@@ -38,7 +44,9 @@ export const usePatientsStore = create<PatientsState>((set) => ({
     try {
       const [patient, balance] = await Promise.all([
         api.get<Patient>(`/patients/${id}`),
-        api.get<Balance>(`/balances/patient/${id}`).catch(() => null),
+        canReadBalance()
+          ? api.get<Balance>(`/balances/patient/${id}`).catch(() => null)
+          : Promise.resolve(null),
       ]);
       set({ current: patient, currentBalance: balance });
     } finally {
@@ -47,6 +55,7 @@ export const usePatientsStore = create<PatientsState>((set) => ({
   },
 
   fetchBalance: async (id) => {
+    if (!canReadBalance()) return;
     const balance = await api
       .get<Balance>(`/balances/patient/${id}`)
       .catch(() => null);
