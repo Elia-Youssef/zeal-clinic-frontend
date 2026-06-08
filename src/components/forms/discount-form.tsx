@@ -48,6 +48,7 @@ export function DiscountForm({
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!initial;
+  const isGift = isEdit && initial.discountType === "gift";
 
   useEffect(() => {
     if (!open) return;
@@ -69,24 +70,30 @@ export function DiscountForm({
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const canSubmit = form.name && form.valueType && Number(form.value) > 0;
+  const canSubmit = isGift
+    ? !!form.name
+    : form.name && form.valueType && Number(form.value) > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {
-        name: form.name,
-        valueType: form.valueType,
-        value: round2(Number(form.value)),
-        isActive: Number(form.isActive),
-      };
-      if (isEdit || form.description) payload.description = form.description;
-      if (isEdit || form.startDate)
-        payload.startDate = form.startDate ? toISODate(form.startDate) : null;
-      if (isEdit || form.endDate)
-        payload.endDate = form.endDate ? toISODate(form.endDate) : null;
+      const payload: Record<string, unknown> = isGift
+        ? { name: form.name, description: form.description }
+        : {
+            name: form.name,
+            valueType: form.valueType,
+            value: round2(Number(form.value)),
+            isActive: Number(form.isActive),
+          };
+      if (!isGift) {
+        if (isEdit || form.description) payload.description = form.description;
+        if (isEdit || form.startDate)
+          payload.startDate = form.startDate ? toISODate(form.startDate) : null;
+        if (isEdit || form.endDate)
+          payload.endDate = form.endDate ? toISODate(form.endDate) : null;
+      }
 
       if (isEdit) {
         await api.put(`/discounts/${initial.id}`, payload);
@@ -143,6 +150,7 @@ export function DiscountForm({
               onChange={(v) => update("valueType", v)}
               options={discountValueTypeOptions}
               placeholder="Select…"
+              disabled={isGift}
             />
           </div>
           <div className="space-y-1.5">
@@ -154,6 +162,7 @@ export function DiscountForm({
               value={form.value}
               onChange={(e) => update("value", clampNonNegative(e.target.value))}
               required
+              disabled={isGift}
             />
           </div>
         </div>
@@ -165,6 +174,7 @@ export function DiscountForm({
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
               max={form.endDate}
+              disabled={isGift}
             />
           </div>
           <div className="space-y-1.5">
@@ -173,6 +183,7 @@ export function DiscountForm({
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
               min={form.startDate}
+              disabled={isGift}
             />
           </div>
         </div>
@@ -187,6 +198,7 @@ export function DiscountForm({
               { value: "0", label: "Inactive" },
             ]}
             placeholder="Select…"
+            disabled={isGift}
           />
         </div>
 
