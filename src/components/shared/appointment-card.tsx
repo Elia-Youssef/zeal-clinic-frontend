@@ -15,10 +15,6 @@ import type { Appointment } from "@/lib/types";
 import { cn, formatTimeRange } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
 
-// On-grid density is driven by the block's *rendered* height, not its duration,
-// so it adapts to both the calendar (tall) and the denser employee schedule.
-// Full detail always lives in the hover card; short blocks drop whole rows
-// (never a half-clipped line).
 type Density = "full" | "compact" | "tiny";
 
 function densityForHeight(px: number): Density {
@@ -27,19 +23,20 @@ function densityForHeight(px: number): Density {
   return "tiny";
 }
 
-// Absolutely-positioned appointment block with a hover-card of details.
-// The caller positions it via `style` (top/height in its own unit). A solid
-// left rail carries the status color over an opaque surface.
+export type AppointmentDragMode = "move" | "resize-start" | "resize-end";
+
 export function AppointmentCard({
   appt,
   style,
   className,
   onClick,
+  onGrab,
 }: {
   appt: Appointment;
   style?: CSSProperties;
   className?: string;
   onClick?: (appt: Appointment) => void;
+  onGrab?: (e: React.PointerEvent, mode: AppointmentDragMode) => void;
 }) {
   const { can } = usePermissions();
   const statusStyle =
@@ -51,9 +48,6 @@ export function AppointmentCard({
     .filter(Boolean)
     .join(", ");
 
-  // Measure the block so tiers track the real pixel height (handles UI scale
-  // and the two grids' different hour heights). Seed from a numeric style
-  // height (the schedule passes px) to avoid a first-frame flash.
   const [node, setNode] = useState<HTMLDivElement | null>(null);
   const [height, setHeight] = useState(
     typeof style?.height === "number" ? style.height : 0,
@@ -81,6 +75,7 @@ export function AppointmentCard({
               "absolute w-full cursor-pointer overflow-hidden rounded-sm border border-border border-l-5 bg-muted shadow-sm transition-opacity hover:opacity-90",
               statusStyle.rail,
               cancelled && "opacity-60",
+              onGrab && "select-none",
               className,
             )}
             style={style}
@@ -88,9 +83,28 @@ export function AppointmentCard({
               e.stopPropagation();
               onClick?.(appt);
             }}
+            onPointerDown={onGrab ? (e) => onGrab(e, "move") : undefined}
           />
         }
       >
+        {onGrab && (
+          <>
+            <div
+              className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onGrab(e, "resize-start");
+              }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onGrab(e, "resize-end");
+              }}
+            />
+          </>
+        )}
         <div className="flex h-full flex-col justify-center gap-0.5 px-1.5 py-0.5">
           <span
             className={cn(

@@ -76,6 +76,11 @@ export function ProcedureCategoryForm({
           <SearchableDropdown
             value={parentId}
             onChange={setParentId}
+            defaultApiOption={
+              initial?.parentId && initial?.parent?.name
+                ? { value: initial.parentId, label: initial.parent.name }
+                : undefined
+            }
             apiEndpoint="/procedure-categories/dropdown"
             mapItem={(c: { id: string; name: string }) => ({
               value: c.id,

@@ -1,10 +1,4 @@
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CalendarIcon,
@@ -172,7 +166,6 @@ function CalendarPageContent() {
         </CardHeader>
 
         <CardContent>
-          {/* Keep the grid mounted; loading only dims content. */}
           <div
             className={cn(
               "transition-opacity",
@@ -188,6 +181,7 @@ function CalendarPageContent() {
                 onCellClick={handleCellClick}
                 onAppointmentClick={handleAppointmentClick}
                 onAddAppointment={handleAddClick}
+                onAppointmentsChanged={reloadAppointments}
               />
             ) : (
               <WeekView
@@ -214,8 +208,10 @@ function CalendarPageContent() {
   );
 }
 
-// Sync `?date=YYYY-MM-DD`; omit today.
-function useDateSearchParamSync(currentDate: Date, searchParams: URLSearchParams) {
+function useDateSearchParamSync(
+  currentDate: Date,
+  searchParams: URLSearchParams,
+) {
   useEffect(() => {
     const today = toDateStr(beirutNow());
     const current = toDateStr(currentDate);
@@ -252,8 +248,6 @@ function NavigationControls({
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const dateLabel = useMemo(() => {
-    // currentDate carries Beirut wall-clock in its local fields; date-fns
-    // format reads those directly so we don't shift through the browser zone.
     if (view === "Day") return fnsFormat(currentDate, "d MMM yyyy");
     const days = getWeekDays(currentDate);
     const fmt = (d: Date) => fnsFormat(d, "d MMM");

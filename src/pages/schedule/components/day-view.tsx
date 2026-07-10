@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format as fnsFormat } from "date-fns";
 import { Loader2, MoreHorizontal, Plus, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,14 +33,20 @@ import {
   formatQuarterHour,
   gridColsFor,
   isoToDate,
+  isoToGridMinutes,
   isoToTime,
   timeToDecimal,
   toDateStr,
 } from "./sched-utils";
+import { DragPreviewCard, DropActionMenu } from "./drag-overlay";
+import { useAppointmentDrag, type DragCandidate } from "./use-appointment-drag";
+import type { AppointmentDragMode } from "@/components/shared/appointment-card";
 
 const EMPTY_APPTS: Appointment[] = [];
 
 type DayMode = "Calendar" | "Table";
+
+type PendingDrop = { appt: Appointment; candidate: DragCandidate };
 
 export function DayView({
   date,
@@ -50,6 +56,7 @@ export function DayView({
   onCellClick,
   onAppointmentClick,
   onAddAppointment,
+  onAppointmentsChanged,
 }: {
   date: Date;
   rooms: Room[];
@@ -58,15 +65,20 @@ export function DayView({
   onCellClick: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
   onAddAppointment: () => void;
+  onAppointmentsChanged: () => void;
 }) {
   const { can } = usePermissions();
   const addAlert = useAlertStore((s) => s.addAlert);
   const dateStr = toDateStr(date);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<DayMode>("Calendar");
   const [printing, setPrinting] = useState(false);
+  const [pending, setPending] = useState<PendingDrop | null>(null);
 
   useScrollToCurrentTime(scrollRef, dateStr, mode);
+
+  useEffect(() => setPending(null), [dateStr]);
 
   const handlePrint = async () => {
     setPrinting(true);
@@ -88,8 +100,6 @@ export function DayView({
     return map;
   }, [appointments, dateStr]);
 
-  // Flat, time-sorted list for the table view (stored times are UTC RFC3339,
-  // so lexical compare is chronological).
   const dayAppointments = useMemo(
     () =>
       appointments
@@ -106,7 +116,23 @@ export function DayView({
 
   const dayCount = dayAppointments.length;
 
-  // Store may include neighboring dates after navigation.
+  const canWrite = can("appointments:write");
+  const handleDrop = useCallback(
+    (appt: Appointment, candidate: DragCandidate) =>
+      setPending({ appt, candidate }),
+    [],
+  );
+  const { drag, startDrag } = useAppointmentDrag({
+    enabled: canWrite && !pending,
+    rooms,
+    appointmentsByRoom,
+    gridRef,
+    scrollRef,
+    onDrop: handleDrop,
+  });
+
+  const active = drag ?? pending;
+
   const activeHolidays = useMemo(
     () =>
       holidays.filter((h) => dateStr >= h.startDate && dateStr <= h.endDate),
@@ -137,7 +163,11 @@ export function DayView({
             >
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={4} className="min-w-40">
+            <DropdownMenuContent
+              align="end"
+              sideOffset={4}
+              className="min-w-40"
+            >
               <DropdownMenuItem disabled={printing} onClick={handlePrint}>
                 {printing ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -168,18 +198,59 @@ export function DayView({
             </div>
 
             <div
-              className="relative grid"
+              ref={gridRef}
+              className={cn("relative grid", drag && "pointer-events-none")}
               style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
             >
               <TimeLabelsColumn />
               <HourLinesColumn />
-              {rooms.map((room) => (
+              {rooms.map((room, i) => (
                 <RoomColumn
                   key={room.id}
                   roomId={room.id}
                   appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
                   onCellClick={onCellClick}
                   onAppointmentClick={onAppointmentClick}
+                  onApptGrab={canWrite ? startDrag : undefined}
+                  ghostApptId={
+                    active && active.appt.roomId === room.id
+                      ? active.appt.id
+                      : undefined
+                  }
+                  overlay={
+                    active && active.candidate.roomId === room.id ? (
+                      <>
+                        <DragPreviewCard
+                          appt={active.appt}
+                          candidate={active.candidate}
+                          roomName={
+                            active.candidate.roomId !== active.appt.roomId
+                              ? roomNameById[room.id]
+                              : undefined
+                          }
+                        />
+                        {pending && !drag && (
+                          <DropActionMenu
+                            appt={pending.appt}
+                            candidate={pending.candidate}
+                            dateStr={dateStr}
+                            timeChanged={
+                              pending.candidate.startMin !==
+                                isoToGridMinutes(pending.appt.startTime) ||
+                              pending.candidate.endMin !==
+                                isoToGridMinutes(pending.appt.endTime)
+                            }
+                            alignRight={i === rooms.length - 1 && i > 0}
+                            onClose={() => setPending(null)}
+                            onSaved={() => {
+                              setPending(null);
+                              onAppointmentsChanged();
+                            }}
+                          />
+                        )}
+                      </>
+                    ) : undefined
+                  }
                 />
               ))}
               <CurrentTimeLine dateStr={dateStr} />
@@ -228,11 +299,7 @@ function DayHeader({
 }) {
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <h2 className="text-lg font-semibold">
-        {/* date carries Beirut wall-clock via beirutNow(); format from local
-            fields rather than re-projecting through the browser zone. */}
-        {fnsFormat(date, "EEEE d MMM")}
-      </h2>
+      <h2 className="text-lg font-semibold">{fnsFormat(date, "EEEE d MMM")}</h2>
       <Badge variant="secondary">
         {dayCount} appointment{dayCount !== 1 ? "s" : ""}
       </Badge>
@@ -404,16 +471,26 @@ const HourLinesColumn = memo(function HourLinesColumn() {
   );
 });
 
-function RoomColumn({
+const RoomColumn = memo(function RoomColumn({
   roomId,
   appointments,
   onCellClick,
   onAppointmentClick,
+  onApptGrab,
+  ghostApptId,
+  overlay,
 }: {
   roomId: string;
   appointments: Appointment[];
   onCellClick: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
+  onApptGrab?: (
+    e: React.PointerEvent,
+    appt: Appointment,
+    mode: AppointmentDragMode,
+  ) => void;
+  ghostApptId?: string;
+  overlay?: React.ReactNode;
 }) {
   return (
     <div className="relative border-l border-border">
@@ -430,18 +507,28 @@ function RoomColumn({
         const endDec = timeToDecimal(isoToTime(appt.endTime));
         const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
         const height = (endDec - startDec) * HOUR_HEIGHT;
+        const draggable = !!onApptGrab && appt.status !== "Completed";
         return (
           <AppointmentCard
             key={appt.id}
             appt={appt}
             style={{ top: `${top}rem`, height: `${height}rem` }}
+            className={
+              appt.id === ghostApptId
+                ? "opacity-40 pointer-events-none"
+                : undefined
+            }
             onClick={onAppointmentClick}
+            onGrab={
+              draggable ? (e, mode) => onApptGrab!(e, appt, mode) : undefined
+            }
           />
         );
       })}
+      {overlay}
     </div>
   );
-}
+});
 
 function CurrentTimeLine({ dateStr }: { dateStr: string }) {
   const [now, setNow] = useState(() => beirutNow());

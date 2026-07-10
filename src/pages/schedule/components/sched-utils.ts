@@ -2,19 +2,19 @@ import { beirutDayKey, formatInBeirut } from "@/lib/tz";
 
 export const DAY_START_HOUR = 8;
 export const DAY_END_HOUR = 20;
-export const HOUR_HEIGHT = 7.5; // rem; follows UI scale.
+export const HOUR_HEIGHT = 7.5;
 export const HOURS = Array.from(
   { length: DAY_END_HOUR - DAY_START_HOUR },
   (_, i) => i + DAY_START_HOUR,
 );
 export const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
+export const GRID_TOTAL_MINUTES = HOURS.length * 60;
+
+export const GRID_LEAD_REM = 3.3 + 0.75;
 
 export const gridColsFor = (roomCount: number) =>
   `3.3rem 0.75rem repeat(${roomCount}, 1fr)`;
 
-// Stored appointment times are RFC3339 UTC. Bucket and display them as the
-// clinic's wall-clock (Beirut) so a 1 AM Beirut slot doesn't bleed into the
-// previous UTC day in the schedule grid.
 export function isoToDate(iso: string) {
   return beirutDayKey(iso);
 }
@@ -40,12 +40,25 @@ export function timeToDecimal(time: string) {
   return h + m / 60;
 }
 
+export function isoToGridMinutes(iso: string) {
+  return Math.round((timeToDecimal(isoToTime(iso)) - DAY_START_HOUR) * 60);
+}
+
+export function gridMinutesToWallClock(min: number) {
+  const total = DAY_START_HOUR * 60 + min;
+  return `${padHour(Math.floor(total / 60))}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export function formatGridMinutes(min: number) {
+  const total = DAY_START_HOUR * 60 + min;
+  return formatQuarterHour(Math.floor(total / 60), total % 60);
+}
+
 export function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function getWeekStart(date: Date) {
-  // Week starts on Monday.
   const d = new Date(date);
   const day = d.getDay();
   const diff = day === 0 ? 6 : day - 1;
