@@ -84,7 +84,7 @@ function TeamContent() {
         onRowClick={(e) => navigate(`/team/${e.id}`)}
         headerActions={
           <div className="flex items-center gap-2">
-            {can("employee-payments:write") && (
+            {can("employee-salaries:write") && (
               <Button
                 size="sm"
                 variant="outline"

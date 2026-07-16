@@ -22,7 +22,7 @@ import type { Appointment, Holiday, Room } from "@/lib/types";
 import { cn, formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { beirutNow } from "@/lib/tz";
+import { beirutNow, dateRangeToUtc } from "@/lib/tz";
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -32,7 +32,6 @@ import {
   formatHour,
   formatQuarterHour,
   gridColsFor,
-  isoToDate,
   isoToGridMinutes,
   isoToTime,
   timeToDecimal,
@@ -47,6 +46,68 @@ const EMPTY_APPTS: Appointment[] = [];
 type DayMode = "Calendar" | "Table";
 
 type PendingDrop = { appt: Appointment; candidate: DragCandidate };
+
+type BeirutDayWindow = {
+  startTime: string;
+  endTime: string;
+  startMs: number;
+  endMs: number;
+  startHour: number;
+};
+
+function getBeirutDayWindow(dateStr: string): BeirutDayWindow {
+  const { from: startTime, to: endTime } = dateRangeToUtc(dateStr, dateStr);
+  return {
+    startTime,
+    endTime,
+    startMs: Date.parse(startTime),
+    endMs: Date.parse(endTime),
+    // Beirut occasionally advances from 23:59 straight to 01:00. On that
+    // date, the first real wall-clock position is 01:00 rather than 00:00.
+    startHour: timeToDecimal(isoToTime(startTime)),
+  };
+}
+
+function appointmentBoundsInDay(
+  appointment: Appointment,
+  day: BeirutDayWindow,
+): { start: number; end: number } | null {
+  const startMs = Date.parse(appointment.startTime);
+  const endMs = Date.parse(appointment.endTime);
+  if (
+    !Number.isFinite(startMs) ||
+    !Number.isFinite(endMs) ||
+    endMs <= startMs ||
+    startMs >= day.endMs ||
+    endMs <= day.startMs
+  ) {
+    return null;
+  }
+
+  const visibleStartMs = Math.max(startMs, day.startMs);
+  const visibleEndMs = Math.min(endMs, day.endMs);
+  // Lay out the timeline by elapsed UTC time from the first real Beirut wall
+  // hour. Normal days remain 00:00-24:00, a spring gap starts at 01:00, and a
+  // fall-back day naturally reaches hour 25 without overlapping the fold.
+  const start =
+    day.startHour + (visibleStartMs - day.startMs) / 3_600_000;
+  const end = day.startHour + (visibleEndMs - day.startMs) / 3_600_000;
+
+  return end > start ? { start, end } : null;
+}
+
+function appointmentForDayCollision(
+  appointment: Appointment,
+  day: BeirutDayWindow,
+): Appointment {
+  const startMs = Date.parse(appointment.startTime);
+  const endMs = Date.parse(appointment.endTime);
+  return {
+    ...appointment,
+    startTime: startMs < day.startMs ? day.startTime : appointment.startTime,
+    endTime: endMs > day.endMs ? day.endTime : appointment.endTime,
+  };
+}
 
 export function DayView({
   date,
@@ -70,13 +131,12 @@ export function DayView({
   const { can } = usePermissions();
   const addAlert = useAlertStore((s) => s.addAlert);
   const dateStr = toDateStr(date);
+  const dayWindow = useMemo(() => getBeirutDayWindow(dateStr), [dateStr]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<DayMode>("Calendar");
   const [printing, setPrinting] = useState(false);
   const [pending, setPending] = useState<PendingDrop | null>(null);
-
-  useScrollToCurrentTime(scrollRef, dateStr, mode);
 
   useEffect(() => setPending(null), [dateStr]);
 
@@ -91,21 +151,56 @@ export function DayView({
     }
   };
 
-  const appointmentsByRoom = useMemo(() => {
-    const map: Record<string, Appointment[]> = {};
-    for (const a of appointments) {
-      if (isoToDate(a.startTime) !== dateStr) continue;
-      (map[a.roomId] ??= []).push(a);
-    }
-    return map;
-  }, [appointments, dateStr]);
-
   const dayAppointments = useMemo(
     () =>
       appointments
-        .filter((a) => isoToDate(a.startTime) === dateStr)
-        .sort((a, b) => a.startTime.localeCompare(b.startTime)),
-    [appointments, dateStr],
+        .filter((appointment) =>
+          appointmentBoundsInDay(appointment, dayWindow),
+        )
+        .sort(
+          (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
+        ),
+    [appointments, dayWindow],
+  );
+
+  const { appointmentsByRoom, collisionAppointmentsByRoom } = useMemo(() => {
+    const display: Record<string, Appointment[]> = {};
+    const collisions: Record<string, Appointment[]> = {};
+    for (const appointment of dayAppointments) {
+      (display[appointment.roomId] ??= []).push(appointment);
+      (collisions[appointment.roomId] ??= []).push(
+        appointmentForDayCollision(appointment, dayWindow),
+      );
+    }
+    return {
+      appointmentsByRoom: display,
+      collisionAppointmentsByRoom: collisions,
+    };
+  }, [dayAppointments, dayWindow]);
+
+  const calendarBounds = useMemo(() => {
+    let startHour = DAY_START_HOUR;
+    let endHour = DAY_END_HOUR;
+
+    for (const appointment of dayAppointments) {
+      const bounds = appointmentBoundsInDay(appointment, dayWindow);
+      if (!bounds) continue;
+      startHour = Math.min(startHour, Math.floor(bounds.start));
+      endHour = Math.max(endHour, Math.ceil(bounds.end));
+    }
+
+    return {
+      startHour,
+      beforeScheduleRem: (DAY_START_HOUR - startHour) * HOUR_HEIGHT,
+      afterScheduleRem: (endHour - DAY_END_HOUR) * HOUR_HEIGHT,
+    };
+  }, [dayAppointments, dayWindow]);
+
+  useScrollToCurrentTime(
+    scrollRef,
+    dateStr,
+    mode,
+    calendarBounds.beforeScheduleRem,
   );
 
   const roomNameById = useMemo(() => {
@@ -125,9 +220,10 @@ export function DayView({
   const { drag, startDrag } = useAppointmentDrag({
     enabled: canWrite && !pending,
     rooms,
-    appointmentsByRoom,
+    appointmentsByRoom: collisionAppointmentsByRoom,
     gridRef,
     scrollRef,
+    scheduleOffsetRem: calendarBounds.beforeScheduleRem,
     onDrop: handleDrop,
   });
 
@@ -202,13 +298,23 @@ export function DayView({
               className={cn("relative grid", drag && "pointer-events-none")}
               style={{ gridTemplateColumns: gridColsFor(rooms.length) }}
             >
-              <TimeLabelsColumn />
-              <HourLinesColumn />
+              <TimeLabelsColumn
+                beforeScheduleRem={calendarBounds.beforeScheduleRem}
+                afterScheduleRem={calendarBounds.afterScheduleRem}
+              />
+              <HourLinesColumn
+                beforeScheduleRem={calendarBounds.beforeScheduleRem}
+                afterScheduleRem={calendarBounds.afterScheduleRem}
+              />
               {rooms.map((room, i) => (
                 <RoomColumn
                   key={room.id}
                   roomId={room.id}
+                  dayWindow={dayWindow}
                   appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
+                  calendarStartHour={calendarBounds.startHour}
+                  beforeScheduleRem={calendarBounds.beforeScheduleRem}
+                  afterScheduleRem={calendarBounds.afterScheduleRem}
                   onCellClick={onCellClick}
                   onAppointmentClick={onAppointmentClick}
                   onApptGrab={canWrite ? startDrag : undefined}
@@ -253,7 +359,10 @@ export function DayView({
                   }
                 />
               ))}
-              <CurrentTimeLine dateStr={dateStr} />
+              <CurrentTimeLine
+                dateStr={dateStr}
+                scheduleOffsetRem={calendarBounds.beforeScheduleRem}
+              />
             </div>
           </div>
         </div>
@@ -272,6 +381,7 @@ function useScrollToCurrentTime(
   ref: React.RefObject<HTMLDivElement | null>,
   dateStr: string,
   mode: DayMode,
+  scheduleOffsetRem: number,
 ) {
   useEffect(() => {
     if (mode !== "Calendar") return;
@@ -283,9 +393,10 @@ function useScrollToCurrentTime(
     if (decimal < DAY_START_HOUR || decimal > DAY_END_HOUR) return;
     const remPx =
       parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const topPx = (decimal - DAY_START_HOUR) * HOUR_HEIGHT * remPx;
+    const topPx =
+      (scheduleOffsetRem + (decimal - DAY_START_HOUR) * HOUR_HEIGHT) * remPx;
     el.scrollTop = Math.max(0, topPx - el.clientHeight / 2);
-  }, [ref, dateStr, mode]);
+  }, [ref, dateStr, mode, scheduleOffsetRem]);
 }
 
 function DayHeader({
@@ -341,7 +452,7 @@ function DayTable({
         header: "Time",
         className: "tabular-nums w-42",
         sortable: true,
-        sortValue: (a) => a.startTime,
+        sortValue: (a) => Date.parse(a.startTime),
         render: (a) => formatTimeRange(a.startTime, a.endTime),
       },
       {
@@ -429,15 +540,38 @@ const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
 
 const QUARTERS = [15, 30, 45];
 
-const TimeLabelsColumn = memo(function TimeLabelsColumn() {
+function OutOfScheduleBand({ height }: { height: number }) {
+  if (height <= 0) return null;
   return (
-    <div className="relative" style={{ height: `${GRID_HEIGHT}rem` }}>
+    <div
+      className="bg-muted/50"
+      style={{ height: `${height}rem` }}
+      title="Outside schedule"
+    />
+  );
+}
+
+const TimeLabelsColumn = memo(function TimeLabelsColumn({
+  beforeScheduleRem,
+  afterScheduleRem,
+}: {
+  beforeScheduleRem: number;
+  afterScheduleRem: number;
+}) {
+  return (
+    <div
+      className="relative"
+      style={{
+        height: `${beforeScheduleRem + GRID_HEIGHT + afterScheduleRem}rem`,
+      }}
+    >
+      <OutOfScheduleBand height={beforeScheduleRem} />
       {HOURS.map((hour, i) => (
         <div key={hour}>
-          {i ? (
+          {i || beforeScheduleRem > 0 ? (
             <div
               className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
-              style={{ top: `${i * HOUR_HEIGHT}rem` }}
+              style={{ top: `${beforeScheduleRem + i * HOUR_HEIGHT}rem` }}
             >
               {formatHour(hour)}
             </div>
@@ -446,20 +580,39 @@ const TimeLabelsColumn = memo(function TimeLabelsColumn() {
             <div
               key={m}
               className="absolute left-2 -translate-y-1/2 text-[0.625rem] text-muted-foreground/50"
-              style={{ top: `${(i + m / 60) * HOUR_HEIGHT}rem` }}
+              style={{
+                top: `${beforeScheduleRem + (i + m / 60) * HOUR_HEIGHT}rem`,
+              }}
             >
               {formatQuarterHour(hour, m)}
             </div>
           ))}
         </div>
       ))}
+      {afterScheduleRem > 0 && (
+        <div
+          className="absolute left-2 -translate-y-1/2 text-xs text-muted-foreground"
+          style={{ top: `${beforeScheduleRem + GRID_HEIGHT}rem` }}
+        >
+          {formatHour(DAY_END_HOUR)}
+        </div>
+      )}
+      <div style={{ height: `${GRID_HEIGHT}rem` }} />
+      <OutOfScheduleBand height={afterScheduleRem} />
     </div>
   );
 });
 
-const HourLinesColumn = memo(function HourLinesColumn() {
+const HourLinesColumn = memo(function HourLinesColumn({
+  beforeScheduleRem,
+  afterScheduleRem,
+}: {
+  beforeScheduleRem: number;
+  afterScheduleRem: number;
+}) {
   return (
     <div>
+      <OutOfScheduleBand height={beforeScheduleRem} />
       {HOURS.map((hour) => (
         <div
           key={hour}
@@ -467,13 +620,18 @@ const HourLinesColumn = memo(function HourLinesColumn() {
           style={{ height: `${HOUR_HEIGHT}rem` }}
         />
       ))}
+      <OutOfScheduleBand height={afterScheduleRem} />
     </div>
   );
 });
 
 const RoomColumn = memo(function RoomColumn({
   roomId,
+  dayWindow,
   appointments,
+  calendarStartHour,
+  beforeScheduleRem,
+  afterScheduleRem,
   onCellClick,
   onAppointmentClick,
   onApptGrab,
@@ -481,7 +639,11 @@ const RoomColumn = memo(function RoomColumn({
   overlay,
 }: {
   roomId: string;
+  dayWindow: BeirutDayWindow;
   appointments: Appointment[];
+  calendarStartHour: number;
+  beforeScheduleRem: number;
+  afterScheduleRem: number;
   onCellClick: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
   onApptGrab?: (
@@ -494,6 +656,7 @@ const RoomColumn = memo(function RoomColumn({
 }) {
   return (
     <div className="relative border-l border-border">
+      <OutOfScheduleBand height={beforeScheduleRem} />
       {HOURS.map((hour) => (
         <div
           key={hour}
@@ -502,12 +665,21 @@ const RoomColumn = memo(function RoomColumn({
           onClick={() => onCellClick(roomId, hour)}
         />
       ))}
+      <OutOfScheduleBand height={afterScheduleRem} />
       {appointments.map((appt) => {
-        const startDec = timeToDecimal(isoToTime(appt.startTime));
-        const endDec = timeToDecimal(isoToTime(appt.endTime));
-        const top = (startDec - DAY_START_HOUR) * HOUR_HEIGHT;
-        const height = (endDec - startDec) * HOUR_HEIGHT;
-        const draggable = !!onApptGrab && appt.status !== "Completed";
+        const bounds = appointmentBoundsInDay(appt, dayWindow);
+        if (!bounds) return null;
+        const top = (bounds.start - calendarStartHour) * HOUR_HEIGHT;
+        const height = (bounds.end - bounds.start) * HOUR_HEIGHT;
+        const startMs = Date.parse(appt.startTime);
+        const endMs = Date.parse(appt.endTime);
+        const clipped = startMs < dayWindow.startMs || endMs > dayWindow.endMs;
+        const isInsideSchedule =
+          !clipped &&
+          bounds.start >= DAY_START_HOUR &&
+          bounds.end <= DAY_END_HOUR;
+        const draggable =
+          !!onApptGrab && appt.status !== "Completed" && isInsideSchedule;
         return (
           <AppointmentCard
             key={appt.id}
@@ -525,12 +697,28 @@ const RoomColumn = memo(function RoomColumn({
           />
         );
       })}
-      {overlay}
+      {overlay && (
+        <div
+          className="absolute inset-x-0"
+          style={{
+            top: `${beforeScheduleRem}rem`,
+            height: `${GRID_HEIGHT}rem`,
+          }}
+        >
+          {overlay}
+        </div>
+      )}
     </div>
   );
 });
 
-function CurrentTimeLine({ dateStr }: { dateStr: string }) {
+function CurrentTimeLine({
+  dateStr,
+  scheduleOffsetRem,
+}: {
+  dateStr: string;
+  scheduleOffsetRem: number;
+}) {
   const [now, setNow] = useState(() => beirutNow());
 
   useEffect(() => {
@@ -545,7 +733,9 @@ function CurrentTimeLine({ dateStr }: { dateStr: string }) {
   return (
     <div
       className="pointer-events-none absolute left-13.5 right-0 z-10"
-      style={{ top: `${(decimal - DAY_START_HOUR) * HOUR_HEIGHT}rem` }}
+      style={{
+        top: `${scheduleOffsetRem + (decimal - DAY_START_HOUR) * HOUR_HEIGHT}rem`,
+      }}
     >
       <div className="h-2.5 w-2.5 bg-destructive absolute -translate-y-1/2 top-px left-0 rounded-2xl" />
       <div className="h-0.5 bg-destructive/60" />

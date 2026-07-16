@@ -16,6 +16,7 @@ class FatalAuthError extends Error {}
 
 class RealtimeClient {
   private controller: AbortController | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private token = "";
   private listeners: Listeners = {};
   private reconnectAttempts = 0;
@@ -38,6 +39,13 @@ class RealtimeClient {
     this.openConnection();
   }
 
+  reconnect() {
+    if (this.stopped || !this.token) return;
+    this.teardown();
+    this.reconnectAttempts = 0;
+    this.openConnection();
+  }
+
   stop() {
     this.stopped = true;
     this.teardown();
@@ -47,10 +55,31 @@ class RealtimeClient {
   }
 
   private teardown() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.controller) {
       this.controller.abort();
       this.controller = null;
     }
+  }
+
+  private reconnectDelay() {
+    const delay = Math.min(30_000, 1_000 * Math.pow(2, this.reconnectAttempts));
+    this.reconnectAttempts += 1;
+    return delay;
+  }
+
+  private scheduleReconnect() {
+    if (this.stopped || !this.token || this.reconnectTimer) return;
+    this.listeners.onError?.();
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (!this.stopped && this.token && !this.controller) {
+        this.openConnection();
+      }
+    }, this.reconnectDelay());
   }
 
   private openConnection() {
@@ -92,16 +121,21 @@ class RealtimeClient {
       onerror: (err) => {
         if (err instanceof FatalAuthError || this.stopped) throw err;
         this.listeners.onError?.();
-        const delay = Math.min(
-          30_000,
-          1_000 * Math.pow(2, this.reconnectAttempts),
-        );
-        this.reconnectAttempts += 1;
-        return delay;
+        return this.reconnectDelay();
       },
-    }).catch(() => {
-      if (this.controller === controller) this.controller = null;
-    });
+    })
+      .then(() => {
+        // A live stream should not settle on its own. If it does, make sure
+        // the client cannot remain stuck with a completed connection.
+        if (this.controller !== controller) return;
+        this.controller = null;
+        this.scheduleReconnect();
+      })
+      .catch((err: unknown) => {
+        if (this.controller !== controller) return;
+        this.controller = null;
+        if (!(err instanceof FatalAuthError)) this.scheduleReconnect();
+      });
   }
 }
 

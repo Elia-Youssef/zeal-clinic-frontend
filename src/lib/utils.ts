@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { formatInBeirut } from "@/lib/tz";
+import { formatInBeirut, getBeirutWallClockIssue } from "@/lib/tz";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -70,5 +70,46 @@ export function formatTimeRange(
   const s = formatTime(start);
   const e = formatTime(end);
   if (s === "---" && e === "---") return "---";
-  return `${s} - ${e}`;
+  const annotations: string[] = [];
+  if (start?.includes("T") && end?.includes("T")) {
+    const startWall = formatInBeirut(start, "yyyy-MM-dd'T'HH:mm");
+    const endWall = formatInBeirut(end, "yyyy-MM-dd'T'HH:mm");
+    const startDay = startWall.slice(0, 10);
+    const endDay = endWall.slice(0, 10);
+    const dayDiff =
+      (Date.parse(`${endDay}T00:00:00Z`) -
+        Date.parse(`${startDay}T00:00:00Z`)) /
+      86_400_000;
+    if (dayDiff === 1) annotations.push("+1 day");
+    else if (dayDiff > 1) annotations.push(`+${dayDiff} days`);
+
+    const [startHour, startMinute] = startWall
+      .slice(11)
+      .split(":")
+      .map(Number);
+    const [endHour, endMinute] = endWall
+      .slice(11)
+      .split(":")
+      .map(Number);
+    const wallMinutes =
+      dayDiff * 24 * 60 +
+      endHour * 60 +
+      endMinute -
+      (startHour * 60 + startMinute);
+    const elapsedMinutes = (Date.parse(end) - Date.parse(start)) / 60_000;
+    // Ignore sub-minute timestamp noise; Beirut DST changes by a full hour.
+    const touchesFold =
+      getBeirutWallClockIssue(startWall) === "ambiguous" ||
+      getBeirutWallClockIssue(endWall) === "ambiguous";
+    if (touchesFold) {
+      annotations.push("DST fold");
+    } else if (
+      Number.isFinite(elapsedMinutes) &&
+      Math.abs(elapsedMinutes - wallMinutes) >= 30
+    ) {
+      annotations.push("DST adjusted");
+    }
+  }
+  const suffix = annotations.length ? ` (${annotations.join(", ")})` : "";
+  return `${s} - ${e}${suffix}`;
 }

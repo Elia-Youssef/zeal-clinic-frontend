@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Filter } from "lucide-react";
 
 const DEFAULT_LIMIT = 100;
+const DEBOUNCE_DELAY_MS = 300;
 
 function isPaginated<T>(res: unknown): res is Paginated<T> {
   return (
@@ -134,6 +135,7 @@ export function DataList<T>({
   rowClassName?: (item: T) => string | undefined;
 }) {
   const [offset, setOffset] = useState(0);
+  const [offsetInput, setOffsetInput] = useState(0);
   const [filterInput, setFilterInput] = useState("");
   const [filter, setFilter] = useState("");
   const [from, setFrom] = useState("");
@@ -143,12 +145,21 @@ export function DataList<T>({
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilter(filterInput);
+      setOffsetInput(0);
       setOffset(0);
-    }, 300);
+    }, DEBOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [filterInput]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setOffset(offsetInput);
+    }, DEBOUNCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [offsetInput]);
+
+  useEffect(() => {
+    setOffsetInput(0);
     setOffset(0);
     setFilterInput("");
     setFilter("");
@@ -203,6 +214,7 @@ export function DataList<T>({
                 onApply={(f, t) => {
                   setFrom(f);
                   setTo(t);
+                  setOffsetInput(0);
                   setOffset(0);
                 }}
               />
@@ -236,6 +248,7 @@ export function DataList<T>({
             sort={sort}
             onSortChange={(next) => {
               setSort(next);
+              setOffsetInput(0);
               setOffset(0);
             }}
             scrollable
@@ -247,10 +260,10 @@ export function DataList<T>({
       {hasPagination && !loading && (
         <div className="border-t">
           <DataPagination
-            offset={offset}
+            offset={offsetInput}
             limit={limit}
             total={total}
-            onOffsetChange={setOffset}
+            onOffsetChange={setOffsetInput}
           />
         </div>
       )}

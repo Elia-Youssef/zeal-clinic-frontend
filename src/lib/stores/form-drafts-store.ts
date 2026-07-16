@@ -65,6 +65,13 @@ export const useFormDraftsStore = create<FormDraftsState>()(
   ),
 );
 
+/** Clear draft state and its persisted localStorage entry without touching
+ * other locally persisted user preferences. */
+export function clearFormDrafts(): void {
+  useFormDraftsStore.setState({ drafts: {} });
+  useFormDraftsStore.persist.clearStorage();
+}
+
 // Stable ref so the selector never returns a fresh array (avoids re-render loops).
 const EMPTY: FormDraft[] = [];
 

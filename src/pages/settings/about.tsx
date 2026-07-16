@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpCircle, CheckCircle2, Download, Loader2 } from "lucide-react";
+import { CloudUpload, Download, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,10 +12,16 @@ import { Loading } from "@/components/shared/loading";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { useRealtimeStore } from "@/lib/stores/realtime-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
-import type { StartUpdateResult, UpdateStatus } from "@/lib/types";
+import type {
+  CloudRestoreResult,
+  ServerInfo,
+  StartUpdateResult,
+  UpdateStatus,
+} from "@/lib/types";
 import { beirutDayKey } from "@/lib/tz";
 
 const POLL_INTERVAL = 3000;
@@ -29,6 +35,11 @@ export default function AboutPage() {
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [forceSyncing, setForceSyncing] = useState(false);
+  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const cloudRestoreRunning = useRealtimeStore(
+    (s) => s.cloudRestoreProgress?.status === "running",
+  );
   const activeRef = useRef(true);
 
   useEffect(() => {
@@ -36,9 +47,15 @@ export default function AboutPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await api.get<UpdateStatus>("/update/status");
+        const [res, info] = await Promise.all([
+          api.get<UpdateStatus>("/update/status"),
+          api
+            .get<ServerInfo>("/server-info", { silent: true })
+            .catch(() => null),
+        ]);
         if (!activeRef.current) return;
         setStatus(res);
+        setServerInfo(info);
         if (res.installing) setInstalling(true);
       } catch (err) {
         addAlert("error", getErrorMessage(err));
@@ -116,6 +133,57 @@ export default function AboutPage() {
     }
   };
 
+  const handleForceSync = async () => {
+    const ok = await confirm({
+      title: "Force cloud sync?",
+      description:
+        "The servers may be unavailable for several minutes. Any changes in the cloud will be overwritten by this local instance. This cannot be undone.",
+      confirmText: "Force sync",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setForceSyncing(true);
+    useRealtimeStore.getState().setCloudRestoreProgress({
+      status: "running",
+      stage: "preparing",
+      message: "Starting the cloud restore.",
+      step: 1,
+      maxSteps: 5,
+    });
+    try {
+      const res = await api.post<CloudRestoreResult>("/cloud-restore");
+      const realtime = useRealtimeStore.getState();
+      if (realtime.cloudRestoreProgress?.status === "running") {
+        realtime.setCloudRestoreProgress({
+          status: "success",
+          stage: "completed",
+          message: `${res.rows.toLocaleString()} rows restored across ${res.tables} tables.`,
+          step: realtime.cloudRestoreProgress.maxSteps,
+          maxSteps: realtime.cloudRestoreProgress.maxSteps,
+        });
+      }
+    } catch (err) {
+      const message = getErrorMessage(err);
+      const realtime = useRealtimeStore.getState();
+      if (
+        !realtime.cloudRestoreProgress ||
+        realtime.cloudRestoreProgress.status === "running"
+      ) {
+        realtime.setCloudRestoreProgress({
+          status: "failed",
+          stage: realtime.cloudRestoreProgress?.stage ?? "preparing",
+          message,
+          step: realtime.cloudRestoreProgress?.step ?? 1,
+          maxSteps: realtime.cloudRestoreProgress?.maxSteps ?? 5,
+        });
+      }
+      addAlert("error", message);
+    } finally {
+      setForceSyncing(false);
+    }
+  };
+
   if (loading) return <Loading />;
   if (!status) {
     return (
@@ -162,7 +230,7 @@ export default function AboutPage() {
                   <Button
                     className="w-full"
                     onClick={handleStart}
-                    disabled={starting}
+                    disabled={starting || forceSyncing}
                   >
                     {starting ? (
                       <Loader2 className="animate-spin" />
@@ -182,6 +250,42 @@ export default function AboutPage() {
                 No new updates
               </div>
             )}
+
+            {serverInfo?.isCloud === false ? (
+              <div className="space-y-3 border-t pt-6">
+                <div className="text-center">
+                  <p className="text-sm font-medium">Cloud synchronization</p>
+                  <p className="text-xs text-muted-foreground">
+                    Overwrite cloud data with this local instance.
+                  </p>
+                </div>
+
+                {can("cloud-restore:write") ? (
+                  <Button
+                    className="w-full"
+                    variant="destructive"
+                    onClick={handleForceSync}
+                    disabled={
+                      forceSyncing ||
+                      cloudRestoreRunning ||
+                      starting ||
+                      installing
+                    }
+                  >
+                    {forceSyncing || cloudRestoreRunning ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <CloudUpload />
+                    )}
+                    Force sync
+                  </Button>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Ask an administrator to force a cloud sync.
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

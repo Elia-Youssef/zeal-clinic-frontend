@@ -18,6 +18,7 @@ import {
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { api } from "@/lib/api";
 import { useLoadingStore } from "@/lib/stores/loading-store";
+import { consumeAuthRedirect } from "@/lib/auth-redirect";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Home() {
@@ -47,7 +48,7 @@ export default function Home() {
       .then(() => {
         if (cancelled) return;
         hydrate();
-        navigate("/dashboard", { replace: true });
+        navigate(consumeAuthRedirect(), { replace: true });
       })
       .catch(() => {
         if (!cancelled) unblock();
@@ -65,7 +66,7 @@ export default function Home() {
 
     try {
       await login(username, password);
-      navigate("/dashboard");
+      navigate(consumeAuthRedirect(), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to connect to the server.");
     } finally {

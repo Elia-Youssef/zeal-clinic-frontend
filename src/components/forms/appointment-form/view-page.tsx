@@ -6,8 +6,8 @@ import { MultilineText } from "@/components/shared/multiline-text";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { formatTimeRange } from "@/lib/utils";
-import { beirutDayKey } from "@/lib/tz";
 import type { AppointmentFormData } from "./types";
+import { mergeInitial } from "./utils";
 
 export function ViewPage({
   initialData,
@@ -30,9 +30,17 @@ export function ViewPage({
 
   const roomLabel =
     rooms.find((r) => r.id === initialData.roomId)?.name ?? "---";
-  const date =
-    initialData.date ?? (beirutDayKey(initialData.startTime) || "---");
-  const timeRange = formatTimeRange(initialData.startTime, initialData.endTime);
+  const editorData = mergeInitial(initialData);
+  const date = editorData.date || "---";
+  const spansMultipleDays =
+    !!editorData.endDate && editorData.endDate !== editorData.date;
+  const dateDisplay = spansMultipleDays
+    ? `${date} - ${editorData.endDate}`
+    : date;
+  const timeRange = formatTimeRange(
+    editorData.startTime,
+    editorData.endTime,
+  );
   const showCancelReason =
     initialData.status === "Cancelled" || initialData.status === "Rescheduled";
 
@@ -76,7 +84,9 @@ export function ViewPage({
             )}
           </div>
         </DetailField>
-        <DetailField label="Date">{date}</DetailField>
+        <DetailField label={spansMultipleDays ? "Dates" : "Date"}>
+          {dateDisplay}
+        </DetailField>
         <DetailField label="Time">{timeRange}</DetailField>
         <DetailField className="sm:col-span-2" label="Notes">
           <MultilineText value={initialData.notes} />

@@ -48,6 +48,7 @@ export default function CurrenciesPage() {
           {
             label: "Edit",
             icon: <Pencil className="size-3.5" />,
+            hidden: (c: Currency) => c.code.trim().toUpperCase() === "USD",
             onClick: (c: Currency) => {
               setEditingCur(c);
               setCurFormOpen(true);

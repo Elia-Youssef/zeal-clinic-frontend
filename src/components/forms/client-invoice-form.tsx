@@ -308,7 +308,9 @@ export function ClientInvoiceFormBody({
   useEffect(() => {
     if (!open) return;
     api
-      .get<{ items: Discount[] } | Discount[]>("/discounts?limit=100")
+      .get<{ items: Discount[] } | Discount[]>(
+        "/discounts?limit=100&active=true",
+      )
       .then((res) => {
         const list = Array.isArray(res) ? res : (res.items ?? []);
         const offers = list

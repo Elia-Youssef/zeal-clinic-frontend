@@ -1,4 +1,4 @@
-import { addDays, format as fnsFormat, parseISO } from "date-fns";
+import { addDays, format as fnsFormat } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 // The clinic operates in Beirut. All wall-clock interactions go through here.
@@ -6,13 +6,92 @@ import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 // Never hardcode the offset; the TZ name handles DST automatically.
 export const BEIRUT_TZ = "Asia/Beirut";
 
+export type BeirutWallClockIssue = "nonexistent" | "ambiguous";
+
+const WALL_CLOCK_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
+
+function normalizedWallClock(local: string): string | null {
+  const match = local.match(
+    /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
+  );
+  if (!match) return null;
+  return `${match[1]}T${match[2]}:${match[3]}:${match[4] ?? "00"}`;
+}
+
+/** Detect Beirut wall-clock values that cannot identify one exact instant. */
+export function getBeirutWallClockIssue(
+  local: string,
+): BeirutWallClockIssue | null {
+  const expected = normalizedWallClock(local);
+  if (!expected) return "nonexistent";
+
+  const instant = fromZonedTime(expected, BEIRUT_TZ);
+  if (
+    Number.isNaN(instant.getTime()) ||
+    formatInTimeZone(instant, BEIRUT_TZ, WALL_CLOCK_PATTERN) !== expected
+  ) {
+    return "nonexistent";
+  }
+
+  // A fall-back fold maps two UTC instants to the same local clock. Beirut's
+  // offset changes by one hour, while the wider checks keep this safe if the
+  // IANA rules change to a 30- or 120-minute transition in the future.
+  for (const minutes of [-120, -60, -30, 30, 60, 120]) {
+    const alternate = new Date(instant.getTime() + minutes * 60_000);
+    if (
+      formatInTimeZone(alternate, BEIRUT_TZ, WALL_CLOCK_PATTERN) === expected
+    ) {
+      return "ambiguous";
+    }
+  }
+
+  return null;
+}
+
 // Convert a Beirut wall-clock datetime string (e.g. "2026-04-10T14:30") to a
 // UTC RFC3339 instant suitable for sending to the API.
 // Accepts inputs with or without seconds.
 export function wallClockToUtc(local: string): string {
   if (!local) return local;
   const withSeconds = local.length === 16 ? `${local}:00` : local;
+  const issue = getBeirutWallClockIssue(withSeconds);
+  if (issue === "nonexistent") {
+    throw new Error(
+      "The selected Beirut time does not exist because of a daylight-saving transition.",
+    );
+  }
+  if (issue === "ambiguous") {
+    throw new Error(
+      "The selected Beirut time occurs twice because of a daylight-saving transition.",
+    );
+  }
   return fromZonedTime(withSeconds, BEIRUT_TZ).toISOString();
+}
+
+function startOfBeirutDay(day: string): string {
+  // Some Beirut DST changes skip 00:00 entirely. Advance through the small
+  // transition window and return the first wall-clock minute that round-trips
+  // to the requested calendar day.
+  for (let minute = 0; minute <= 180; minute += 1) {
+    const hour = String(Math.floor(minute / 60)).padStart(2, "0");
+    const min = String(minute % 60).padStart(2, "0");
+    const local = `${day}T${hour}:${min}:00`;
+    const instant = fromZonedTime(local, BEIRUT_TZ);
+    if (formatInTimeZone(instant, BEIRUT_TZ, WALL_CLOCK_PATTERN) === local) {
+      return instant.toISOString();
+    }
+  }
+  throw new Error(`Unable to resolve the start of Beirut day ${day}.`);
+}
+
+function addIsoCalendarDays(day: string, amount: number): string {
+  const match = day.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) throw new Error(`Invalid calendar day ${day}.`);
+  return new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + amount),
+  )
+    .toISOString()
+    .slice(0, 10);
 }
 
 // Convert a user-selected Beirut date-range (inclusive calendar days) to a
@@ -25,9 +104,9 @@ export function dateRangeToUtc(
   fromDay: string,
   toDay: string,
 ): { from: string; to: string } {
-  const from = fromZonedTime(`${fromDay}T00:00:00`, BEIRUT_TZ).toISOString();
-  const nextDay = fnsFormat(addDays(parseISO(`${toDay}T00:00:00`), 1), "yyyy-MM-dd");
-  const to = fromZonedTime(`${nextDay}T00:00:00`, BEIRUT_TZ).toISOString();
+  const from = startOfBeirutDay(fromDay);
+  const nextDay = addIsoCalendarDays(toDay, 1);
+  const to = startOfBeirutDay(nextDay);
   return { from, to };
 }
 

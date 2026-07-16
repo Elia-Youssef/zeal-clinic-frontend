@@ -1,5 +1,6 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
+import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
 import { wallClockToUtc } from "@/lib/tz";
 
 /** Per-call options. `silent` suppresses the default 403 permission alert for
@@ -7,10 +8,10 @@ import { wallClockToUtc } from "@/lib/tz";
 export type RequestConfig = { silent?: boolean };
 
 export const BASE_URL = import.meta.env.DEV
-  ? "http://localhost:8080/api"
+  ? "http://localhost:55555/api"
   : typeof window !== "undefined"
     ? `${window.location.protocol}//${window.location.host}/api`
-    : "";
+    : "http://localhost:55555/api";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -25,6 +26,7 @@ function clearAuthSession(): void {
   sessionStorage.removeItem("auth_user_id");
   sessionStorage.removeItem("auth_employee_id");
   sessionStorage.removeItem("auth_expires_at");
+  clearFormDrafts();
 }
 
 async function request<T>(
@@ -66,10 +68,10 @@ async function request<T>(
   }
 
   const json = await res.json();
-  if (!res.ok || json.Success === false) {
-    throw new Error(json.Error ?? "Something went wrong");
+  if (!res.ok || json.Success === false || json.success === false) {
+    throw new Error(json.Error ?? json.error ?? "Something went wrong");
   }
-  return json.Data as T;
+  return (json.Data ?? json.data) as T;
 }
 
 export type Paginated<T> = { items: T[]; total: number };
@@ -79,13 +81,19 @@ export function toISODate(date: string): string {
   return date.split("T")[0];
 }
 
+const OFFSET_DATE_TIME = /(?:Z|[+-]\d{2}:\d{2})$/i;
+
 // Picker values represent Beirut wall-clock; convert to UTC RFC3339 before
-// sending. If the value already carries an explicit offset (Z or +/-HH:MM),
-// trust it as-is.
+// sending. Explicit-offset values are normalized as well, so every outgoing
+// appointment timestamp uses the same `Z` UTC representation.
 export function toISODateTime(dt: string): string {
   if (!dt) return dt;
-  if (dt.endsWith("Z") || dt.includes("+") || dt.includes("-", 11)) {
-    return dt;
+  if (OFFSET_DATE_TIME.test(dt)) {
+    const parsed = new Date(dt);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error("Invalid date and time.");
+    }
+    return parsed.toISOString();
   }
   return wallClockToUtc(dt);
 }

@@ -70,6 +70,7 @@ export function CurrencyForm({
               onChange={(e) => setCode(e.target.value)}
               placeholder="USD"
               required
+              disabled={isEdit}
             />
           </div>
           <div className="space-y-1.5">

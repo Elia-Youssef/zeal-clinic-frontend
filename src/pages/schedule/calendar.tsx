@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { format as fnsFormat } from "date-fns";
 import { cn } from "@/lib/utils";
-import { beirutNow, formatInBeirut } from "@/lib/tz";
+import { beirutDayKey, beirutNow } from "@/lib/tz";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -32,6 +32,8 @@ import { WeekView } from "./components/week-view";
 import { getWeekDays, padHour, toDateStr } from "./components/sched-utils";
 
 type View = "Day" | "Week";
+
+const NAVIGATION_DEBOUNCE_MS = 200;
 
 function parseDateParam(raw: string | null): Date | null {
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
@@ -69,11 +71,22 @@ function CalendarPageContent() {
   const reloadAppointments = useCallback(() => {
     const dateStr = toDateStr(currentDate);
     if (view === "Week") fetchWeekCounts(dateStr);
-    else fetchAppointments([dateStr]);
+    else {
+      // The date endpoint is keyed by appointment start day. Include the
+      // previous Beirut calendar date so its cross-midnight appointments can
+      // be clipped into the selected day. The store deduplicates responses.
+      const previousDate = new Date(currentDate);
+      previousDate.setDate(previousDate.getDate() - 1);
+      fetchAppointments([toDateStr(previousDate), dateStr]);
+    }
   }, [currentDate, view, fetchAppointments, fetchWeekCounts]);
 
   useEffect(() => {
-    reloadAppointments();
+    const timeoutId = window.setTimeout(
+      reloadAppointments,
+      NAVIGATION_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
   }, [reloadAppointments]);
 
   useDateSearchParamSync(currentDate, searchParams);
@@ -107,6 +120,8 @@ function CalendarPageContent() {
       const dateStr = toDateStr(currentDate);
       openForm({
         roomId,
+        date: dateStr,
+        endDate: dateStr,
         startTime: `${dateStr}T${padHour(hour)}:00`,
         endTime: `${dateStr}T${padHour(hour + 1)}:00`,
         status: "Scheduled",
@@ -117,7 +132,8 @@ function CalendarPageContent() {
 
   const handleAddClick = useCallback(() => {
     if (!can("appointments:write")) return;
-    openForm({ date: toDateStr(currentDate), status: "Scheduled" });
+    const date = toDateStr(currentDate);
+    openForm({ date, endDate: date, status: "Scheduled" });
   }, [can, currentDate, openForm]);
 
   const handleAppointmentClick = useCallback(
@@ -135,8 +151,10 @@ function CalendarPageContent() {
             assignedToId: ap.assignedToId || undefined,
             assignedToLabel: ap.assignedToName || undefined,
           })) ?? [],
-        startTime: formatInBeirut(appt.startTime, "yyyy-MM-dd'T'HH:mm"),
-        endTime: formatInBeirut(appt.endTime, "yyyy-MM-dd'T'HH:mm"),
+        date: beirutDayKey(appt.startTime),
+        endDate: beirutDayKey(appt.endTime),
+        startTime: appt.startTime,
+        endTime: appt.endTime,
         status: appt.status,
         notes: appt.notes,
         cancelNotes: appt.cancelNotes,
@@ -263,7 +281,9 @@ function NavigationControls({
         variant="outline"
         size="icon"
         className="size-8"
+        disabled={loading}
         onClick={() => onNavigate(-1)}
+        aria-label={view === "Day" ? "Previous day" : "Previous week"}
       >
         <ChevronLeft className="size-4" />
       </Button>
@@ -274,6 +294,7 @@ function NavigationControls({
               variant="outline"
               size="sm"
               className="h-8 px-3 text-xs font-normal"
+              disabled={loading}
             />
           }
         >
@@ -298,7 +319,9 @@ function NavigationControls({
         variant="outline"
         size="icon"
         className="size-8"
+        disabled={loading}
         onClick={() => onNavigate(1)}
+        aria-label={view === "Day" ? "Next day" : "Next week"}
       >
         <ChevronRight className="size-4" />
       </Button>
@@ -306,6 +329,7 @@ function NavigationControls({
         variant="outline"
         size="icon"
         className="size-8"
+        disabled={loading}
         onClick={onGoToToday}
         title={view === "Day" ? "Go to today" : "Go to this week"}
       >

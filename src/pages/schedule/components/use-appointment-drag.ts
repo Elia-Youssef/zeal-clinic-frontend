@@ -5,6 +5,7 @@ import {
   GRID_LEAD_REM,
   GRID_TOTAL_MINUTES,
   HOUR_HEIGHT,
+  isoToDate,
   isoToGridMinutes,
 } from "./sched-utils";
 
@@ -73,6 +74,7 @@ export function useAppointmentDrag({
   appointmentsByRoom,
   gridRef,
   scrollRef,
+  scheduleOffsetRem,
   onDrop,
 }: {
   enabled: boolean;
@@ -80,14 +82,27 @@ export function useAppointmentDrag({
   appointmentsByRoom: Record<string, Appointment[]>;
   gridRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  scheduleOffsetRem: number;
   onDrop: (appt: Appointment, candidate: DragCandidate) => void;
 }) {
   const [drag, setDrag] = useState<ActiveDrag | null>(null);
   const session = useRef<Session | null>(null);
 
-  const inputs = useRef({ enabled, rooms, appointmentsByRoom, onDrop });
+  const inputs = useRef({
+    enabled,
+    rooms,
+    appointmentsByRoom,
+    scheduleOffsetRem,
+    onDrop,
+  });
   useEffect(() => {
-    inputs.current = { enabled, rooms, appointmentsByRoom, onDrop };
+    inputs.current = {
+      enabled,
+      rooms,
+      appointmentsByRoom,
+      scheduleOffsetRem,
+      onDrop,
+    };
   });
 
   const ctrl = useMemo(() => {
@@ -113,7 +128,8 @@ export function useAppointmentDrag({
         }
       }
 
-      const pointerMin = ((s.lastY - rect.top) / hourPx) * 60;
+      const scheduleTop = rect.top + inputs.current.scheduleOffsetRem * s.remPx;
+      const pointerMin = ((s.lastY - scheduleTop) / hourPx) * 60;
       let startMin = s.origStartMin;
       let endMin = s.origEndMin;
       if (s.mode === "move") {
@@ -136,12 +152,21 @@ export function useAppointmentDrag({
 
       const roomId = rooms[roomIndex].id;
       const valid = !(appointmentsByRoom[roomId] ?? []).some(
-        (other) =>
-          other.id !== s.appt.id &&
-          other.status !== "Cancelled" &&
-          other.status !== "Rescheduled" &&
-          startMin < isoToGridMinutes(other.endTime) &&
-          endMin > isoToGridMinutes(other.startTime),
+        (other) => {
+          if (
+            other.id === s.appt.id ||
+            other.status === "Cancelled" ||
+            other.status === "Rescheduled"
+          ) {
+            return false;
+          }
+          const otherStart = isoToGridMinutes(other.startTime);
+          let otherEnd = isoToGridMinutes(other.endTime);
+          if (isoToDate(other.endTime) > isoToDate(other.startTime)) {
+            otherEnd += 24 * 60;
+          }
+          return startMin < otherEnd && endMin > otherStart;
+        },
       );
 
       const prev = s.candidate;
@@ -273,7 +298,9 @@ export function useAppointmentDrag({
       const remPx =
         parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       const origStartMin = isoToGridMinutes(appt.startTime);
-      const gridTop = grid.getBoundingClientRect().top;
+      const gridTop =
+        grid.getBoundingClientRect().top +
+        inputs.current.scheduleOffsetRem * remPx;
       const pointerMin = ((e.clientY - gridTop) / (HOUR_HEIGHT * remPx)) * 60;
 
       const s: Session = {

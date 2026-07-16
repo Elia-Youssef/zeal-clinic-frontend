@@ -9,6 +9,7 @@ export const ALL_SCOPES = [
   "appointments:delete",
   "audit:read",
   "balances:read",
+  "cloud-restore:write",
   "currencies:read",
   "currencies:write",
   "currencies:delete",

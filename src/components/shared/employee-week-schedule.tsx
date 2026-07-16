@@ -18,7 +18,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { cn, formatTimeRange } from "@/lib/utils";
 import { api, type Paginated } from "@/lib/api";
-import { beirutDayKey, beirutNow, formatInBeirut } from "@/lib/tz";
+import {
+  beirutDayKey,
+  beirutNow,
+  dateRangeToUtc,
+  formatInBeirut,
+} from "@/lib/tz";
 import { format as fnsFormat } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,6 +110,87 @@ function blockBounds(startDec: number, endDec: number) {
   return { top, height };
 }
 
+type AppointmentDayWindow = {
+  startMs: number;
+  endMs: number;
+  startHour: number;
+};
+
+function appointmentDayWindow(date: string): AppointmentDayWindow {
+  const { from, to } = dateRangeToUtc(date, date);
+  return {
+    startMs: Date.parse(from),
+    endMs: Date.parse(to),
+    startHour: timeToDecimal(formatInBeirut(from, "HH:mm")),
+  };
+}
+
+function appointmentBoundsInDay(
+  appointment: Appointment,
+  day: AppointmentDayWindow,
+): { start: number; end: number } | null {
+  const startMs = Date.parse(appointment.startTime);
+  const endMs = Date.parse(appointment.endTime);
+  if (
+    !Number.isFinite(startMs) ||
+    !Number.isFinite(endMs) ||
+    endMs <= startMs ||
+    startMs >= day.endMs ||
+    endMs <= day.startMs
+  ) {
+    return null;
+  }
+
+  const visibleStartMs = Math.max(startMs, day.startMs);
+  const visibleEndMs = Math.min(endMs, day.endMs);
+  const start =
+    day.startHour + (visibleStartMs - day.startMs) / 3_600_000;
+  const end = day.startHour + (visibleEndMs - day.startMs) / 3_600_000;
+  return end > start ? { start, end } : null;
+}
+
+type AppointmentBlockBounds = {
+  top: number;
+  height: number;
+  edge?: "before" | "after";
+};
+
+function appointmentBlockBounds(
+  appointment: Appointment,
+  date: string,
+): AppointmentBlockBounds | null {
+  const bounds = appointmentBoundsInDay(
+    appointment,
+    appointmentDayWindow(date),
+  );
+  if (!bounds) return null;
+
+  // The compact employee grid remains focused on working hours. Keep
+  // entirely off-hours appointments visible as edge indicators instead of
+  // dropping them from the schedule.
+  if (bounds.end <= DAY_START) {
+    return { top: 0, height: MIN_BLOCK, edge: "before" };
+  }
+  if (bounds.start >= DAY_END) {
+    return {
+      top: GRID_HEIGHT - MIN_BLOCK,
+      height: MIN_BLOCK,
+      edge: "after",
+    };
+  }
+
+  const start = Math.max(bounds.start, DAY_START);
+  const end = Math.min(bounds.end, DAY_END);
+
+  const rawTop = (start - DAY_START) * HOUR_HEIGHT;
+  const rawHeight = (end - start) * HOUR_HEIGHT;
+  const height = Math.min(Math.max(rawHeight, MIN_BLOCK), GRID_HEIGHT);
+  return {
+    top: Math.min(rawTop, GRID_HEIGHT - height),
+    height,
+  };
+}
+
 function startOfWeek(d: Date) {
   const r = new Date(d);
   r.setHours(0, 0, 0, 0);
@@ -184,6 +270,7 @@ export function EmployeeWeekSchedule({
   const [apptForm, setApptForm] = useState<{
     open: boolean;
     data?: Partial<AppointmentFormData>;
+    scheduleDate?: string;
   }>({ open: false });
   const [apptFormKey, setApptFormKey] = useState(0);
 
@@ -207,6 +294,9 @@ export function EmployeeWeekSchedule({
           : Promise.resolve<Appointment[]>([]),
       ]);
       if (gen !== reloadGen.current) return;
+      const appointments = Array.isArray(apptsRes)
+        ? apptsRes
+        : (apptsRes.items ?? []);
       setData({
         days: res.days ?? [],
         templates: res.templates ?? [],
@@ -214,9 +304,11 @@ export function EmployeeWeekSchedule({
         holidays: res.holidays ?? [],
         monthStart: res.monthStart ?? "",
         monthHours: res.monthHours ?? [],
-        appointments: Array.isArray(apptsRes)
-          ? apptsRes
-          : (apptsRes.items ?? []),
+        // Match the calendar: replaced appointment records are history and
+        // should not occupy time on the active schedule.
+        appointments: appointments.filter(
+          (appointment) => appointment.status !== "Rescheduled",
+        ),
       });
     } catch {
       if (gen !== reloadGen.current) return;
@@ -281,15 +373,29 @@ export function EmployeeWeekSchedule({
     return map;
   }, [data.holidays]);
 
-  // Appointment times are UTC; bucket by Beirut calendar day so late-evening
-  // slots land on the right column.
+  // Bucket by interval overlap, not just start date. A cross-midnight
+  // appointment therefore appears (clipped) in both Beirut day columns.
   const appointmentsByDate = useMemo(() => {
     const map: Record<string, Appointment[]> = {};
-    for (const a of data.appointments) {
-      (map[beirutDayKey(a.startTime)] ??= []).push(a);
+    for (const day of weekDates) {
+      const window = appointmentDayWindow(day.iso);
+      const seen = new Set<string>();
+      for (const appointment of data.appointments) {
+        if (
+          seen.has(appointment.id) ||
+          !appointmentBoundsInDay(appointment, window)
+        ) {
+          continue;
+        }
+        seen.add(appointment.id);
+        (map[day.iso] ??= []).push(appointment);
+      }
+      map[day.iso]?.sort(
+        (a, b) => Date.parse(a.startTime) - Date.parse(b.startTime),
+      );
     }
     return map;
-  }, [data.appointments]);
+  }, [data.appointments, weekDates]);
 
   const todayIso = toIsoDate(beirutNow());
 
@@ -361,13 +467,16 @@ export function EmployeeWeekSchedule({
             assignedToId: ap.assignedToId || undefined,
             assignedToLabel: ap.assignedToName || undefined,
           })) ?? [],
-        startTime: formatInBeirut(appt.startTime, "yyyy-MM-dd'T'HH:mm"),
-        endTime: formatInBeirut(appt.endTime, "yyyy-MM-dd'T'HH:mm"),
+        date: beirutDayKey(appt.startTime),
+        endDate: beirutDayKey(appt.endTime),
+        startTime: appt.startTime,
+        endTime: appt.endTime,
         status: appt.status,
         notes: appt.notes,
         cancelNotes: appt.cancelNotes,
         completionNotes: appt.completionNotes,
       },
+      scheduleDate: beirutDayKey(appt.startTime),
     });
     setApptFormKey((k) => k + 1);
   };
@@ -565,10 +674,10 @@ export function EmployeeWeekSchedule({
         onSaved={reload}
         readOnly={apptForm.data?.status === "Completed"}
         onOpenInSchedule={
-          apptForm.data?.startTime
+          apptForm.scheduleDate
             ? () =>
                 navigate(
-                  `/schedule/calendar?date=${apptForm.data!.startTime!.slice(0, 10)}`,
+                  `/schedule/calendar?date=${apptForm.scheduleDate}`,
                 )
             : undefined
         }
@@ -746,6 +855,20 @@ function DayColumn({
   // Accepted overtime renders as a kind:"overtime" shift; keep it out of the overlay.
   const overlayChanges = changes.filter(
     (c) => !(c.type === "overtime" && c.status === "accepted"),
+  );
+  const appointmentBlocks: Array<{
+    appt: Appointment;
+    bounds: AppointmentBlockBounds;
+  }> = [];
+  for (const appt of appointments) {
+    const bounds = appointmentBlockBounds(appt, day.iso);
+    if (bounds) appointmentBlocks.push({ appt, bounds });
+  }
+  const beforeHours = appointmentBlocks.filter(
+    ({ bounds }) => bounds.edge === "before",
+  );
+  const afterHours = appointmentBlocks.filter(
+    ({ bounds }) => bounds.edge === "after",
   );
 
   return (
@@ -930,16 +1053,31 @@ function DayColumn({
       })}
 
       {/* Appointments sit on top of everything (z-20). */}
-      {appointments.map((appt) => {
-        const startDec = timeToDecimal(formatInBeirut(appt.startTime, "HH:mm"));
-        const endDec = timeToDecimal(formatInBeirut(appt.endTime, "HH:mm"));
-        const { top, height } = blockBounds(startDec, endDec);
+      {appointmentBlocks.map(({ appt, bounds }) => {
+        const edgeGroup =
+          bounds.edge === "before"
+            ? beforeHours
+            : bounds.edge === "after"
+              ? afterHours
+              : null;
+        const edgeIndex = edgeGroup?.findIndex(
+          ({ appt: edgeAppt }) => edgeAppt.id === appt.id,
+        );
+        const edgeWidth = edgeGroup?.length ? 100 / edgeGroup.length : 100;
+        const { edge: _edge, ...position } = bounds;
+        const style = edgeGroup
+          ? {
+              ...position,
+              left: `${(edgeIndex ?? 0) * edgeWidth}%`,
+              width: `${edgeWidth}%`,
+            }
+          : position;
         return (
           <AppointmentCard
             key={appt.id}
             appt={appt}
             className="z-20"
-            style={{ top, height }}
+            style={style}
             onClick={onAppointmentClick}
           />
         );

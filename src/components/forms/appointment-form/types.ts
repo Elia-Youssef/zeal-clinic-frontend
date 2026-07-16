@@ -21,6 +21,7 @@ export type AppointmentFormData = {
   roomId: string;
   procedures: AppointmentProcedureSelection[];
   date: string;
+  endDate: string;
   startTime: string;
   endTime: string;
   status: string;
@@ -60,6 +61,7 @@ export const emptyForm: AppointmentFormData = {
   roomId: "",
   procedures: [],
   date: "",
+  endDate: "",
   startTime: "",
   endTime: "",
   status: "Scheduled",

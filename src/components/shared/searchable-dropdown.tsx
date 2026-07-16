@@ -120,6 +120,11 @@ export function SearchableDropdown({
     allOptions.find((o) => o.value === value)?.label ??
     (selectedCache?.value === value ? selectedCache.label : "");
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setSearch("");
+  };
+
   const select = (v: string) => {
     const opt = allOptions.find((o) => o.value === v);
     if (opt) {
@@ -127,8 +132,7 @@ export function SearchableDropdown({
       onSelectItem?.(opt);
     }
     onChange(v);
-    setSearch("");
-    setOpen(false);
+    handleOpenChange(false);
   };
 
   return (
@@ -143,7 +147,7 @@ export function SearchableDropdown({
         />
       )}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger
           disabled={disabled}
           className={cn(
@@ -200,7 +204,7 @@ export function SearchableDropdown({
                 type="button"
                 title="Add new"
                 onClick={() => {
-                  setOpen(false);
+                  handleOpenChange(false);
                   setAddFormOpen(true);
                 }}
                 className="flex size-7 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -240,8 +244,7 @@ export function SearchableDropdown({
           setSelectedCache({ value: newValue, label: newLabel });
           onChange(newValue);
           setAddFormOpen(false);
-          setOpen(false);
-          setSearch("");
+          handleOpenChange(false);
           setRefreshKey((k) => k + 1);
         },
       })}

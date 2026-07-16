@@ -14,17 +14,12 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
-
-type ServerUrl = {
-  url: string;
-  host: string;
-  port: string;
-};
+import type { ServerInfo } from "@/lib/types";
 
 export default function ConnectionPage() {
   usePageTitle("Connection");
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [data, setData] = useState<ServerUrl | null>(null);
+  const [data, setData] = useState<ServerInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -34,7 +29,7 @@ export default function ConnectionPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await api.get<ServerUrl>("/server-url");
+        const res = await api.get<ServerInfo>("/server-info");
         if (active) setData(res);
       } catch (err) {
         addAlert("error", getErrorMessage(err));

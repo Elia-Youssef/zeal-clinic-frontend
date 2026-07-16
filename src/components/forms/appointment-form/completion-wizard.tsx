@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { DetailField } from "@/components/shared/detail-field";
 import { useRoomsStore } from "@/lib/stores/rooms-store";
 import { cn, formatTimeRange } from "@/lib/utils";
-import { beirutDayKey } from "@/lib/tz";
 import type { Invoice } from "@/lib/types";
 import { ClientInvoiceFormBody } from "../client-invoice-form";
 import { ClientPaymentFormBody } from "../client-payment-form";
 import { CompletePage } from "./transition-pages";
 import type { AppointmentFormData, WizardStage } from "./types";
+import { mergeInitial } from "./utils";
 
 export function CompletionWizard({
   open,
@@ -206,9 +206,17 @@ function CompleteSummary({
 
   const roomLabel =
     rooms.find((r) => r.id === initialData.roomId)?.name ?? "---";
-  const date =
-    initialData.date ?? (beirutDayKey(initialData.startTime) || "---");
-  const timeRange = formatTimeRange(initialData.startTime, initialData.endTime);
+  const editorData = mergeInitial(initialData);
+  const date = editorData.date || "---";
+  const spansMultipleDays =
+    !!editorData.endDate && editorData.endDate !== editorData.date;
+  const dateDisplay = spansMultipleDays
+    ? `${date} - ${editorData.endDate}`
+    : date;
+  const timeRange = formatTimeRange(
+    editorData.startTime,
+    editorData.endTime,
+  );
 
   return (
     <div className="space-y-4">
@@ -231,7 +239,9 @@ function CompleteSummary({
               ) : null,
             )}
           </DetailField>
-          <DetailField label="Date">{date}</DetailField>
+          <DetailField label={spansMultipleDays ? "Dates" : "Date"}>
+            {dateDisplay}
+          </DetailField>
           <DetailField label="Time">{timeRange}</DetailField>
           <DetailField className="sm:col-span-2" label="Completion Notes">
             <p className="whitespace-pre-wrap">{notes || "---"}</p>

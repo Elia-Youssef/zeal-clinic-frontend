@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api, BASE_URL } from "@/lib/api";
+import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
 
 const AUTH_KEYS = [
   "token",
@@ -13,6 +14,7 @@ const AUTH_KEYS = [
 
 function clearAuthStorage(): void {
   for (const key of AUTH_KEYS) sessionStorage.removeItem(key);
+  clearFormDrafts();
 }
 
 function isExpired(raw: string | null): boolean {

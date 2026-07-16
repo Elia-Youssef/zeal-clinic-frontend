@@ -564,3 +564,27 @@ export type StartUpdateResult = {
   status: "installing";
   warning?: string; // present only if the cloud-peer trigger failed
 };
+
+export type CloudRestoreResult = {
+  tables: number;
+  rows: number;
+  localBaseline: number;
+  cloudBaseline: number;
+  backup: string;
+  restoreId: string;
+};
+
+export type CloudRestoreProgressEvent = {
+  status: "running" | "success" | "failed";
+  stage: string;
+  message: string;
+  step: number;
+  maxSteps: number;
+};
+
+export type ServerInfo = {
+  url: string;
+  host: string;
+  port: string;
+  isCloud: boolean;
+};

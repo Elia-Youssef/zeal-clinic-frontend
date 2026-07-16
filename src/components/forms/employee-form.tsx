@@ -35,7 +35,7 @@ const emptyForm: EmployeeFormFields = {
   employmentType: "Full-time",
   username: "",
   password: "",
-  userRole: "user",
+  userRole: "staff",
 };
 
 export function EmployeeForm({
@@ -68,7 +68,7 @@ export function EmployeeForm({
         employmentType: initial.employmentType,
         username: "",
         password: "",
-        userRole: "user",
+        userRole: "staff",
       });
       setCreateUser(false);
     } else {
