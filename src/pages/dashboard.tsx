@@ -231,20 +231,22 @@ type DashboardCard = {
   render: (range: UtcRange) => ReactNode;
 };
 
-// Scopes required by /analytics/report/pdf (used to gate the Print button).
+// Scopes required by /analytics/report/pdf, plus reports:read, since the report
+// carries the financial figures (used to gate the Print button).
 const PDF_SCOPES = [
   "analytics:read",
   "balances:read",
   "patients:read",
   "appointments:read",
   "products:read",
+  "reports:read",
 ];
 
 const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "financial-kpis",
     title: "Financial",
-    scopes: ["analytics:read", "balances:read"],
+    scopes: ["analytics:read", "balances:read", "reports:read"],
     full: true,
     render: (range) => <FinancialPanel range={range} />,
   },
@@ -284,7 +286,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "revenue-payment-mix",
     title: "Revenue & Payment Mix",
-    scopes: ["analytics:read", "balances:read"],
+    scopes: ["analytics:read", "balances:read", "reports:read"],
     render: (range) => <RevenueMixCard range={range} />,
   },
   {
@@ -374,7 +376,7 @@ const DASHBOARD_CARDS: DashboardCard[] = [
   {
     id: "recent-transactions",
     title: "Recent Transactions",
-    scopes: ["analytics:read", "balances:read"],
+    scopes: ["analytics:read", "balances:read", "reports:read"],
     render: () => (
       <AnalyticsListCard<BalanceTransaction>
         title="Recent Transactions"

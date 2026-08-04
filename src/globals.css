@@ -94,7 +94,9 @@
   --status-progress-foreground: oklch(1 0 0);
   --status-completed: oklch(0.55 0.1 170);
   --status-completed-foreground: oklch(1 0 0);
-  --status-cancelled: oklch(0.55 0.045 25);
+  /* Shares the hue and chroma of --negative so the app has one red, held at
+     the status ramp's lightness rather than --destructive's alarm level. */
+  --status-cancelled: oklch(0.55 0.16 28);
   --status-cancelled-foreground: oklch(1 0 0);
   --status-rescheduled: oklch(0.55 0.13 290);
   --status-rescheduled-foreground: oklch(1 0 0);
@@ -141,7 +143,7 @@
   --status-progress-foreground: oklch(1 0 0);
   --status-completed: oklch(0.62 0.1 170);
   --status-completed-foreground: oklch(1 0 0);
-  --status-cancelled: oklch(0.62 0.045 25);
+  --status-cancelled: oklch(0.62 0.16 28);
   --status-cancelled-foreground: oklch(1 0 0);
   --status-rescheduled: oklch(0.62 0.13 290);
   --status-rescheduled-foreground: oklch(1 0 0);

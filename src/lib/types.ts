@@ -16,7 +16,7 @@ export type Patient = {
   middleName?: string;
   lastName: string;
   gender: "Male" | "Female";
-  dateOfBirth: string;
+  dateOfBirth?: string;
   contact: string;
   email?: string;
   emergencyContactName?: string;
@@ -113,6 +113,7 @@ export type Appointment = {
   id: string;
   patientId: string;
   patientName?: string;
+  patientBalance?: number;
   roomId: string;
   status:
     | "Scheduled"

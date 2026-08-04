@@ -4,6 +4,7 @@ import { Gift } from "lucide-react";
 import { type Column } from "@/components/data/data-table";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
+import { Tabs } from "@/components/shared/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Discount } from "@/lib/types";
@@ -13,12 +14,18 @@ import { DiscountForm } from "@/components/forms/discount-form";
 import { GiftRedeemForm } from "@/components/forms/gift-redeem-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
+const typeTabs = ["All", "Offers", "Gifts"];
+const typeParams: Record<string, string> = { Offers: "offer", Gifts: "gift" };
+
 export default function DiscountsPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const [typeTab, setTypeTab] = useState(typeTabs[0]);
   const [formOpen, setFormOpen] = useState(false);
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const type = typeParams[typeTab] ?? "";
 
   const columns: Column<Discount>[] = [
     {
@@ -92,8 +99,11 @@ export default function DiscountsPage() {
   return (
     <>
       <DataList<Discount>
-        title="Discounts"
-        endpoint="/discounts"
+        resetKey={typeTab}
+        title={
+          <Tabs tabs={typeTabs} activeTab={typeTab} onChange={setTypeTab} />
+        }
+        endpoint={`/discounts${type ? `?type=${type}` : ""}`}
         columns={columns}
         rowKey={(d) => d.id}
         emptyMessage="No discounts yet."

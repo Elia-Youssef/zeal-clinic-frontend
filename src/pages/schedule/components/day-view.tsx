@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable, type Column } from "@/components/data/data-table";
 import { Tabs } from "@/components/shared/tabs";
-import { AppointmentCard } from "@/components/shared/appointment-card";
+import {
+  AppointmentCard,
+  PatientBalance,
+} from "@/components/shared/appointment-card";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   appointmentStatusStyles,
@@ -163,10 +166,18 @@ export function DayView({
     [appointments, dayWindow],
   );
 
+  // The grid only shows appointments that still hold their slot. A cancelled
+  // one stays in the table but must not occupy (or block a drop into) its
+  // cell. Everything grid-related below works off this list.
+  const calendarAppointments = useMemo(
+    () => dayAppointments.filter((a) => a.status !== "Cancelled"),
+    [dayAppointments],
+  );
+
   const { appointmentsByRoom, collisionAppointmentsByRoom } = useMemo(() => {
     const display: Record<string, Appointment[]> = {};
     const collisions: Record<string, Appointment[]> = {};
-    for (const appointment of dayAppointments) {
+    for (const appointment of calendarAppointments) {
       (display[appointment.roomId] ??= []).push(appointment);
       (collisions[appointment.roomId] ??= []).push(
         appointmentForDayCollision(appointment, dayWindow),
@@ -176,13 +187,25 @@ export function DayView({
       appointmentsByRoom: display,
       collisionAppointmentsByRoom: collisions,
     };
-  }, [dayAppointments, dayWindow]);
+  }, [calendarAppointments, dayWindow]);
+
+  // A hospital room is booked rarely, so on the days it is the column has to
+  // catch the eye. Only flag the ones that actually hold an appointment.
+  const hospitalRoomIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const room of rooms) {
+      if (room.type === "Hospital" && appointmentsByRoom[room.id]?.length) {
+        ids.add(room.id);
+      }
+    }
+    return ids;
+  }, [rooms, appointmentsByRoom]);
 
   const calendarBounds = useMemo(() => {
     let startHour = DAY_START_HOUR;
     let endHour = DAY_END_HOUR;
 
-    for (const appointment of dayAppointments) {
+    for (const appointment of calendarAppointments) {
       const bounds = appointmentBoundsInDay(appointment, dayWindow);
       if (!bounds) continue;
       startHour = Math.min(startHour, Math.floor(bounds.start));
@@ -194,7 +217,7 @@ export function DayView({
       beforeScheduleRem: (DAY_START_HOUR - startHour) * HOUR_HEIGHT,
       afterScheduleRem: (endHour - DAY_END_HOUR) * HOUR_HEIGHT,
     };
-  }, [dayAppointments, dayWindow]);
+  }, [calendarAppointments, dayWindow]);
 
   useScrollToCurrentTime(
     scrollRef,
@@ -209,7 +232,10 @@ export function DayView({
     return map;
   }, [rooms]);
 
-  const dayCount = dayAppointments.length;
+  // Count what the active mode actually lists, so the badge never disagrees
+  // with the rows or cards below it.
+  const dayCount =
+    mode === "Calendar" ? calendarAppointments.length : dayAppointments.length;
 
   const canWrite = can("appointments:write");
   const handleDrop = useCallback(
@@ -290,7 +316,7 @@ export function DayView({
         >
           <div className="min-w-225">
             <div className="sticky top-0 z-11 bg-card">
-              <RoomHeaders rooms={rooms} />
+              <RoomHeaders rooms={rooms} highlightRoomIds={hospitalRoomIds} />
             </div>
 
             <div
@@ -464,6 +490,19 @@ function DayTable({
         render: (a) => a.patientName || "---",
       },
       {
+        key: "balance",
+        header: "Balance",
+        className: "w-28",
+        sortable: true,
+        sortValue: (a) => a.patientBalance ?? 0,
+        render: (a) =>
+          typeof a.patientBalance === "number" ? (
+            <PatientBalance amount={a.patientBalance} />
+          ) : (
+            "---"
+          ),
+      },
+      {
         key: "procedures",
         header: "Procedures",
         render: (a) =>
@@ -517,7 +556,13 @@ function DayTable({
   );
 }
 
-const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
+const RoomHeaders = memo(function RoomHeaders({
+  rooms,
+  highlightRoomIds,
+}: {
+  rooms: Room[];
+  highlightRoomIds: Set<string>;
+}) {
   return (
     <div
       className="grid"
@@ -525,15 +570,40 @@ const RoomHeaders = memo(function RoomHeaders({ rooms }: { rooms: Room[] }) {
     >
       <div />
       <div className="border-b" />
-      {rooms.map((room) => (
-        <div
-          key={room.id}
-          className="border-l border-border p-2 text-center border-b"
-        >
-          <div className="text-sm font-medium">{room.name}</div>
-          <div className="text-xs text-muted-foreground">{room.type}</div>
-        </div>
-      ))}
+      {rooms.map((room) => {
+        const highlighted = highlightRoomIds.has(room.id);
+        return (
+          <div
+            key={room.id}
+            className={cn(
+              "relative border-l border-border p-2 text-center border-b",
+              highlighted && "bg-warning/10",
+            )}
+          >
+            <div
+              className={cn(
+                "text-sm font-medium",
+                highlighted && "text-warning",
+              )}
+            >
+              {room.name}
+            </div>
+            <div
+              className={cn(
+                "text-xs text-muted-foreground",
+                highlighted && "text-warning/80",
+              )}
+            >
+              {room.type}
+            </div>
+            {/* Overlaid rather than a thicker border-b, so the highlighted
+                column header stays the same height as its neighbours. */}
+            {highlighted && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-warning" />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 });

@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   STATUS_ICONS,
-  TRANSITION_STATUSES,
+  transitionsFrom,
   type TransitionStatus,
 } from "./types";
 
@@ -23,7 +23,7 @@ export function StatusPicker({
   status: string;
   onChange: (next: TransitionStatus) => void;
 }) {
-  const others = TRANSITION_STATUSES.filter((s) => s !== status);
+  const others = transitionsFrom(status);
   const CurrentIcon = STATUS_ICONS[status];
   const badgeClass = (
     appointmentStatusStyles[status] ?? defaultAppointmentStatusStyle

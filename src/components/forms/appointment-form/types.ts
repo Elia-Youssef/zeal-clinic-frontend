@@ -36,17 +36,36 @@ export type Page =
   | "cancel"
   | "complete"
   | "in-progress"
+  | "reinstate"
   | "invoice"
   | "payment";
 
 export type WizardStage = "complete" | "invoice" | "payment";
 
 export const TRANSITION_STATUSES = [
+  "Scheduled",
   "In-Progress",
   "Completed",
   "Cancelled",
 ] as const;
 export type TransitionStatus = (typeof TRANSITION_STATUSES)[number];
+
+// A Rescheduled appointment is superseded by the replacement that carries its
+// `rescheduledFrom`, so returning it to Scheduled would leave two live
+// appointments for one slot. Every other status may go back.
+const REINSTATABLE_FROM: readonly string[] = [
+  "In-Progress",
+  "Completed",
+  "Cancelled",
+];
+
+export function transitionsFrom(status: string): TransitionStatus[] {
+  return TRANSITION_STATUSES.filter(
+    (s) =>
+      s !== status &&
+      (s !== "Scheduled" || REINSTATABLE_FROM.includes(status)),
+  );
+}
 
 export const STATUS_ICONS: Record<string, LucideIcon> = {
   Scheduled: CalendarClock,

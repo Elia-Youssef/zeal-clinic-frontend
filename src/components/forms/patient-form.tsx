@@ -170,12 +170,13 @@ export function PatientForm({
       firstName: form.firstName,
       lastName: form.lastName,
       gender: form.gender,
-      dateOfBirth: toISODate(form.dateOfBirth),
       contact: form.contact,
       cityId: isLebanon ? form.cityId : "",
       countryId: form.countryId,
     };
     if (isEdit || form.middleName) payload.middleName = form.middleName;
+    if (isEdit || form.dateOfBirth)
+      payload.dateOfBirth = form.dateOfBirth ? toISODate(form.dateOfBirth) : "";
     if (isEdit || form.email) payload.email = form.email;
     if (isEdit || form.emergencyContactName)
       payload.emergencyContactName = form.emergencyContactName;
@@ -254,11 +255,10 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Date of Birth *</label>
+            <label className="text-sm font-medium">Date of Birth</label>
             <DateInput
               value={form.dateOfBirth}
               onChange={(v) => update("dateOfBirth", v)}
-              required
             />
             {isUnder18(form.dateOfBirth) && (
               <p className="text-xs text-warning">

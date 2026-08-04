@@ -40,9 +40,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
-import { EmployeeScheduleForm } from "@/components/forms/employee-schedule-form";
+import { Tabs } from "@/components/shared/tabs";
+import {
+  EmployeeScheduleForm,
+  type ScheduleDayTarget,
+} from "@/components/forms/employee-schedule-form";
 import { EmployeeScheduleChangeForm } from "@/components/forms/employee-schedule-change-form";
 import { AppointmentCard } from "@/components/shared/appointment-card";
+import {
+  EmployeeScheduleTable,
+  type EmployeeScheduleRow,
+} from "@/components/shared/employee-schedule-table";
+import {
+  OVERTIME_STYLE,
+  PENDING_STYLE,
+  REGULAR_STYLE,
+  REJECTED_STYLE,
+  formatHours,
+  groupScheduleVersions,
+  offReasonLabel,
+  offReasonStyle,
+  timeToDecimal,
+  versionInForce,
+} from "@/components/shared/employee-schedule-utils";
 import {
   AppointmentForm,
   type AppointmentFormData,
@@ -73,33 +93,11 @@ const GRID_COLS = `50px 12px repeat(7, 1fr)`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const EMPTY_APPTS: Appointment[] = [];
-
-const REGULAR_STYLE = "bg-primary/10 border-primary/40";
-const OVERTIME_STYLE = "bg-status-rescheduled/10 border-status-rescheduled/50";
-const PENDING_STYLE = "bg-foreground/5 border-dashed border-foreground/45";
-const REJECTED_STYLE = "bg-muted/40 border-muted-foreground/30 opacity-60";
-
-const offReasonStyle: Record<string, string> = {
-  holiday: "bg-warning/20 border-warning/50",
-  timeoff: "bg-status-completed/20 border-status-completed/55",
-  "no-schedule": "bg-muted/30 border-border",
-};
-
-const offReasonLabel: Record<string, string> = {
-  holiday: "Holiday",
-  timeoff: "Time Off",
-  "no-schedule": "Off",
-};
+const EMPTY_CHANGES: EmployeeScheduleChange[] = [];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hourToTime = (h: number) => `${pad(h)}:00`;
 const formatHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`;
-const timeToDecimal = (t: string) => {
-  const [h, m] = t.split(":").map(Number);
-  return h + m / 60;
-};
-const formatHours = (n: number) =>
-  Number.isInteger(n) ? `${n}` : n.toFixed(1).replace(/\.0$/, "");
 
 // Keep blocks inside the visible window so out-of-range times don't add scroll.
 function blockBounds(startDec: number, endDec: number) {
@@ -143,8 +141,7 @@ function appointmentBoundsInDay(
 
   const visibleStartMs = Math.max(startMs, day.startMs);
   const visibleEndMs = Math.min(endMs, day.endMs);
-  const start =
-    day.startHour + (visibleStartMs - day.startMs) / 3_600_000;
+  const start = day.startHour + (visibleStartMs - day.startMs) / 3_600_000;
   const end = day.startHour + (visibleEndMs - day.startMs) / 3_600_000;
   return end > start ? { start, end } : null;
 }
@@ -228,10 +225,9 @@ const emptySchedule: ScheduleState = {
   appointments: [],
 };
 
-type GenForm =
-  | { open: false }
-  | { open: true; mode: "add"; day: number; start: string; end: string }
-  | { open: true; mode: "edit"; slot: EmployeeSchedule };
+type ScheduleView = "Calendar" | "Table";
+
+type GenForm = { open: false } | { open: true; target: ScheduleDayTarget };
 
 type ChangeForm =
   | { open: false }
@@ -263,6 +259,7 @@ export function EmployeeWeekSchedule({
   const canWriteAppointments = can("appointments:write");
 
   const [weekStart, setWeekStart] = useState(() => startOfWeek(beirutNow()));
+  const [view, setView] = useState<ScheduleView>("Calendar");
   const [data, setData] = useState<ScheduleState>(emptySchedule);
   const [genForm, setGenForm] = useState<GenForm>(closedGen);
   const [changeForm, setChangeForm] = useState<ChangeForm>(closedChange);
@@ -287,9 +284,9 @@ export function EmployeeWeekSchedule({
         ),
         canReadAppointments
           ? api
-              .get<
-                Paginated<Appointment> | Appointment[]
-              >(`/employees/${employeeId}/appointments?date=${dateParam}`)
+              .get<Paginated<Appointment> | Appointment[]>(
+                `/employees/${employeeId}/appointments?date=${dateParam}`,
+              )
               .catch(() => [] as Appointment[])
           : Promise.resolve<Appointment[]>([]),
       ]);
@@ -304,10 +301,12 @@ export function EmployeeWeekSchedule({
         holidays: res.holidays ?? [],
         monthStart: res.monthStart ?? "",
         monthHours: res.monthHours ?? [],
-        // Match the calendar: replaced appointment records are history and
-        // should not occupy time on the active schedule.
+        // Match the calendar: replaced and cancelled appointments no longer
+        // hold their slot and should not occupy time on the active schedule.
         appointments: appointments.filter(
-          (appointment) => appointment.status !== "Rescheduled",
+          (appointment) =>
+            appointment.status !== "Rescheduled" &&
+            appointment.status !== "Cancelled",
         ),
       });
     } catch {
@@ -330,6 +329,13 @@ export function EmployeeWeekSchedule({
       return { dayOfWeek: date.getDay(), label, date, iso: toIsoDate(date) };
     });
   }, [weekStart]);
+
+  // `templates` is a flat row list carrying superseded versions too; the
+  // editable unit is the version those rows group into.
+  const versions = useMemo(
+    () => groupScheduleVersions(data.templates),
+    [data.templates],
+  );
 
   const dayByDate = useMemo(() => {
     const map: Record<string, EmployeeScheduleDay> = {};
@@ -399,6 +405,22 @@ export function EmployeeWeekSchedule({
 
   const todayIso = toIsoDate(beirutNow());
 
+  // The table draws the same seven days as the grid, one per row.
+  const tableRows = useMemo<EmployeeScheduleRow[]>(
+    () =>
+      weekDates.map((day) => ({
+        iso: day.iso,
+        label: day.label,
+        date: day.date,
+        dayOfWeek: day.dayOfWeek,
+        isToday: day.iso === todayIso,
+        projected: dayByDate[day.iso],
+        changes: changesByDate[day.iso] ?? EMPTY_CHANGES,
+        holiday: holidayByDate[day.iso],
+      })),
+    [weekDates, todayIso, dayByDate, changesByDate, holidayByDate],
+  );
+
   const headerLabel = useMemo(() => {
     const first = weekDates[0]?.date;
     const last = weekDates[6]?.date;
@@ -415,19 +437,30 @@ export function EmployeeWeekSchedule({
     return fnsFormat(d, "MMMM yyyy");
   }, [data.monthStart]);
 
-  const openAddSlot = (dayOfWeek: number, hour: number) => {
+  // A weekday is edited as a whole version, so the form is opened on the
+  // version covering the day that was clicked. `hour` seeds an extra shift from
+  // the calendar cell; a table row has no hour and just opens the set.
+  const openDaySchedule = (dayOfWeek: number, date: string, hour?: number) => {
     if (!canEditGeneral) return;
+    const version = versionInForce(versions, dayOfWeek, date);
+    const seed =
+      hour !== undefined
+        ? { startTime: hourToTime(hour), endTime: hourToTime(hour + 1) }
+        : undefined;
+    // The cell can read as free while the version still covers it: time off is
+    // subtracted from the projected day but not from the template. Don't seed a
+    // shift that would only collide with one already in the set.
+    const collides =
+      !!seed &&
+      !!version?.shifts.some(
+        (s) =>
+          timeToDecimal(s.startTime) < timeToDecimal(seed.endTime) &&
+          timeToDecimal(s.endTime) > timeToDecimal(seed.startTime),
+      );
     setGenForm({
       open: true,
-      mode: "add",
-      day: dayOfWeek,
-      start: hourToTime(hour),
-      end: hourToTime(hour + 1),
+      target: { dayOfWeek, date, version, seed: collides ? undefined : seed },
     });
-  };
-  const openEditSlot = (slot: EmployeeSchedule) => {
-    if (!canEditGeneral) return;
-    setGenForm({ open: true, mode: "edit", slot });
   };
   const openAddChange = (
     changeType: EmployeeScheduleChangeType,
@@ -481,8 +514,6 @@ export function EmployeeWeekSchedule({
     setApptFormKey((k) => k + 1);
   };
 
-  const genAdd = genForm.open && genForm.mode === "add" ? genForm : null;
-  const genEdit = genForm.open && genForm.mode === "edit" ? genForm : null;
   const changeAdd =
     changeForm.open && changeForm.mode === "add" ? changeForm : null;
   const changeEdit =
@@ -516,133 +547,151 @@ export function EmployeeWeekSchedule({
             </p>
           )}
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => setWeekStart(addDays(weekStart, -7))}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-xs font-normal"
-                />
-              }
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Tabs
+            tabs={["Calendar", "Table"]}
+            activeTab={view}
+            onChange={(tab) => setView(tab as ScheduleView)}
+          />
+          <div className="flex flex-wrap items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setWeekStart(addDays(weekStart, -7))}
             >
-              <CalendarIcon className="size-4 text-muted-foreground" />
-              {headerLabel}
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <Calendar
-                mode="single"
-                selected={weekStart}
-                onSelect={(date) => {
-                  if (date) {
-                    setWeekStart(startOfWeek(date));
-                    setDatePickerOpen(false);
-                  }
-                }}
-                defaultMonth={weekStart}
-              />
-            </PopoverContent>
-          </Popover>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => setWeekStart(addDays(weekStart, 7))}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => setWeekStart(startOfWeek(beirutNow()))}
-            title="Go to this week"
-          >
-            <RotateCcw className="size-4" />
-          </Button>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-normal"
+                  />
+                }
+              >
+                <CalendarIcon className="size-4 text-muted-foreground" />
+                {headerLabel}
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={weekStart}
+                  onSelect={(date) => {
+                    if (date) {
+                      setWeekStart(startOfWeek(date));
+                      setDatePickerOpen(false);
+                    }
+                  }}
+                  defaultMonth={weekStart}
+                />
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setWeekStart(addDays(weekStart, 7))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setWeekStart(startOfWeek(beirutNow()))}
+              title="Go to this week"
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <Legend />
+        {view === "Table" ? (
+          <EmployeeScheduleTable
+            rows={tableRows}
+            canEditGeneral={canEditGeneral}
+            canRequestChange={canRequestChange}
+            onEditDay={openDaySchedule}
+            onRequestChange={openAddChange}
+            onEditChange={openEditChange}
+          />
+        ) : (
+          <>
+            <Legend />
 
-        <div className="overflow-x-auto">
-          <div className="min-w-225">
-            <div
-              className="grid border-b border-border"
-              style={{ gridTemplateColumns: GRID_COLS }}
-            >
-              <div />
-              <div />
-              {weekDates.map((day) => {
-                const projected = dayByDate[day.iso];
-                const ot = projected?.overtimeHours ?? 0;
-                const totalDayHours = projected?.hours ?? 0;
-                return (
-                  <div
-                    key={day.iso}
-                    className={cn(
-                      "border-l border-border p-2 text-center",
-                      day.iso === todayIso && "bg-primary/5",
-                    )}
-                  >
-                    <div className="text-sm font-medium">{day.label}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums">
-                      {day.date.getDate()}
-                    </div>
-                    {totalDayHours > 0 && (
-                      <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
-                        {formatHours(totalDayHours)}h
-                        {ot > 0 && (
-                          <span className="text-status-rescheduled">
-                            {" "}
-                            +{formatHours(ot)} OT
-                          </span>
+            <div className="overflow-x-auto">
+              <div className="min-w-225">
+                <div
+                  className="grid border-b border-border"
+                  style={{ gridTemplateColumns: GRID_COLS }}
+                >
+                  <div />
+                  <div />
+                  {weekDates.map((day) => {
+                    const projected = dayByDate[day.iso];
+                    const ot = projected?.overtimeHours ?? 0;
+                    const totalDayHours = projected?.hours ?? 0;
+                    return (
+                      <div
+                        key={day.iso}
+                        className={cn(
+                          "border-l border-border p-2 text-center",
+                          day.iso === todayIso && "bg-primary/5",
+                        )}
+                      >
+                        <div className="text-sm font-medium">{day.label}</div>
+                        <div className="text-xs text-muted-foreground tabular-nums">
+                          {day.date.getDate()}
+                        </div>
+                        {totalDayHours > 0 && (
+                          <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
+                            {formatHours(totalDayHours)}h
+                            {ot > 0 && (
+                              <span className="text-status-rescheduled">
+                                {" "}
+                                +{formatHours(ot)} OT
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
 
-            <div
-              className="relative grid"
-              style={{ gridTemplateColumns: GRID_COLS }}
-            >
-              <TimeColumn />
-              <HourLines />
-              {weekDates.map((day) => (
-                <DayColumn
-                  key={day.iso}
-                  day={day}
-                  isToday={day.iso === todayIso}
-                  projected={dayByDate[day.iso]}
-                  changes={changesByDate[day.iso] ?? []}
-                  holiday={holidayByDate[day.iso]}
-                  templates={data.templates}
-                  appointments={appointmentsByDate[day.iso] ?? EMPTY_APPTS}
-                  canEditGeneral={canEditGeneral}
-                  canRequestChange={canRequestChange}
-                  onAddSlot={openAddSlot}
-                  onRequestChange={openAddChange}
-                  onEditSlot={openEditSlot}
-                  onEditChange={openEditChange}
-                  onAppointmentClick={openAppointment}
-                />
-              ))}
+                <div
+                  className="relative grid"
+                  style={{ gridTemplateColumns: GRID_COLS }}
+                >
+                  <TimeColumn />
+                  <HourLines />
+                  {weekDates.map((day) => (
+                    <DayColumn
+                      key={day.iso}
+                      day={day}
+                      isToday={day.iso === todayIso}
+                      projected={dayByDate[day.iso]}
+                      changes={changesByDate[day.iso] ?? EMPTY_CHANGES}
+                      holiday={holidayByDate[day.iso]}
+                      appointments={appointmentsByDate[day.iso] ?? EMPTY_APPTS}
+                      canEditGeneral={canEditGeneral}
+                      canRequestChange={canRequestChange}
+                      onEditDay={openDaySchedule}
+                      onRequestChange={openAddChange}
+                      onEditChange={openEditChange}
+                      onAppointmentClick={openAppointment}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
 
       <EmployeeScheduleForm
@@ -650,10 +699,7 @@ export function EmployeeWeekSchedule({
         onClose={() => setGenForm(closedGen)}
         onSaved={reload}
         employeeId={employeeId}
-        initial={genEdit?.slot ?? null}
-        defaultDayOfWeek={genAdd?.day}
-        defaultStartTime={genAdd?.start}
-        defaultEndTime={genAdd?.end}
+        target={genForm.open ? genForm.target : null}
       />
       <EmployeeScheduleChangeForm
         open={changeForm.open}
@@ -675,10 +721,7 @@ export function EmployeeWeekSchedule({
         readOnly={apptForm.data?.status === "Completed"}
         onOpenInSchedule={
           apptForm.scheduleDate
-            ? () =>
-                navigate(
-                  `/schedule/calendar?date=${apptForm.scheduleDate}`,
-                )
+            ? () => navigate(`/schedule/calendar?date=${apptForm.scheduleDate}`)
             : undefined
         }
       />
@@ -791,13 +834,11 @@ function DayColumn({
   projected,
   changes,
   holiday,
-  templates,
   appointments,
   canEditGeneral,
   canRequestChange,
-  onAddSlot,
+  onEditDay,
   onRequestChange,
-  onEditSlot,
   onEditChange,
   onAppointmentClick,
 }: {
@@ -806,17 +847,15 @@ function DayColumn({
   projected?: EmployeeScheduleDay;
   changes: EmployeeScheduleChange[];
   holiday?: Holiday;
-  templates: EmployeeSchedule[];
   appointments: Appointment[];
   canEditGeneral: boolean;
   canRequestChange: boolean;
-  onAddSlot: (dayOfWeek: number, hour: number) => void;
+  onEditDay: (dayOfWeek: number, date: string, hour?: number) => void;
   onRequestChange: (
     type: EmployeeScheduleChangeType,
     date: string,
     hour?: number,
   ) => void;
-  onEditSlot: (slot: EmployeeSchedule) => void;
   onEditChange: (change: EmployeeScheduleChange) => void;
   onAppointmentClick: (appt: Appointment) => void;
 }) {
@@ -832,26 +871,6 @@ function DayColumn({
         timeToDecimal(s.startTime) < hour + 1 &&
         timeToDecimal(s.endTime) > hour,
     );
-  // Regular shifts are edited from the cell
-  // menu: find the template slot covering the given hour.
-  const editableSlotForHour = (hour: number) => {
-    if (!showShifts) return undefined;
-    const shift = projected!.shifts.find(
-      (s) =>
-        s.kind !== "overtime" &&
-        timeToDecimal(s.startTime) < hour + 1 &&
-        timeToDecimal(s.endTime) > hour,
-    );
-    if (!shift) return undefined;
-    const startDec = timeToDecimal(shift.startTime);
-    const endDec = timeToDecimal(shift.endTime);
-    return templates.find(
-      (t) =>
-        t.dayOfWeek === day.dayOfWeek &&
-        timeToDecimal(t.startTime) <= startDec &&
-        timeToDecimal(t.endTime) >= endDec,
-    );
-  };
   // Accepted overtime renders as a kind:"overtime" shift; keep it out of the overlay.
   const overlayChanges = changes.filter(
     (c) => !(c.type === "overtime" && c.status === "accepted"),
@@ -880,8 +899,6 @@ function DayColumn({
     >
       {HOURS.map((hour) => {
         const inShift = hourInShift(hour);
-        const editSlot =
-          canEditGeneral && inShift ? editableSlotForHour(hour) : undefined;
         const cellClass = cn(
           "border-b border-border",
           hasCellActions &&
@@ -904,22 +921,16 @@ function DayColumn({
               }
             />
             <DropdownMenuContent align="start" className="min-w-44">
-              {canEditGeneral &&
-                (inShift ? (
-                  editSlot && (
-                    <DropdownMenuItem onClick={() => onEditSlot(editSlot)}>
-                      <CalendarClock />
-                      Edit shift
-                    </DropdownMenuItem>
-                  )
-                ) : (
-                  <DropdownMenuItem
-                    onClick={() => onAddSlot(day.dayOfWeek, hour)}
-                  >
-                    <CalendarClock />
-                    Modify schedule
-                  </DropdownMenuItem>
-                ))}
+              {canEditGeneral && (
+                <DropdownMenuItem
+                  onClick={() =>
+                    onEditDay(day.dayOfWeek, day.iso, inShift ? undefined : hour)
+                  }
+                >
+                  <CalendarClock />
+                  {inShift ? "Edit schedule" : "Add shift"}
+                </DropdownMenuItem>
+              )}
               {canRequestChange &&
                 (inShift ? (
                   <DropdownMenuItem

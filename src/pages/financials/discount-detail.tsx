@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/shared/loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
+import { DataList } from "@/components/data/data-list";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { beirutDayKey } from "@/lib/tz";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import type { Discount, Patient } from "@/lib/types";
+import type { Discount, Invoice, Patient } from "@/lib/types";
 import { DiscountForm } from "@/components/forms/discount-form";
 import { GiftRedeemForm } from "@/components/forms/gift-redeem-form";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -183,6 +184,70 @@ function DiscountDetailContent() {
           </DetailField>
         </CardContent>
       </Card>
+
+      {/* Gift cards are applied to patient balances, never to invoices. */}
+      {!isGift && can("invoices:read") && (
+        <DataList<Invoice>
+          title="Invoices"
+          columns={[
+            {
+              header: "Invoice No.",
+              key: "number",
+              className: "w-28",
+              render: (i) => (
+                <span className="font-medium">#{i.invoiceNumber}</span>
+              ),
+            },
+            {
+              header: "Date",
+              key: "date",
+              className: "w-36",
+              render: (i) => beirutDayKey(i.createdAt) || "---",
+            },
+            {
+              header: "Entity",
+              key: "entity",
+              className: "truncate",
+              render: (i) => (
+                <span className="font-medium capitalize">
+                  {(i.fromEntityId === "self"
+                    ? i.toEntityName
+                    : i.fromEntityName) || "---"}
+                </span>
+              ),
+            },
+            {
+              header: "Amount",
+              key: "amount",
+              className: "w-32 text-right",
+              render: (i) => `$${(i.amount ?? 0).toFixed(2)}`,
+            },
+            {
+              header: "Discount",
+              key: "discount",
+              className: "w-32 text-right",
+              render: (i) => `-$${(i.discountValue ?? 0).toFixed(2)}`,
+            },
+            {
+              header: "Total",
+              key: "total",
+              className: "w-32 text-right",
+              render: (i) => (
+                <span className="font-medium">
+                  ${(i.finalAmount ?? i.amount ?? 0).toFixed(2)}
+                </span>
+              ),
+            },
+          ]}
+          endpoint={`/discounts/${id}/invoices`}
+          rowKey={(i) => i.id}
+          limit={5}
+          hideSearch
+          dateFilter
+          onRowClick={(i) => navigate(`/financials/invoices/${i.id}`)}
+          emptyMessage="No invoices."
+        />
+      )}
 
       <DiscountForm
         open={editOpen}

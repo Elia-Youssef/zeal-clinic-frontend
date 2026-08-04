@@ -44,7 +44,8 @@ type RevenueLevel =
   | "product-category"
   | "procedure"
   | "product"
-  | "other";
+  | "other"
+  | "discount";
 
 type RevenueItem = {
   groupType: string;
@@ -121,6 +122,12 @@ const levelOptions: {
     label: "Other items",
     description: "Only the custom “other” invoice lines.",
   },
+  {
+    value: "discount",
+    label: "Discounts",
+    description:
+      "Money given away per discount. Gift cards are excluded — they credit patient balances, not invoices.",
+  },
 ];
 
 function formatMoney(n: number) {
@@ -167,6 +174,8 @@ function levelHeader(level: RevenueLevel | undefined): string {
       return "Product";
     case "other":
       return "Item";
+    case "discount":
+      return "Discount";
     default:
       return "Name";
   }

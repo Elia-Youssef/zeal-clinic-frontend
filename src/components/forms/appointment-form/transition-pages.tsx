@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
@@ -61,6 +62,70 @@ export function CancelPage({
           onClick={handleCancel}
         >
           {submitting ? "Cancelling…" : "Confirm Cancellation"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Warning shown alongside the confirm, keyed by the status being left. */
+const REINSTATE_CAVEAT: Record<string, string> = {
+  Cancelled:
+    "Cancelled appointments don't hold their slot on the calendar, so this one may have been booked over since. Check the room before confirming.",
+  Completed:
+    "Any invoice or payment already recorded for this appointment stays as it is.",
+};
+
+export function ReinstatePage({
+  appointmentId,
+  status,
+  onBack,
+  onSaved,
+}: {
+  appointmentId: string;
+  status: string;
+  onBack: () => void;
+  onSaved: () => void;
+}) {
+  const addAlert = useAlertStore((s) => s.addAlert);
+  const [submitting, setSubmitting] = useState(false);
+  const caveat = REINSTATE_CAVEAT[status];
+
+  const handleReinstate = async () => {
+    setSubmitting(true);
+    try {
+      // Only the status moves. The cancellation and completion notes are left
+      // on the record as history; both are hidden while an appointment reads
+      // Scheduled.
+      await api.put(`/appointments/${appointmentId}`, {
+        status: "Scheduled",
+      });
+      addAlert("success", "Appointment returned to scheduled.");
+      onSaved();
+    } catch (err) {
+      addAlert("error", getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Move this appointment back to <span className="font-medium">Scheduled</span>?
+      </p>
+      {caveat && (
+        <p className="flex items-start gap-1.5 text-xs text-warning">
+          <AlertTriangle className="mt-px size-3.5 shrink-0" />
+          {caveat}
+        </p>
+      )}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button disabled={submitting} onClick={handleReinstate}>
+          {submitting ? "Saving…" : "Confirm"}
         </Button>
       </div>
     </div>

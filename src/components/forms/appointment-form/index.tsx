@@ -8,6 +8,7 @@ import { StatusPicker } from "./status-picker";
 import {
   CancelPage,
   InProgressPage,
+  ReinstatePage,
 } from "./transition-pages";
 import {
   type AppointmentFormData,
@@ -30,6 +31,7 @@ function titleFor(page: Page, isEdit: boolean): string {
   if (page === "cancel") return "Cancel Appointment";
   if (isWizardPage(page)) return "Complete Appointment";
   if (page === "in-progress") return "Mark In-Progress";
+  if (page === "reinstate") return "Return to Scheduled";
   if (page === "view") return "View Appointment";
   return isEdit ? "Edit Appointment" : "New Appointment";
 }
@@ -102,6 +104,7 @@ export function AppointmentForm({
     if (next === "Cancelled") setPage("cancel");
     else if (next === "Completed") setPage("complete");
     else if (next === "In-Progress") setPage("in-progress");
+    else if (next === "Scheduled") setPage("reinstate");
   };
 
   const showStatusPicker =
@@ -142,6 +145,16 @@ export function AppointmentForm({
         <CancelPage
           appointmentId={initialData!.id!}
           onBack={() => setPage("main")}
+          onSaved={handleSaved}
+        />
+      )}
+      {page === "reinstate" && isEdit && (
+        <ReinstatePage
+          appointmentId={initialData!.id!}
+          status={currentStatus}
+          // A completed appointment opens read-only, so returning here must
+          // not drop the user into the edit form it deliberately skipped.
+          onBack={() => setPage(initialPage)}
           onSaved={handleSaved}
         />
       )}

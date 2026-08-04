@@ -9,6 +9,7 @@ import {
 import {
   appointmentStatusStyles,
   defaultAppointmentStatusStyle,
+  transactionColors,
 } from "@/lib/constants";
 import { MultilineText } from "@/components/shared/multiline-text";
 import type { Appointment } from "@/lib/types";
@@ -24,6 +25,24 @@ function densityForHeight(px: number): Density {
 }
 
 export type AppointmentDragMode = "move" | "resize-start" | "resize-end";
+
+/** Patient balance: positive means the patient owes the clinic. */
+export function PatientBalance({ amount }: { amount: number }) {
+  return (
+    <span
+      className={cn(
+        "tabular-nums",
+        amount === 0
+          ? transactionColors.neutral
+          : amount > 0
+            ? transactionColors.outflow
+            : transactionColors.inflow,
+      )}
+    >
+      {amount < 0 ? "-" : ""}${Math.abs(amount).toFixed(2)}
+    </span>
+  );
+}
 
 export function AppointmentCard({
   appt,
@@ -152,6 +171,12 @@ export function AppointmentCard({
         <div className="flex-1 grid grid-cols-[7em_1fr] gap-y-1 text-xs">
           <span className="text-muted-foreground">Time</span>
           <span>{formatTimeRange(appt.startTime, appt.endTime)}</span>
+          {typeof appt.patientBalance === "number" && (
+            <>
+              <span className="text-muted-foreground">Balance</span>
+              <PatientBalance amount={appt.patientBalance} />
+            </>
+          )}
           <span className="text-muted-foreground">
             {procedures.length > 1 ? "Procedures" : "Procedure"}
           </span>
