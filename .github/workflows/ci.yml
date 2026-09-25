@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  BACKEND_REPO: ${{ github.repository_owner }}/zeal-clinic-backend
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # Go builds the pinned actionlint for the workflows stage.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+      - run: pwsh scripts/ci.ps1 -Stage install
+      - run: pwsh scripts/ci.ps1 -Stage typecheck
+      - run: pwsh scripts/ci.ps1 -Stage lint
+      - run: pwsh scripts/ci.ps1 -Stage workflows
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.job }}
+          path: |
+            ${{ runner.temp }}/artifacts/
+            !${{ runner.temp }}/artifacts/**/*.exe
+            !${{ runner.temp }}/artifacts/**/*.db*
+          retention-days: 14
+
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: pwsh scripts/ci.ps1 -Stage install
+      - run: pwsh scripts/ci.ps1 -Stage ui-unit
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.job }}
+          path: |
+            ${{ runner.temp }}/artifacts/
+            !${{ runner.temp }}/artifacts/**/*.exe
+            !${{ runner.temp }}/artifacts/**/*.db*
+          retention-days: 14
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: pwsh scripts/ci.ps1 -Stage install
+      - run: pwsh scripts/ci.ps1 -Stage build
+      - run: pwsh scripts/ci.ps1 -Stage bundle
+      # Advisory until the known advisories are fixed.
+      - id: audit
+        run: pwsh scripts/ci.ps1 -Stage audit
+        continue-on-error: true
+      - name: Upload reports
+        if: failure() || steps.audit.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.job }}
+          path: |
+            ${{ runner.temp }}/artifacts/
+            !${{ runner.temp }}/artifacts/**/*.exe
+            !${{ runner.temp }}/artifacts/**/*.db*
+          retention-days: 14
+
+  e2e-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Use LF line endings and long paths
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+      - uses: actions/checkout@v6
+        with:
+          path: zeal-clinic-frontend
+      - name: Pick the backend branch
+        id: backend-ref
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          $found = git ls-remote --heads "$env:GITHUB_SERVER_URL/$($env:BACKEND_REPO).git" "refs/heads/$env:BRANCH"
+          "ref=$(if ($found) { $env:BRANCH } else { 'main' })" >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@v6
+        id: backend
+        with:
+          repository: ${{ env.BACKEND_REPO }}
+          ref: ${{ steps.backend-ref.outputs.ref }}
+          path: zeal-clinic-backend
+      - name: Record the backend commit
+        env:
+          REF: ${{ steps.backend-ref.outputs.ref }}
+          COMMIT: ${{ steps.backend.outputs.commit }}
+        run: |
+          "Backend: $env:BACKEND_REPO, branch $env:REF, commit $env:COMMIT" >> $env:GITHUB_STEP_SUMMARY
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: zeal-clinic-backend/go.mod
+          cache-dependency-path: zeal-clinic-backend/go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: zeal-clinic-frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: zeal-clinic-frontend/package-lock.json
+      - name: Read the Playwright version
+        id: playwright
+        working-directory: zeal-clinic-frontend
+        run: |
+          $version = node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - uses: actions/cache@v5
+        with:
+          path: ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: pwsh scripts/ci.ps1 -Stage install
+        working-directory: zeal-clinic-frontend
+      - run: pwsh scripts/ci.ps1 -Stage build
+        working-directory: zeal-clinic-frontend
+      - run: pwsh scripts/ci.ps1 -Stage e2e -E2E smoke -BackendDir ../zeal-clinic-backend
+        working-directory: zeal-clinic-frontend
+      # Parity: this dashboard's scopes, endpoint calls and response envelope against the backend.
+      - run: pwsh scripts/ci.ps1 -Stage contract -Tags default -DashboardDir ../zeal-clinic-frontend
+        working-directory: zeal-clinic-backend
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.job }}
+          path: |
+            ${{ runner.temp }}/artifacts/
+            !${{ runner.temp }}/artifacts/**/*.exe
+            !${{ runner.temp }}/artifacts/**/*.db*
+          retention-days: 14

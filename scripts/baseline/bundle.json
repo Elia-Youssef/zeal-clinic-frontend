@@ -1,0 +1,19 @@
+{
+  "note": "Raw and gzip sizes of dist/assets from an LF production build. The bundle stage fails if the total JS or CSS raw bytes grow more than budgetPercent over these totals; gzip figures are informational only and are not part of the budget check.",
+  "budgetPercent": 3,
+  "totals": {
+    "jsRaw": 1193553,
+    "jsGzip": 351752,
+    "cssRaw": 118292,
+    "cssGzip": 18250,
+    "overallRaw": 1370245,
+    "overallGzip": 428476
+  },
+  "files": [
+    { "path": "assets/geist-cyrillic-wght-normal-CHSlOQsW.woff2", "raw": 14692, "gzip": 14715 },
+    { "path": "assets/geist-latin-ext-wght-normal-DMtmJ5ZE.woff2", "raw": 15308, "gzip": 15331 },
+    { "path": "assets/geist-latin-wght-normal-Dm3htQBi.woff2", "raw": 28400, "gzip": 28428 },
+    { "path": "assets/index-DCqnyUqa.js", "raw": 1193553, "gzip": 351752 },
+    { "path": "assets/index-L-TEtCF3.css", "raw": 118292, "gzip": 18250 }
+  ]
+}

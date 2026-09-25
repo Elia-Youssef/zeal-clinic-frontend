@@ -1,0 +1,274 @@
+{
+  "sidebar": {
+    "super-admin": ["Dashboard", "Clinical: Schedule", "Clinical: Patients", "Business: Suppliers", "Business: Financials", "Business: Team", "Catalog: Inventory", "Catalog: Services", "System: Reports", "System: Settings", "System: Connection"],
+    "admin": ["Dashboard", "Clinical: Schedule", "Clinical: Patients", "Business: Suppliers", "Business: Financials", "Business: Team", "Catalog: Inventory", "Catalog: Services", "System: Reports", "System: Settings", "System: Connection"],
+    "staff": ["Dashboard", "Clinical: Schedule", "Clinical: Patients", "Business: Suppliers", "Business: Financials", "Business: Team", "Catalog: Inventory", "Catalog: Services", "System: Settings", "System: Connection"],
+    "nurse": ["Dashboard", "Clinical: Schedule", "Clinical: Patients", "Catalog: Inventory", "Catalog: Services", "System: Connection"]
+  },
+  "routes": {
+    "/": {
+      "super-admin": { "result": "redirect → /dashboard" },
+      "admin": { "result": "redirect → /dashboard" },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/dashboard": {
+      "super-admin": { "result": "rendered", "title": "Dashboard" },
+      "admin": { "result": "rendered", "title": "Dashboard" },
+      "staff": { "result": "rendered", "title": "Dashboard" },
+      "nurse": { "result": "rendered", "title": "Dashboard" }
+    },
+    "/profile": {
+      "super-admin": { "result": "rendered", "title": "My Profile" },
+      "admin": { "result": "rendered", "title": "My Profile" },
+      "staff": { "result": "rendered", "title": "My Profile" },
+      "nurse": { "result": "rendered", "title": "My Profile" }
+    },
+    "/patients": {
+      "super-admin": { "result": "redirect → /patients/list" },
+      "admin": { "result": "redirect → /patients/list" },
+      "staff": { "result": "redirect → /patients/list" },
+      "nurse": { "result": "redirect → /patients/list" }
+    },
+    "/patients/list": {
+      "super-admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "nurse": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] }
+    },
+    "/patients/allergies": {
+      "super-admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"] },
+      "nurse": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"] }
+    },
+    "/patients/medicines": {
+      "super-admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"] },
+      "nurse": { "result": "rendered", "title": "Patients", "tabs": ["Patients", "Allergies", "Medicines"], "actions": ["New"] }
+    },
+    "/patients/:id": {
+      "super-admin": { "result": "rendered", "title": "Patient", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Patient", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Patient", "actions": ["Edit"] },
+      "nurse": { "result": "rendered", "title": "Patient", "actions": ["Edit"] }
+    },
+    "/schedule": {
+      "super-admin": { "result": "redirect → /schedule/calendar" },
+      "admin": { "result": "redirect → /schedule/calendar" },
+      "staff": { "result": "redirect → /schedule/calendar" },
+      "nurse": { "result": "redirect → /schedule/calendar" }
+    },
+    "/schedule/calendar": {
+      "super-admin": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] },
+      "admin": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] },
+      "staff": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] },
+      "nurse": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] }
+    },
+    "/schedule/rooms": {
+      "super-admin": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] },
+      "nurse": { "result": "rendered", "title": "Schedule", "tabs": ["Calendar", "Rooms"] }
+    },
+    "/reports": {
+      "super-admin": { "result": "rendered", "title": "Reports" },
+      "admin": { "result": "rendered", "title": "Reports" },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/connection": {
+      "super-admin": { "result": "rendered", "title": "Connection" },
+      "admin": { "result": "rendered", "title": "Connection" },
+      "staff": { "result": "rendered", "title": "Connection" },
+      "nurse": { "result": "rendered", "title": "Connection" }
+    },
+    "/inventory": {
+      "super-admin": { "result": "redirect → /inventory/products" },
+      "admin": { "result": "redirect → /inventory/products" },
+      "staff": { "result": "redirect → /inventory/products" },
+      "nurse": { "result": "redirect → /inventory/products" }
+    },
+    "/inventory/products": {
+      "super-admin": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"] },
+      "nurse": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"] }
+    },
+    "/inventory/categories": {
+      "super-admin": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"] },
+      "nurse": { "result": "rendered", "title": "Inventory", "tabs": ["Products", "Categories"] }
+    },
+    "/inventory/products/:id": {
+      "super-admin": { "result": "rendered", "title": "Product", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Product", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Product" },
+      "nurse": { "result": "rendered", "title": "Product" }
+    },
+    "/suppliers": {
+      "super-admin": { "result": "rendered", "title": "Suppliers", "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Suppliers", "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Suppliers", "actions": ["New"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/suppliers/:id": {
+      "super-admin": { "result": "rendered", "title": "Supplier", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Supplier", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Supplier", "actions": ["Edit"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials": {
+      "super-admin": { "result": "redirect → /financials/invoices" },
+      "admin": { "result": "redirect → /financials/invoices" },
+      "staff": { "result": "redirect → /financials/invoices" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/invoices": {
+      "super-admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/expenses": {
+      "super-admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/discounts": {
+      "super-admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/currencies": {
+      "super-admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Financials", "tabs": ["Invoices", "Expenses", "Discounts", "Currencies"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/invoices/:id": {
+      "super-admin": { "result": "rendered", "title": "Invoice", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Invoice", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Invoice", "actions": ["Edit"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/expenses/:id": {
+      "super-admin": { "result": "rendered", "title": "Expense", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Expense", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Expense", "actions": ["Edit"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/financials/discounts/:id": {
+      "super-admin": { "result": "rendered", "title": "Discount", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Discount", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Discount", "actions": ["Edit"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/services": {
+      "super-admin": { "result": "redirect → /services/procedures" },
+      "admin": { "result": "redirect → /services/procedures" },
+      "staff": { "result": "redirect → /services/procedures" },
+      "nurse": { "result": "redirect → /services/procedures" }
+    },
+    "/services/procedures": {
+      "super-admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] },
+      "nurse": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] }
+    },
+    "/services/types": {
+      "super-admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] },
+      "nurse": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] }
+    },
+    "/services/categories": {
+      "super-admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] },
+      "nurse": { "result": "rendered", "title": "Services", "tabs": ["Procedures", "Types", "Categories"] }
+    },
+    "/services/procedures/:id": {
+      "super-admin": { "result": "rendered", "title": "Procedure", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Procedure", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "rendered", "title": "Procedure" },
+      "nurse": { "result": "rendered", "title": "Procedure" }
+    },
+    "/team": {
+      "super-admin": { "result": "redirect → /team/employees" },
+      "admin": { "result": "redirect → /team/employees" },
+      "staff": { "result": "redirect → /team/holidays" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/team/employees": {
+      "super-admin": { "result": "rendered", "title": "Team", "tabs": ["Employees", "Holidays"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Team", "tabs": ["Employees", "Holidays"], "actions": ["New"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/team/holidays": {
+      "super-admin": { "result": "rendered", "title": "Team", "tabs": ["Employees", "Holidays"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Team", "tabs": ["Employees", "Holidays"], "actions": ["New"] },
+      "staff": { "result": "rendered", "title": "Team", "tabs": ["Holidays"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/team/:id": {
+      "super-admin": { "result": "rendered", "title": "Employee", "actions": ["Edit", "Delete"] },
+      "admin": { "result": "rendered", "title": "Employee", "actions": ["Edit", "Delete"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings": {
+      "super-admin": { "result": "redirect → /settings/staff" },
+      "admin": { "result": "redirect → /settings/staff" },
+      "staff": { "result": "redirect → /settings/about" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/roles": {
+      "super-admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/staff": {
+      "super-admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"], "actions": ["New"] },
+      "admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"], "actions": ["New"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/audit-log": {
+      "super-admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/about": {
+      "super-admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "admin": { "result": "rendered", "title": "Settings", "tabs": ["Staff", "Roles", "Audit Log", "About"] },
+      "staff": { "result": "rendered", "title": "Settings", "tabs": ["About"] },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/roles/:name": {
+      "super-admin": { "result": "rendered", "title": "Role" },
+      "admin": { "result": "rendered", "title": "Role" },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "/settings/staff/:id": {
+      "super-admin": { "result": "rendered", "title": "Staff", "actions": ["Edit"] },
+      "admin": { "result": "rendered", "title": "Staff", "actions": ["Edit"] },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    },
+    "*": {
+      "super-admin": { "result": "redirect → /dashboard" },
+      "admin": { "result": "redirect → /dashboard" },
+      "staff": { "result": "redirect → /dashboard" },
+      "nurse": { "result": "redirect → /dashboard" }
+    }
+  }
+}

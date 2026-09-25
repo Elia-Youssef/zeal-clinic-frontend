@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage', 'test-results', 'playwright-report', 'blob-report']),
   {
     files: ['**/*.{ts,tsx}'],
     linterOptions: {
@@ -29,6 +29,13 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
       'no-useless-assignment': 'off',
       'prefer-const': 'off',
+    },
+  },
+  {
+    // Tests and tool configs also run in Node.
+    files: ['tests/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', '*.config.{js,ts}'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

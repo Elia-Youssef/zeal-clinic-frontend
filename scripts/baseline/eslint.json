@@ -1,0 +1,27 @@
+{
+  "maxWarnings": 1,
+  "note": "eslint . warning ceiling for the relaxed rule set in eslint.config.js. The lint stage fails if the warning count grows past this and prints a tighten hint if it drops; errors always fail the stage. The one warning is react-hooks/incompatible-library, an always-on rule, not one of the seven relaxed ones.",
+  "strictPreview": {
+    "note": "Informational only, does not gate the stage. Same files linted with the seven rules that eslint.config.js turns off restored to the level their own recommended or vite preset uses. prefer-const has no such preset in this rule set, so it is set to error here, matching common practice elsewhere. The stage recomputes and reports current numbers every run without rewriting this file; the numbers below are what the baseline run recorded. The total warning count is one higher than the seven rules below sum to, because react-hooks/incompatible-library (an always-on rule, not one of the seven) also fires under this config, same as in the ordinary run above.",
+    "ruleLevels": {
+      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-explicit-any": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/set-state-in-effect": "error",
+      "react-refresh/only-export-components": "error",
+      "no-useless-assignment": "error",
+      "prefer-const": "error"
+    },
+    "recordedErrors": 95,
+    "recordedWarnings": 14,
+    "recordedByRule": {
+      "@typescript-eslint/no-unused-vars": { "errors": 10, "warnings": 0 },
+      "@typescript-eslint/no-explicit-any": { "errors": 10, "warnings": 0 },
+      "react-hooks/exhaustive-deps": { "errors": 0, "warnings": 13 },
+      "react-hooks/set-state-in-effect": { "errors": 59, "warnings": 0 },
+      "react-refresh/only-export-components": { "errors": 8, "warnings": 0 },
+      "no-useless-assignment": { "errors": 2, "warnings": 0 },
+      "prefer-const": { "errors": 6, "warnings": 0 }
+    }
+  }
+}

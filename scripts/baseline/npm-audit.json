@@ -1,0 +1,9 @@
+{
+  "note": "npm audit --omit=dev advisories, tracked by distinct advisory id (npm's via.source), with package and severity. An advisory id absent from this baseline fails the audit stage; one that disappears prints a tighten hint. Production dependencies have no advisories.",
+  "advisories": [],
+  "withDevDependencies": {
+    "note": "npm's own metadata.vulnerabilities count from plain npm audit --json, which counts affected packages (each given its single worst severity) rather than distinct advisory ids. Information only, not used for gating.",
+    "total": 3,
+    "bySeverity": { "info": 0, "low": 0, "moderate": 1, "high": 2, "critical": 0 }
+  }
+}
