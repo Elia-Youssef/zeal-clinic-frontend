@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BEIRUT_TZ,
+  getClinicTimezone,
   beirutDayKey,
   beirutDaysAgo,
   beirutNow,
@@ -41,6 +42,12 @@ describe("DST vectors", () => {
 describe("BEIRUT_TZ", () => {
   it("is the IANA zone name", () => {
     expect(BEIRUT_TZ).toBe("Asia/Beirut");
+  });
+});
+
+describe("getClinicTimezone", () => {
+  it("defaults to Asia/Beirut when outside browser", () => {
+    expect(getClinicTimezone()).toBe("Asia/Beirut");
   });
 });
 

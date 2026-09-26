@@ -1,10 +1,26 @@
 import { addDays, format as fnsFormat } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
-// The clinic operates in Beirut. All wall-clock interactions go through here.
-// Lebanon observes DST (last Sun Mar -> last Sun Oct: UTC+3, otherwise UTC+2).
+// The clinic operates in its configured timezone (default: Asia/Beirut).
+// All wall-clock interactions go through here.
 // Never hardcode the offset; the TZ name handles DST automatically.
-export const BEIRUT_TZ = "Asia/Beirut";
+
+/**
+ * Read clinic timezone from `<meta name="clinic-timezone">` in the document head,
+ * falling back to Asia/Beirut outside a browser or when the tag is missing (the Vite dev server).
+ */
+export function getClinicTimezone(): string {
+  if (typeof document !== "undefined") {
+    const meta = document.querySelector('meta[name="clinic-timezone"]');
+    const content = meta?.getAttribute("content")?.trim();
+    if (content) return content;
+  }
+  return "Asia/Beirut";
+}
+
+// Read once at startup: the server injects the tag into the page it serves.
+export const CLINIC_TIMEZONE = getClinicTimezone();
+export const BEIRUT_TZ = CLINIC_TIMEZONE;
 
 export type BeirutWallClockIssue = "nonexistent" | "ambiguous";
 
@@ -18,17 +34,18 @@ function normalizedWallClock(local: string): string | null {
   return `${match[1]}T${match[2]}:${match[3]}:${match[4] ?? "00"}`;
 }
 
-/** Detect Beirut wall-clock values that cannot identify one exact instant. */
+/** Detect wall-clock values that cannot identify one exact instant. */
 export function getBeirutWallClockIssue(
   local: string,
 ): BeirutWallClockIssue | null {
   const expected = normalizedWallClock(local);
   if (!expected) return "nonexistent";
 
-  const instant = fromZonedTime(expected, BEIRUT_TZ);
+  const tz = CLINIC_TIMEZONE;
+  const instant = fromZonedTime(expected, tz);
   if (
     Number.isNaN(instant.getTime()) ||
-    formatInTimeZone(instant, BEIRUT_TZ, WALL_CLOCK_PATTERN) !== expected
+    formatInTimeZone(instant, tz, WALL_CLOCK_PATTERN) !== expected
   ) {
     return "nonexistent";
   }
@@ -39,7 +56,7 @@ export function getBeirutWallClockIssue(
   for (const minutes of [-120, -60, -30, 30, 60, 120]) {
     const alternate = new Date(instant.getTime() + minutes * 60_000);
     if (
-      formatInTimeZone(alternate, BEIRUT_TZ, WALL_CLOCK_PATTERN) === expected
+      formatInTimeZone(alternate, tz, WALL_CLOCK_PATTERN) === expected
     ) {
       return "ambiguous";
     }
@@ -65,23 +82,24 @@ export function wallClockToUtc(local: string): string {
       "The selected Beirut time occurs twice because of a daylight-saving transition.",
     );
   }
-  return fromZonedTime(withSeconds, BEIRUT_TZ).toISOString();
+  return fromZonedTime(withSeconds, CLINIC_TIMEZONE).toISOString();
 }
 
 function startOfBeirutDay(day: string): string {
-  // Some Beirut DST changes skip 00:00 entirely. Advance through the small
+  // Some DST changes skip 00:00 entirely. Advance through the small
   // transition window and return the first wall-clock minute that round-trips
   // to the requested calendar day.
+  const tz = CLINIC_TIMEZONE;
   for (let minute = 0; minute <= 180; minute += 1) {
     const hour = String(Math.floor(minute / 60)).padStart(2, "0");
     const min = String(minute % 60).padStart(2, "0");
     const local = `${day}T${hour}:${min}:00`;
-    const instant = fromZonedTime(local, BEIRUT_TZ);
-    if (formatInTimeZone(instant, BEIRUT_TZ, WALL_CLOCK_PATTERN) === local) {
+    const instant = fromZonedTime(local, tz);
+    if (formatInTimeZone(instant, tz, WALL_CLOCK_PATTERN) === local) {
       return instant.toISOString();
     }
   }
-  throw new Error(`Unable to resolve the start of Beirut day ${day}.`);
+  throw new Error(`Unable to resolve the start of day ${day}.`);
 }
 
 function addIsoCalendarDays(day: string, amount: number): string {
@@ -117,7 +135,7 @@ export function formatInBeirut(
   pattern = "yyyy-MM-dd HH:mm",
 ): string {
   if (!ts) return "";
-  return formatInTimeZone(ts, BEIRUT_TZ, pattern);
+  return formatInTimeZone(ts, CLINIC_TIMEZONE, pattern);
 }
 
 // Day-bucket key for grouping timestamps by Beirut calendar day. Use it instead
@@ -125,19 +143,19 @@ export function formatInBeirut(
 // Beirut events (21:00+ Beirut = next UTC day in winter, 22:00+ in DST).
 export function beirutDayKey(ts: string | Date | null | undefined): string {
   if (!ts) return "";
-  return formatInTimeZone(ts, BEIRUT_TZ, "yyyy-MM-dd");
+  return formatInTimeZone(ts, CLINIC_TIMEZONE, "yyyy-MM-dd");
 }
 
 // "Today" anchored to Beirut, as yyyy-MM-dd. Use for default date-range
 // filters so the range doesn't silently shift a day between 21:00 and 24:00
 // Beirut time.
 export function beirutToday(): string {
-  return formatInTimeZone(new Date(), BEIRUT_TZ, "yyyy-MM-dd");
+  return formatInTimeZone(new Date(), CLINIC_TIMEZONE, "yyyy-MM-dd");
 }
 
 // `n` days before Beirut "today", as yyyy-MM-dd.
 export function beirutDaysAgo(n: number): string {
-  const todayBeirut = toZonedTime(new Date(), BEIRUT_TZ);
+  const todayBeirut = toZonedTime(new Date(), CLINIC_TIMEZONE);
   return fnsFormat(addDays(todayBeirut, -n), "yyyy-MM-dd");
 }
 
@@ -145,11 +163,11 @@ export function beirutDaysAgo(n: number): string {
 // reflect Beirut wall-clock. Use ONLY when feeding date-fns helpers that work
 // on local fields (startOfWeek, etc.); never send this to the API.
 export function beirutNow(): Date {
-  return toZonedTime(new Date(), BEIRUT_TZ);
+  return toZonedTime(new Date(), CLINIC_TIMEZONE);
 }
 
 // Same as beirutNow() but for an arbitrary instant, useful when a stored
 // timestamp needs to be navigated in Beirut wall-clock terms.
 export function beirutZoned(ts: string | Date): Date {
-  return toZonedTime(ts, BEIRUT_TZ);
+  return toZonedTime(ts, CLINIC_TIMEZONE);
 }
