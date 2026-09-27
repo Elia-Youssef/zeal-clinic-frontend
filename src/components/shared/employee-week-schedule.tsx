@@ -68,6 +68,7 @@ import {
   type AppointmentFormData,
 } from "@/components/forms/appointment-form";
 import { usePermissions } from "@/hooks/use-permissions";
+import { fmtDayOfWeek } from "@/lib/constants";
 import type {
   Appointment,
   EmployeeMonthHours,
@@ -274,45 +275,46 @@ export function EmployeeWeekSchedule({
   // Drop out-of-order responses.
   const reloadGen = useRef(0);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(() => {
     const gen = ++reloadGen.current;
     const dateParam = toIsoDate(weekStart);
-    try {
-      const [res, apptsRes] = await Promise.all([
-        api.get<EmployeeScheduleResponse>(
-          `/employees/${employeeId}/schedule?date=${dateParam}`,
-        ),
-        canReadAppointments
-          ? api
-              .get<Paginated<Appointment> | Appointment[]>(
-                `/employees/${employeeId}/appointments?date=${dateParam}`,
-              )
-              .catch(() => [] as Appointment[])
-          : Promise.resolve<Appointment[]>([]),
-      ]);
-      if (gen !== reloadGen.current) return;
-      const appointments = Array.isArray(apptsRes)
-        ? apptsRes
-        : (apptsRes.items ?? []);
-      setData({
-        days: res.days ?? [],
-        templates: res.templates ?? [],
-        scheduleChanges: res.scheduleChanges ?? [],
-        holidays: res.holidays ?? [],
-        monthStart: res.monthStart ?? "",
-        monthHours: res.monthHours ?? [],
-        // Match the calendar: replaced and cancelled appointments no longer
-        // hold their slot and should not occupy time on the active schedule.
-        appointments: appointments.filter(
-          (appointment) =>
-            appointment.status !== "Rescheduled" &&
-            appointment.status !== "Cancelled",
-        ),
+    return Promise.all([
+      api.get<EmployeeScheduleResponse>(
+        `/employees/${employeeId}/schedule?date=${dateParam}`,
+      ),
+      canReadAppointments
+        ? api
+            .get<Paginated<Appointment> | Appointment[]>(
+              `/employees/${employeeId}/appointments?date=${dateParam}`,
+            )
+            .catch(() => [] as Appointment[])
+        : Promise.resolve<Appointment[]>([]),
+    ])
+      .then(([res, apptsRes]) => {
+        if (gen !== reloadGen.current) return;
+        const appointments = Array.isArray(apptsRes)
+          ? apptsRes
+          : (apptsRes.items ?? []);
+        setData({
+          days: res.days ?? [],
+          templates: res.templates ?? [],
+          scheduleChanges: res.scheduleChanges ?? [],
+          holidays: res.holidays ?? [],
+          monthStart: res.monthStart ?? "",
+          monthHours: res.monthHours ?? [],
+          // Match the calendar: replaced and cancelled appointments no longer
+          // hold their slot and should not occupy time on the active schedule.
+          appointments: appointments.filter(
+            (appointment) =>
+              appointment.status !== "Rescheduled" &&
+              appointment.status !== "Cancelled",
+          ),
+        });
+      })
+      .catch(() => {
+        if (gen !== reloadGen.current) return;
+        setData(emptySchedule);
       });
-    } catch {
-      if (gen !== reloadGen.current) return;
-      setData(emptySchedule);
-    }
   }, [employeeId, weekStart, canReadAppointments]);
 
   useEffect(() => {
@@ -559,6 +561,7 @@ export function EmployeeWeekSchedule({
               size="icon"
               className="size-8"
               onClick={() => setWeekStart(addDays(weekStart, -7))}
+              aria-label="Previous week"
             >
               <ChevronLeft className="size-4" />
             </Button>
@@ -594,6 +597,7 @@ export function EmployeeWeekSchedule({
               size="icon"
               className="size-8"
               onClick={() => setWeekStart(addDays(weekStart, 7))}
+              aria-label="Next week"
             >
               <ChevronRight className="size-4" />
             </Button>
@@ -916,8 +920,16 @@ function DayColumn({
         return (
           <DropdownMenu key={hour}>
             <DropdownMenuTrigger
+              nativeButton={false}
+              aria-label={`${fmtDayOfWeek(day.dayOfWeek)} ${day.iso}, ${formatHour(hour)}`}
               render={
-                <div className={cellClass} style={{ height: HOUR_HEIGHT }} />
+                <div
+                  className={cn(
+                    cellClass,
+                    "outline-none focus-visible:bg-muted/50",
+                  )}
+                  style={{ height: HOUR_HEIGHT }}
+                />
               }
             />
             <DropdownMenuContent align="start" className="min-w-44">
@@ -1065,17 +1077,13 @@ function DayColumn({
 
       {/* Appointments sit on top of everything (z-20). */}
       {appointmentBlocks.map(({ appt, bounds }) => {
+        const { edge, ...position } = bounds;
         const edgeGroup =
-          bounds.edge === "before"
-            ? beforeHours
-            : bounds.edge === "after"
-              ? afterHours
-              : null;
+          edge === "before" ? beforeHours : edge === "after" ? afterHours : null;
         const edgeIndex = edgeGroup?.findIndex(
           ({ appt: edgeAppt }) => edgeAppt.id === appt.id,
         );
         const edgeWidth = edgeGroup?.length ? 100 / edgeGroup.length : 100;
-        const { edge: _edge, ...position } = bounds;
         const style = edgeGroup
           ? {
               ...position,

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { MoneyInput } from "@/components/shared/money-input";
@@ -24,6 +25,7 @@ export function SupplierPaymentForm({
   defaultSupplierId?: string;
   defaultSupplierLabel?: string;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
@@ -33,13 +35,13 @@ export function SupplierPaymentForm({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, defaultSupplierId], () => {
     if (!open) return;
     setSupplierId(defaultSupplierId ?? "");
     setAmount("");
     setTransactionMethod("cash");
     setDescription("");
-  }, [open, defaultSupplierId]);
+  });
 
   const canSubmit = !!supplierId && Number(amount) > 0;
 
@@ -68,8 +70,9 @@ export function SupplierPaymentForm({
     <Modal open={open} onClose={onClose} title="New Supplier Payment">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Supplier *</label>
+          <label htmlFor={`${fieldId}-supplier`} className="text-sm font-medium">Supplier *</label>
           <SearchableDropdown
+            id={`${fieldId}-supplier`}
             value={supplierId}
             onChange={setSupplierId}
             defaultApiOption={
@@ -104,8 +107,9 @@ export function SupplierPaymentForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Amount *</label>
+            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
             <MoneyInput
+              id={`${fieldId}-amount`}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
@@ -113,8 +117,9 @@ export function SupplierPaymentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Method</label>
+            <label htmlFor={`${fieldId}-method`} className="text-sm font-medium">Method</label>
             <SearchableDropdown
+              id={`${fieldId}-method`}
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={transactionMethodOptions}
@@ -125,8 +130,9 @@ export function SupplierPaymentForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={description}

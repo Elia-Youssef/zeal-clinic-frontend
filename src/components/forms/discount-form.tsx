@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -43,6 +43,7 @@ export function DiscountForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Discount;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [form, setForm] = useState<Fields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +51,7 @@ export function DiscountForm({
   const isEdit = !!initial;
   const isGift = isEdit && initial.discountType === "gift";
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -65,7 +66,7 @@ export function DiscountForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -124,8 +125,9 @@ export function DiscountForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             required
@@ -133,8 +135,9 @@ export function DiscountForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={form.description}
@@ -144,8 +147,9 @@ export function DiscountForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Value Type *</label>
+            <label htmlFor={`${fieldId}-value-type`} className="text-sm font-medium">Value Type *</label>
             <SearchableDropdown
+              id={`${fieldId}-value-type`}
               value={form.valueType}
               onChange={(v) => update("valueType", v)}
               options={discountValueTypeOptions}
@@ -154,8 +158,9 @@ export function DiscountForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Value *</label>
+            <label htmlFor={`${fieldId}-value`} className="text-sm font-medium">Value *</label>
             <Input
+              id={`${fieldId}-value`}
               type="number"
               step="0.01"
               min="0"
@@ -169,8 +174,9 @@ export function DiscountForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Start Date</label>
+            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date</label>
             <DatePicker
+              id={`${fieldId}-start-date`}
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
               max={form.endDate}
@@ -178,8 +184,9 @@ export function DiscountForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">End Date</label>
+            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date</label>
             <DatePicker
+              id={`${fieldId}-end-date`}
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
               min={form.startDate}
@@ -189,8 +196,9 @@ export function DiscountForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Status</label>
+          <label htmlFor={`${fieldId}-status`} className="text-sm font-medium">Status</label>
           <SearchableDropdown
+            id={`${fieldId}-status`}
             value={form.isActive}
             onChange={(v) => update("isActive", v)}
             options={[

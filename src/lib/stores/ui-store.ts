@@ -45,7 +45,5 @@ function applyUiSettings(state: UIState): void {
   document.documentElement.style.fontSize = `${state.scale * 100}%`;
 }
 
-if (typeof window !== "undefined") {
-  applyUiSettings(useUIStore.getState());
-  useUIStore.subscribe(applyUiSettings);
-}
+applyUiSettings(useUIStore.getState());
+useUIStore.subscribe(applyUiSettings);

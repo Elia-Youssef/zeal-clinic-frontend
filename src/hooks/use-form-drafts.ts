@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   useDraftGroup,
@@ -99,25 +100,25 @@ export function useFormDrafts<T>(opts: Options<T>): FormDraftsApi<T> {
     [group, saveDraftStore],
   );
 
-  // On open: auto-load initialId if present, else start a fresh draft.
-  const wasOpen = useRef(false);
-  useEffect(() => {
+  // On open: auto-load initialId if present, else start a fresh draft. Done
+  // during render (the fields are the calling form's own state), so the draft
+  // is there from the first paint of the open form.
+  useAdjustOnChange([open, enabled, group, initialId], (previous) => {
     if (!enabled) return;
-    if (open && !wasOpen.current) {
-      const seed = initialId
-        ? useFormDraftsStore.getState().getDraft<T>(group!, initialId)
-        : undefined;
-      if (seed) {
-        setActiveId(seed.id);
-        setLastSaved(JSON.stringify(seed.data));
-        applyRef.current(seed.data);
-      } else {
-        setActiveId(newId());
-        setLastSaved(null);
-      }
+    const wasOpen = previous?.[0] === true;
+    if (!open || wasOpen) return;
+    const seed = initialId
+      ? useFormDraftsStore.getState().getDraft<T>(group!, initialId)
+      : undefined;
+    if (seed) {
+      setActiveId(seed.id);
+      setLastSaved(JSON.stringify(seed.data));
+      opts.apply(seed.data);
+    } else {
+      setActiveId(newId());
+      setLastSaved(null);
     }
-    wasOpen.current = open;
-  }, [open, enabled, group, initialId]);
+  });
 
   useEffect(() => {
     if (!enabled || mode !== "auto" || !open || !activeId) return;

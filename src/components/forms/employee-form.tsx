@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,13 +49,14 @@ export function EmployeeForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Employee | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [form, setForm] = useState<EmployeeFormFields>(emptyForm);
   const [createUser, setCreateUser] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -75,7 +76,7 @@ export function EmployeeForm({
       setForm(emptyForm);
       setCreateUser(false);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof EmployeeFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -130,16 +131,18 @@ export function EmployeeForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">First Name *</label>
+            <label htmlFor={`${fieldId}-first-name`} className="text-sm font-medium">First Name *</label>
             <Input
+              id={`${fieldId}-first-name`}
               value={form.firstName}
               onChange={(e) => update("firstName", e.target.value)}
               required
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Last Name *</label>
+            <label htmlFor={`${fieldId}-last-name`} className="text-sm font-medium">Last Name *</label>
             <Input
+              id={`${fieldId}-last-name`}
               value={form.lastName}
               onChange={(e) => update("lastName", e.target.value)}
               required
@@ -149,8 +152,9 @@ export function EmployeeForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Role *</label>
+            <label htmlFor={`${fieldId}-role`} className="text-sm font-medium">Role *</label>
             <Input
+              id={`${fieldId}-role`}
               value={form.role}
               onChange={(e) => update("role", e.target.value)}
               placeholder="e.g. Doctor, Nurse, Secretary"
@@ -158,8 +162,9 @@ export function EmployeeForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Employment Type *</label>
+            <label htmlFor={`${fieldId}-employment-type`} className="text-sm font-medium">Employment Type *</label>
             <SearchableDropdown
+              id={`${fieldId}-employment-type`}
               value={form.employmentType}
               onChange={(v) => update("employmentType", v)}
               options={employmentTypeOptions}
@@ -171,8 +176,9 @@ export function EmployeeForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contact *</label>
+            <label htmlFor={`${fieldId}-contact`} className="text-sm font-medium">Contact *</label>
             <Input
+              id={`${fieldId}-contact`}
               value={form.contact}
               onChange={(e) => update("contact", e.target.value)}
               placeholder="Phone number"
@@ -180,8 +186,9 @@ export function EmployeeForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Email</label>
+            <label htmlFor={`${fieldId}-email`} className="text-sm font-medium">Email</label>
             <Input
+              id={`${fieldId}-email`}
               type="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
@@ -190,8 +197,9 @@ export function EmployeeForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Date of Birth</label>
+          <label htmlFor={`${fieldId}-date-of-birth`} className="text-sm font-medium">Date of Birth</label>
           <DateInput
+            id={`${fieldId}-date-of-birth`}
             value={form.dateOfBirth}
             onChange={(v) => update("dateOfBirth", v)}
           />
@@ -221,24 +229,27 @@ export function EmployeeForm({
             {createUser && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Username *</label>
+                  <label htmlFor={`${fieldId}-username`} className="text-sm font-medium">Username *</label>
                   <Input
+                    id={`${fieldId}-username`}
                     value={form.username}
                     onChange={(e) => update("username", e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Password</label>
+                  <label htmlFor={`${fieldId}-password`} className="text-sm font-medium">Password</label>
                   <Input
+                    id={`${fieldId}-password`}
                     type="password"
                     value={form.password}
                     onChange={(e) => update("password", e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Staff Role</label>
+                  <label htmlFor={`${fieldId}-staff-role`} className="text-sm font-medium">Staff Role</label>
                   <SearchableDropdown
+                    id={`${fieldId}-staff-role`}
                     value={form.userRole}
                     onChange={(v) => update("userRole", v)}
                     options={userRoleOptions}

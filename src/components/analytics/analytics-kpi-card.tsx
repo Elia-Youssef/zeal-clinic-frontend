@@ -3,9 +3,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { transactionColors } from "@/lib/constants";
-
-export const formatChange = (change: number) =>
-  `${change >= 0 ? "+" : ""}${(change * 100).toFixed(1)}%`;
+import { formatChange } from "./analytics-format";
 
 function Delta({ change, invert }: { change: number; invert?: boolean }) {
   if (change === 0) {

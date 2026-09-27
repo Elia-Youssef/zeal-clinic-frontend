@@ -30,6 +30,8 @@ export function Tabs({
           return (
             <button
               key={tab}
+              // Toggle buttons, not a tablist: the active one reads as pressed.
+              aria-pressed={isActive}
               onClick={() => handleClick(tab)}
               className={cn(
                 "relative shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",

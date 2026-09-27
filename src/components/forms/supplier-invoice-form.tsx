@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,6 +44,7 @@ export function SupplierInvoiceForm({
   defaultSupplierId?: string;
   defaultSupplierLabel?: string;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
@@ -53,14 +55,14 @@ export function SupplierInvoiceForm({
   const [items, setItems] = useState<ItemDraft[]>([blankItem()]);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, defaultSupplierId], () => {
     if (!open) return;
     setInvoiceNumber("");
     setInvoiceNumberAuto(true);
     setSupplierId(defaultSupplierId ?? "");
     setNotes("");
     setItems([blankItem()]);
-  }, [open, defaultSupplierId]);
+  });
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>
@@ -159,8 +161,9 @@ export function SupplierInvoiceForm({
 
         <div className="grid grid-cols-1 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Supplier *</label>
+            <label htmlFor={`${fieldId}-supplier`} className="text-sm font-medium">Supplier *</label>
             <SearchableDropdown
+              id={`${fieldId}-supplier`}
               value={supplierId}
               onChange={setSupplierId}
               defaultApiOption={
@@ -195,8 +198,9 @@ export function SupplierInvoiceForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <textarea
+            id={`${fieldId}-notes`}
             className={textareaClass}
             rows={2}
             value={notes}
@@ -204,9 +208,9 @@ export function SupplierInvoiceForm({
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-items`}>
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Items *</label>
+            <label id={`${fieldId}-items`} className="text-sm font-medium">Items *</label>
             <Button
               type="button"
               variant="outline"
@@ -224,10 +228,11 @@ export function SupplierInvoiceForm({
             >
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
+                  <label htmlFor={`${fieldId}-item-${idx}-product`} className="text-xs text-muted-foreground">
                     Product *
                   </label>
                   <SearchableDropdown
+                    id={`${fieldId}-item-${idx}-product`}
                     value={item.itemId}
                     onChange={(v) => updateItem(idx, { itemId: v })}
                     apiEndpoint="/products/dropdown"
@@ -261,14 +266,16 @@ export function SupplierInvoiceForm({
                   size="icon-sm"
                   onClick={() => removeItem(idx)}
                   disabled={items.length === 1}
+                  aria-label="Remove item"
                 >
                   <Trash2 className="size-3.5 text-destructive" />
                 </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Qty *</label>
+                  <label htmlFor={`${fieldId}-item-${idx}-qty`} className="text-xs text-muted-foreground">Qty *</label>
                   <Input
+                    id={`${fieldId}-item-${idx}-qty`}
                     type="number"
                     min="1"
                     value={item.quantity}
@@ -280,10 +287,11 @@ export function SupplierInvoiceForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
+                  <label htmlFor={`${fieldId}-item-${idx}-amount`} className="text-xs text-muted-foreground">
                     Amount
                   </label>
                   <MoneyInput
+                    id={`${fieldId}-item-${idx}-amount`}
                     min="0"
                     value={item.amount}
                     onChange={(e) =>
@@ -297,8 +305,9 @@ export function SupplierInvoiceForm({
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Notes</label>
+                  <label htmlFor={`${fieldId}-item-${idx}-notes`} className="text-xs text-muted-foreground">Notes</label>
                   <Input
+                    id={`${fieldId}-item-${idx}-notes`}
                     value={item.notes}
                     onChange={(e) => updateItem(idx, { notes: e.target.value })}
                   />

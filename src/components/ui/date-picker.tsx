@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { CalendarIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -37,6 +36,7 @@ function toISO(date: Date): string {
 }
 
 export function DatePicker({
+  id,
   value,
   onChange,
   placeholder = "Pick a date",
@@ -46,6 +46,8 @@ export function DatePicker({
   min,
   max,
 }: {
+  /** The trigger's id, for a <label htmlFor>; the label names it, the shown date describes it. */
+  id?: string
   value: string
   onChange: (iso: string) => void
   placeholder?: string
@@ -58,6 +60,9 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false)
   const selected = parseISO(value)
   const showClear = !required && !!value && !disabled
+  // The label names the trigger, so its own text is read only through these ids.
+  const valueId = id ? `${id}-value` : undefined
+  const requiredId = id && required && !value ? `${id}-required` : undefined
   const minDate = parseISO(min ?? "")
   const maxDate = parseISO(max ?? "")
   const disabledMatcher = React.useMemo(() => {
@@ -71,6 +76,10 @@ export function DatePicker({
     <div className={cn("relative w-full", className)}>
       <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger
+          id={id}
+          aria-describedby={
+            [valueId, requiredId].filter(Boolean).join(" ") || undefined
+          }
           render={
             <Button
               variant="outline"
@@ -84,8 +93,14 @@ export function DatePicker({
           }
         >
           <CalendarIcon className="size-4 text-muted-foreground" />
-          {selected ? formatDisplay(selected) : placeholder}
-          {required && !value && <span className="sr-only">(required)</span>}
+          <span id={valueId}>
+            {selected ? formatDisplay(selected) : placeholder}
+          </span>
+          {required && !value && (
+            <span id={requiredId} className="sr-only">
+              (required)
+            </span>
+          )}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar

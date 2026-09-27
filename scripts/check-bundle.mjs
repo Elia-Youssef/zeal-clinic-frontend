@@ -1,5 +1,6 @@
-// Reads dist/assets, sizes every file raw and gzipped, and compares JS and CSS
-// totals against a baseline. Node built-ins only, no dependencies.
+// Reads dist/assets, sizes every file raw and gzipped, and compares the JS and
+// CSS totals and the initial JS (what a first visit loads before any page)
+// against a baseline. Node built-ins only, no dependencies.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, relative } from 'node:path'
 import { constants as zlibConstants, gzipSync } from 'node:zlib'
@@ -45,11 +46,36 @@ function totalOf(ext, key) {
   return rows.filter((r) => r.ext === ext).reduce((sum, r) => sum + r[key], 0)
 }
 
+// The scripts index.html loads up front: the module entry and the chunks it
+// preloads. Pages load on demand, so a page pulled back into these files grows
+// the initial JS even when the total stays flat.
+function initialScripts() {
+  let html
+  try {
+    html = readFileSync(join(distDir, 'index.html'), 'utf8')
+  } catch {
+    return []
+  }
+  const paths = []
+  for (const [tag] of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+    const entry = /^<script\b/i.test(tag) && /\btype=["']module["']/i.test(tag)
+    const preload = /^<link\b/i.test(tag) && /\brel=["']modulepreload["']/i.test(tag)
+    const url = /\b(?:src|href)=["']([^"']+)["']/i.exec(tag)
+    if ((entry || preload) && url) paths.push(url[1].replace(/^\.?\//, ''))
+  }
+  return paths
+}
+
+const initial = new Set(initialScripts())
+const initialRows = rows.filter((r) => initial.has(r.path))
+
 const totals = {
   jsRaw: totalOf('js', 'raw'),
   jsGzip: totalOf('js', 'gzip'),
   cssRaw: totalOf('css', 'raw'),
   cssGzip: totalOf('css', 'gzip'),
+  initialJsRaw: initialRows.reduce((sum, r) => sum + r.raw, 0),
+  initialJsGzip: initialRows.reduce((sum, r) => sum + r.gzip, 0),
   overallRaw: rows.reduce((sum, r) => sum + r.raw, 0),
   overallGzip: rows.reduce((sum, r) => sum + r.gzip, 0),
 }
@@ -65,7 +91,11 @@ try {
 const budgetPercent = typeof baseline.budgetPercent === 'number' ? baseline.budgetPercent : 3
 let failed = false
 const budgetLines = []
-for (const [label, key] of [['JS', 'jsRaw'], ['CSS', 'cssRaw']]) {
+if (initialRows.length === 0 || initialRows.length !== initial.size) {
+  failed = true
+  budgetLines.push(`initial JS: dist/index.html names ${initial.size} script(s), ${initialRows.length} found under dist/assets`)
+}
+for (const [label, key] of [['JS', 'jsRaw'], ['CSS', 'cssRaw'], ['Initial JS', 'initialJsRaw']]) {
   const base = baseline.totals && baseline.totals[key]
   const now = totals[key]
   if (!base) {
@@ -89,7 +119,8 @@ for (const r of rows) {
 console.log('')
 for (const line of budgetLines) console.log(line)
 console.log(
-  `Summary: JS ${totals.jsRaw} B raw / ${totals.jsGzip} B gz, CSS ${totals.cssRaw} B raw / ${totals.cssGzip} B gz, ` +
+  `Summary: JS ${totals.jsRaw} B raw / ${totals.jsGzip} B gz (initial ${totals.initialJsRaw} B raw), ` +
+    `CSS ${totals.cssRaw} B raw / ${totals.cssGzip} B gz, ` +
     `${rows.length} files, ${totals.overallRaw} B total raw / ${totals.overallGzip} B total gz`,
 )
 

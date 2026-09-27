@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -149,6 +150,7 @@ export function ClientInvoiceFormBody({
   onSubmitted: (invoice: Invoice) => void;
   onCancel: () => void;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const defaultItemType: ItemDraft["itemType"] = can("products:read")
@@ -221,10 +223,10 @@ export function ClientInvoiceFormBody({
   );
 
   // Reset to blank on open; the drafts hook may then auto-load a draft (below).
-  useEffect(() => {
+  useAdjustOnChange([open, applySnapshot, makeBlank], () => {
     if (!open) return;
     applySnapshot(makeBlank());
-  }, [open, applySnapshot, makeBlank]);
+  });
 
   const snapshot = useMemo<InvoiceDraftData>(
     () => ({
@@ -501,8 +503,9 @@ export function ClientInvoiceFormBody({
 
       <div className="grid grid-cols-1 gap-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Patient</label>
+          <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient</label>
           <SearchableDropdown
+            id={`${fieldId}-patient`}
             value={patientId}
             onChange={(v) => {
               setPatientId(v);
@@ -544,8 +547,9 @@ export function ClientInvoiceFormBody({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Notes</label>
+        <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
         <textarea
+          id={`${fieldId}-notes`}
           className={textareaClass}
           rows={2}
           value={notes}
@@ -553,9 +557,9 @@ export function ClientInvoiceFormBody({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-items`}>
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Items</label>
+          <label id={`${fieldId}-items`} className="text-sm font-medium">Items</label>
           <Button
             type="button"
             size="sm"
@@ -604,8 +608,9 @@ export function ClientInvoiceFormBody({
                 )}
               >
                 <div className="space-y-1.5 min-w-0">
-                  <label className="text-sm font-medium">Type</label>
+                  <label htmlFor={`${fieldId}-item-${idx}-type`} className="text-sm font-medium">Type</label>
                   <SearchableDropdown
+                    id={`${fieldId}-item-${idx}-type`}
                     value={item.itemType}
                     onChange={(v) =>
                       updateItem(idx, {
@@ -618,9 +623,10 @@ export function ClientInvoiceFormBody({
                 </div>
                 {!isOther && (
                   <div className="space-y-1.5 min-w-0">
-                    <label className="text-sm font-medium">{itemLabel} *</label>
+                    <label htmlFor={`${fieldId}-item-${idx}-name`} className="text-sm font-medium">{itemLabel} *</label>
                     {item.itemType === "product" ? (
                       <SearchableDropdown
+                        id={`${fieldId}-item-${idx}-name`}
                         value={item.itemId}
                         onChange={(v) => {
                           if (!v) handleItemSelected(idx, "");
@@ -659,6 +665,7 @@ export function ClientInvoiceFormBody({
                       />
                     ) : item.itemType === "procedure" ? (
                       <SearchableDropdown
+                        id={`${fieldId}-item-${idx}-name`}
                         value={item.itemId}
                         onChange={(v) => {
                           if (!v) handleItemSelected(idx, "");
@@ -697,6 +704,7 @@ export function ClientInvoiceFormBody({
                       />
                     ) : (
                       <Input
+                        id={`${fieldId}-item-${idx}-name`}
                         placeholder="e.g. Holiday Gift"
                         value={item.giftName}
                         onChange={(e) =>
@@ -711,10 +719,15 @@ export function ClientInvoiceFormBody({
               {isGift && (
                 <>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Gift Type *</label>
-                    <div className="flex w-fit rounded-lg border border-border p-0.5">
+                    <label id={`${fieldId}-item-${idx}-gift-type`} className="text-sm font-medium">Gift Type *</label>
+                    <div
+                      role="group"
+                      aria-labelledby={`${fieldId}-item-${idx}-gift-type`}
+                      className="flex w-fit rounded-lg border border-border p-0.5"
+                    >
                       <button
                         type="button"
+                        aria-pressed={item.giftMode === "code"}
                         onClick={() =>
                           updateItem(idx, {
                             giftMode: "code",
@@ -732,6 +745,7 @@ export function ClientInvoiceFormBody({
                       </button>
                       <button
                         type="button"
+                        aria-pressed={item.giftMode === "patient"}
                         onClick={() =>
                           updateItem(idx, {
                             giftMode: "patient",
@@ -751,9 +765,10 @@ export function ClientInvoiceFormBody({
                   </div>
                   {item.giftMode === "code" ? (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Code *</label>
+                      <label htmlFor={`${fieldId}-item-${idx}-code`} className="text-sm font-medium">Code *</label>
                       <div className="flex gap-2">
                         <Input
+                          id={`${fieldId}-item-${idx}-code`}
                           value={item.giftCode}
                           onChange={(e) =>
                             updateItem(idx, {
@@ -778,8 +793,9 @@ export function ClientInvoiceFormBody({
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Recipient *</label>
+                      <label htmlFor={`${fieldId}-item-${idx}-recipient`} className="text-sm font-medium">Recipient *</label>
                       <SearchableDropdown
+                        id={`${fieldId}-item-${idx}-recipient`}
                         value={item.giftPatientId}
                         onChange={(v) => updateItem(idx, { giftPatientId: v })}
                         apiEndpoint="/patients/dropdown"
@@ -824,8 +840,9 @@ export function ClientInvoiceFormBody({
               >
                 {!isGift && !isOther && item.itemType !== "procedure" && (
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Qty *</label>
+                    <label htmlFor={`${fieldId}-item-${idx}-qty`} className="text-sm font-medium">Qty *</label>
                     <Input
+                      id={`${fieldId}-item-${idx}-qty`}
                       type="number"
                       min="1"
                       value={item.quantity}
@@ -838,10 +855,11 @@ export function ClientInvoiceFormBody({
                   </div>
                 )}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
+                  <label htmlFor={`${fieldId}-item-${idx}-amount`} className="text-sm font-medium">
                     {isGift ? "Value *" : "Amount *"}
                   </label>
                   <MoneyInput
+                    id={`${fieldId}-item-${idx}-amount`}
                     min="0"
                     value={item.amount}
                     readOnly={
@@ -865,8 +883,9 @@ export function ClientInvoiceFormBody({
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Notes</label>
+                  <label htmlFor={`${fieldId}-item-${idx}-notes`} className="text-sm font-medium">Notes</label>
                   <Input
+                    id={`${fieldId}-item-${idx}-notes`}
                     placeholder="Optional"
                     value={item.notes}
                     onChange={(e) => updateItem(idx, { notes: e.target.value })}
@@ -879,8 +898,9 @@ export function ClientInvoiceFormBody({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Invoice Discount</label>
+        <label htmlFor={`${fieldId}-invoice-discount`} className="text-sm font-medium">Invoice Discount</label>
         <SearchableDropdown
+          id={`${fieldId}-invoice-discount`}
           value={discountId}
           onChange={(v) => {
             setDiscountId(v);

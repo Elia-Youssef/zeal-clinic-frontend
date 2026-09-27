@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Loading } from "@/components/shared/loading";
@@ -45,20 +45,19 @@ function ProductDetailContent() {
   const [editingConflict, setEditingConflict] =
     useState<ProductAllergyConflict | null>(null);
 
-  const load = async () => {
-    try {
-      const prod = await api.get<Product>(`/products/${id}`);
-      setProduct(prod);
-    } catch {
-      addAlert("error", "Failed to load product.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    () =>
+      api
+        .get<Product>(`/products/${id}`)
+        .then((prod) => setProduct(prod))
+        .catch(() => addAlert("error", "Failed to load product."))
+        .finally(() => setLoading(false)),
+    [id, addAlert],
+  );
 
   useEffect(() => {
-    load();
-  }, [id]);
+    void load();
+  }, [load]);
 
   const handleDelete = async () => {
     if (!product) return;
@@ -126,7 +125,7 @@ function ProductDetailContent() {
           </DetailField>
           <DetailField label="Category">
             {(() => {
-              let cats = [
+              const cats = [
                 product.category?.parent?.name || "",
                 product.category?.name || "",
               ].filter((c) => c);
@@ -197,6 +196,7 @@ function ProductDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add allergy conflict"
                 onClick={() => setConflictFormOpen(true)}
               >
                 <Plus className="size-3.5" />

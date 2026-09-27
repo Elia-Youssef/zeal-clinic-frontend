@@ -1,4 +1,3 @@
-
 import { useState, type ComponentType } from "react";
 import {
   Plus,
@@ -49,7 +48,12 @@ export function HeaderQuickActions() {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="secondary" size="sm" className="gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1"
+              aria-label="Quick Action"
+            >
               <Plus className="size-4" />
               <span className="hidden sm:inline">Quick Action</span>
             </Button>

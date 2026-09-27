@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useId, type ReactNode } from "react";
 import { SlidersHorizontal, Printer } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,12 @@ import {
   InventoryCard,
   RevenueMixCard,
   DemographicsCard,
+} from "@/components/analytics/analytics-section-panels";
+import {
   currency,
   withRange,
   type UtcRange,
-} from "@/components/analytics/analytics-section-panels";
+} from "@/components/analytics/analytics-format";
 import { appointmentStatusTint, transactionColors } from "@/lib/constants";
 import type { Appointment, BalanceTransaction } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -451,12 +453,14 @@ function DateField({
   min?: string;
   max?: string;
 }) {
+  const fieldId = useId();
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">
+      <label htmlFor={`${fieldId}-date`} className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <DatePicker
+        id={`${fieldId}-date`}
         value={value}
         onChange={onChange}
         min={min}

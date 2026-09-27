@@ -10,7 +10,7 @@ export default defineConfig([
   {
     files: ['**/*.{ts,tsx}'],
     linterOptions: {
-      reportUnusedDisableDirectives: 'off',
+      reportUnusedDisableDirectives: 'error',
     },
     extends: [
       js.configs.recommended,
@@ -22,13 +22,8 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'react-hooks/exhaustive-deps': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-      'react-refresh/only-export-components': 'off',
-      'no-useless-assignment': 'off',
-      'prefer-const': 'off',
+      // Not part of any preset above.
+      'prefer-const': 'error',
     },
   },
   {

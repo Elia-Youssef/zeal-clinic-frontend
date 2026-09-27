@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
@@ -20,7 +19,7 @@ export function PageHeader({
   const navigate = useNavigate();
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (window.history.length > 1) {
       navigate(-1);
     } else if (backHref) {
       navigate(backHref);
@@ -30,7 +29,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={handleBack}>
+        <Button variant="ghost" size="sm" onClick={handleBack} aria-label="Back">
           <ArrowLeft className="size-4" />
         </Button>
         <h2 className="min-w-0 truncate text-xl font-semibold">{title}</h2>

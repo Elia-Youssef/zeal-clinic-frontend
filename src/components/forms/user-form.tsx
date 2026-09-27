@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,12 +38,13 @@ export function UserForm({
   onSaved: () => void;
   initial?: User | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [form, setForm] = useState<UserFormFields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -55,7 +57,7 @@ export function UserForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof UserFormFields, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -98,8 +100,9 @@ export function UserForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Username *</label>
+            <label htmlFor={`${fieldId}-username`} className="text-sm font-medium">Username *</label>
             <Input
+              id={`${fieldId}-username`}
               value={form.username}
               onChange={(e) => update("username", e.target.value)}
               required
@@ -107,8 +110,9 @@ export function UserForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Display Name *</label>
+            <label htmlFor={`${fieldId}-display-name`} className="text-sm font-medium">Display Name *</label>
             <Input
+              id={`${fieldId}-display-name`}
               value={form.displayName}
               onChange={(e) => update("displayName", e.target.value)}
               required
@@ -118,8 +122,9 @@ export function UserForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Role *</label>
+            <label htmlFor={`${fieldId}-role`} className="text-sm font-medium">Role *</label>
             <SearchableDropdown
+              id={`${fieldId}-role`}
               value={form.role}
               onChange={(v) => update("role", v)}
               options={userRoleOptions}
@@ -128,8 +133,9 @@ export function UserForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Password</label>
+            <label htmlFor={`${fieldId}-password`} className="text-sm font-medium">Password</label>
             <Input
+              id={`${fieldId}-password`}
               type="password"
               value={form.password}
               onChange={(e) => update("password", e.target.value)}

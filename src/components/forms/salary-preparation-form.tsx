@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
@@ -24,6 +24,7 @@ export function SalaryPreparationForm({
   onClose: () => void;
   onPrepared?: (preps: SalaryPreparation[]) => void;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -31,7 +32,7 @@ export function SalaryPreparationForm({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SalaryPreparation[] | null>(null);
 
-  useEffect(() => {
+  useAdjustOnChange([open], () => {
     if (!open) return;
     // Default to previous calendar month, anchored on Beirut so the month
     // doesn't flip for a clinic user opening the form from a different zone.
@@ -57,7 +58,7 @@ export function SalaryPreparationForm({
     setPeriodEnd(fmt(lastOfPrevMonth));
     setNotes("");
     setResult(null);
-  }, [open]);
+  });
 
   const canSubmit = !!periodStart && !!periodEnd && !result;
 
@@ -150,8 +151,9 @@ export function SalaryPreparationForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Period Start *</label>
+              <label htmlFor={`${fieldId}-period-start`} className="text-sm font-medium">Period Start *</label>
               <DatePicker
+                id={`${fieldId}-period-start`}
                 value={periodStart}
                 onChange={setPeriodStart}
                 required
@@ -159,8 +161,9 @@ export function SalaryPreparationForm({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Period End *</label>
+              <label htmlFor={`${fieldId}-period-end`} className="text-sm font-medium">Period End *</label>
               <DatePicker
+                id={`${fieldId}-period-end`}
                 value={periodEnd}
                 onChange={setPeriodEnd}
                 required
@@ -170,8 +173,9 @@ export function SalaryPreparationForm({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes</label>
+            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
             <textarea
+              id={`${fieldId}-notes`}
               className={textareaClass}
               rows={2}
               value={notes}

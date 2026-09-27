@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { usePageTitle } from "@/hooks/use-page-title";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { type Column, type RowAction } from "@/components/data/data-table";
@@ -127,6 +126,5 @@ function HolidaysContent() {
 }
 
 export default function HolidaysPage() {
-  usePageTitle("Holidays");
   return <HolidaysContent />;
 }

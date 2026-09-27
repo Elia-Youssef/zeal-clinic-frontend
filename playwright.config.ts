@@ -9,11 +9,40 @@ const artifactsDir = path.resolve(process.env.E2E_ARTIFACTS_DIR || 'test-results
 const port = Number(process.env.E2E_PORT || 55580)
 const onCi = !!process.env.CI
 const scenario = process.env.E2E_INSTANCE === 'scenario'
+// The visual goldens (screenshots) live outside the repository, in the folder E2E_VISUAL_DIR names, and the
+// visual project runs only when E2E_VISUAL=1 points at them: a fresh clone has nothing to compare against.
+// E2E_UPDATE_GOLDENS=1 records them again; otherwise a missing golden fails instead of being written.
+const visualDir = process.env.E2E_VISUAL === '1' ? process.env.E2E_VISUAL_DIR : undefined
+const recording = process.env.E2E_UPDATE_GOLDENS === '1'
 
 const demoProjects: Project[] = [
   // Every route for each role, recorded in e2e/golden/route-access.json.
   { name: 'smoke', testDir: './e2e/smoke' },
 ]
+
+const visualProjects: Project[] = visualDir
+  ? [
+      // Screens of fixed data, compared with the goldens after every other scenario project has finished, so
+      // nothing changes under them (the calendar shows every room there is, for instance).
+      {
+        name: 'visual',
+        testDir: './e2e/visual',
+        dependencies: ['flows', 'mobile', 'dark', 'tz-foreign'],
+        snapshotDir: visualDir,
+        snapshotPathTemplate: '{snapshotDir}/{projectName}/{testFileName}/{arg}-{platform}{ext}',
+        expect: {
+          timeout: 10_000,
+          toHaveScreenshot: {
+            animations: 'disabled',
+            caret: 'hide',
+            scale: 'css',
+            maxDiffPixelRatio: 0.001,
+            stylePath: path.join(import.meta.dirname, 'e2e', 'visual', 'screenshot.css'),
+          },
+        },
+      },
+    ]
+  : []
 
 // Specs build their own data through the API and share the database, so every name is unique.
 const scenarioProjects: Project[] = [
@@ -23,6 +52,7 @@ const scenarioProjects: Project[] = [
   { name: 'mobile', testDir: './e2e/mobile', dependencies: ['scenario'], use: { viewport: { width: 390, height: 844 } } },
   { name: 'dark', testDir: './e2e/dark', dependencies: ['scenario'], use: { colorScheme: 'dark' } },
   { name: 'tz-foreign', testDir: './e2e/tz-foreign', dependencies: ['scenario'], use: { timezoneId: 'America/New_York' } },
+  ...visualProjects,
   // Global state (roles, the sign-in rate limit, force sync): one worker, file by file, after everything
   // else has finished, whatever the outcome (it is the scenario project's teardown).
   { name: 'serial', testDir: './e2e/serial', workers: 1, fullyParallel: false },
@@ -37,6 +67,7 @@ export default defineConfig({
   retries: onCi ? 1 : 0,
   workers: onCi ? 2 : 4,
   timeout: scenario ? 90_000 : 60_000,
+  updateSnapshots: recording ? 'all' : 'none',
   grep: process.env.E2E_GREP ? new RegExp(process.env.E2E_GREP, 'i') : undefined,
   reporter: [
     ['list'],

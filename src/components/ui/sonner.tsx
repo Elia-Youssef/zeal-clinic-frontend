@@ -1,4 +1,3 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CircleCheckIcon,
@@ -7,13 +6,15 @@ import {
   OctagonXIcon,
   Loader2Icon,
 } from "lucide-react";
+import { useUIStore } from "@/lib/stores/ui-store";
 
+// Toasts follow the app's own theme (the staff menu's light/dark switch).
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  const theme = useUIStore((s) => s.theme);
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       // Drop top-anchored toasts (the notification toast) below the sticky
       // h-14 header. Other sides keep Sonner's default spacing.

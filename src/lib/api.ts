@@ -7,14 +7,25 @@ import { wallClockToUtc } from "@/lib/tz";
  *  background/optional fetches that already tolerate failure on their own. */
 export type RequestConfig = { silent?: boolean };
 
+// In development the Vite server talks to a separately running API:
+// http://localhost:55555 unless VITE_API_BASE_URL (see .env.example) names
+// another origin. A production build is served by the API itself and calls its
+// own origin; the variable plays no part there.
+const DEV_API_ORIGIN = "http://localhost:55555";
+
+function devApiBase(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api$/, "");
+  return `${configured || DEV_API_ORIGIN}/api`;
+}
+
 export const BASE_URL = import.meta.env.DEV
-  ? "http://localhost:55555/api"
-  : typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.host}/api`
-    : "http://localhost:55555/api";
+  ? devApiBase()
+  : `${window.location.protocol}//${window.location.host}/api`;
 
 function getToken(): string {
-  if (typeof window === "undefined") return "";
   return sessionStorage.getItem("token") ?? "";
 }
 
@@ -27,6 +38,14 @@ function clearAuthSession(): void {
   sessionStorage.removeItem("auth_employee_id");
   sessionStorage.removeItem("auth_expires_at");
   clearFormDrafts();
+}
+
+/** Ends the session the way a 401 does: the overlay says why, the session keys
+ *  and the drafts go, and the browser returns to the sign-in page. */
+export function expireSession(): void {
+  useLoadingStore.getState().show("Session expired");
+  clearAuthSession();
+  window.location.href = "/";
 }
 
 async function request<T>(
@@ -47,11 +66,7 @@ async function request<T>(
   const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
 
   if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      useLoadingStore.getState().show("Session expired");
-      clearAuthSession();
-      window.location.href = "/";
-    }
+    expireSession();
     throw new Error("Session expired");
   }
   // A 403 doesn't redirect: page-level access is enforced by route guards
@@ -150,7 +165,6 @@ export const api = {
       { method: "GET" },
       config,
     );
-    if (typeof window === "undefined") return;
     const host = BASE_URL.replace(/\/api\/?$/, "");
     const token = getToken();
     const res = await fetch(`${host}${url}`, {

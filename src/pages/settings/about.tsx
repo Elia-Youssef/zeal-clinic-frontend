@@ -14,7 +14,6 @@ import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { useRealtimeStore } from "@/lib/stores/realtime-store";
 import { usePermissions } from "@/hooks/use-permissions";
-import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
 import type {
   CloudRestoreResult,
@@ -27,7 +26,6 @@ import { beirutDayKey } from "@/lib/tz";
 const POLL_INTERVAL = 3000;
 
 export default function AboutPage() {
-  usePageTitle("About");
   const addAlert = useAlertStore((s) => s.addAlert);
   const confirm = useConfirm();
   const { can } = usePermissions();
@@ -199,6 +197,8 @@ export default function AboutPage() {
         <CardHeader className="flex flex-col items-center text-center">
           <div className="aspect-square size-14 rounded-xl overflow-hidden mb-2">
             <div
+              role="img"
+              aria-label="Zeal Clinic logo"
               className="size-full bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(/zeal.png)` }}
             />

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -154,9 +155,10 @@ function WizardBody({
   const [internalStep, setInternalStep] = React.useState(0);
   const current = activeStep ?? internalStep;
 
-  React.useEffect(() => {
+  // An uncontrolled wizard starts over each time it opens.
+  useAdjustOnChange([open, activeStep], () => {
     if (open && activeStep === undefined) setInternalStep(0);
-  }, [open, activeStep]);
+  });
 
   const setStep = (idx: number) => {
     onStepChange?.(idx);

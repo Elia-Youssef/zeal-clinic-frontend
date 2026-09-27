@@ -41,7 +41,7 @@ export default function ExpensesPage() {
     },
   ];
 
-  const handleSaved = (expense: Expense) => {
+  const handleSaved = () => {
     setRefreshKey((k) => k + 1);
   };
 

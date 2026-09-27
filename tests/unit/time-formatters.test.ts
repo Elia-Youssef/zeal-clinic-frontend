@@ -78,14 +78,16 @@ describe("formatTimeRange", () => {
   });
 });
 
-// On 2026-06-15 at 12:00 UTC the clinic's day is June 15; a machine in
-// Kiritimati is already on June 16.
+// On 2026-06-15 at 12:00 UTC the clinic's day is June 15, so someone born on
+// 2008-06-16 is still 17 there; a machine in Kiritimati is already on June 16.
+// The age follows the clinic's day, whatever zone the browser is in (before,
+// the Kiritimati machine counted the patient as an adult a day early).
 const UNDER_18_ON_BIRTHDAY_EVE: Record<string, boolean> = {
   "Asia/Beirut": true,
-  "Pacific/Kiritimati": false,
+  "Pacific/Kiritimati": true,
 };
 
-describe("isUnder18 (reads the machine's local date)", () => {
+describe("isUnder18 (reads the clinic's date)", () => {
   it("is false for missing or unreadable dates", () => {
     expect(isUnder18(null)).toBe(false);
     expect(isUnder18(undefined)).toBe(false);
@@ -103,10 +105,16 @@ describe("isUnder18 (reads the machine's local date)", () => {
   });
 
   it.runIf(RUNTIME_ZONE in UNDER_18_ON_BIRTHDAY_EVE)(
-    `uses the machine's day, not the clinic's (${RUNTIME_ZONE})`,
+    `uses the clinic's day, not the machine's (${RUNTIME_ZONE})`,
     () => {
       vi.setSystemTime("2026-06-15T12:00:00Z");
       expect(isUnder18("2008-06-16")).toBe(UNDER_18_ON_BIRTHDAY_EVE[RUNTIME_ZONE]);
+      // 21:30 UTC is already June 16 in the clinic (00:30), so the birthday has come.
+      vi.setSystemTime("2026-06-15T21:30:00Z");
+      expect(isUnder18("2008-06-16")).toBe(false);
+      // A machine far west of the clinic (UTC-10) is still on June 15 here.
+      vi.setSystemTime("2026-06-16T05:00:00Z");
+      expect(isUnder18("2008-06-16")).toBe(false);
     },
   );
 });

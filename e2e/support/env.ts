@@ -10,7 +10,10 @@ import type { StackState } from "./stack";
 //                        the flows, serial, mobile, dark and tz-foreign projects
 //   E2E_ARTIFACTS_DIR    reports, traces, server logs (default: test-results/)
 //   E2E_ALBUM_DIR        screenshot album of the walked pages; nothing is saved when unset
-//   E2E_UPDATE_GOLDENS   1 = record today's behavior into e2e/golden/ (same as --update-snapshots)
+//   E2E_UPDATE_GOLDENS   1 = record today's behavior into e2e/golden/ (same as --update-snapshots) and, with
+//                        E2E_VISUAL=1, the screenshots of the visual project
+//   E2E_VISUAL           1 = run the visual project on the scenario instance, comparing its screenshots with
+//                        the goldens under E2E_VISUAL_DIR (an absolute path outside the repository)
 //   E2E_GREP             run only the tests whose project, file or title matches this pattern
 //   E2E_PORT             server port (default 55580)
 //   E2E_STACK_WORK_DIR   stack.ps1 -WorkDir (default: its own, "nodes" next to the backend checkout)

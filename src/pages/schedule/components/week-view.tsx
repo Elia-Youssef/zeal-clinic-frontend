@@ -9,6 +9,7 @@ import { cn, getErrorMessage } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { beirutNow } from "@/lib/tz";
+import { onActivateKey } from "@/lib/keyboard";
 import { getWeekDays, toDateStr } from "./sched-utils";
 
 // Week-view Dates carry Beirut wall-clock in their local fields (built via
@@ -159,10 +160,13 @@ function WeekDayRow({
     >
       <div
         className={cn(
-          "cursor-pointer p-3 transition-colors hover:bg-muted/50",
+          "cursor-pointer p-3 transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50",
           isToday && "font-semibold",
         )}
+        role="button"
+        tabIndex={0}
         onClick={() => onDayClick(day)}
+        onKeyDown={onActivateKey(() => onDayClick(day))}
       >
         <div className="text-sm">{dayLabel(day)}</div>
         <div className="text-xs text-muted-foreground">{shortDate(day)}</div>

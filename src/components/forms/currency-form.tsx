@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -19,6 +19,7 @@ export function CurrencyForm({
   onSaved: () => void;
   initial?: Currency;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [code, setCode] = useState("");
@@ -27,13 +28,13 @@ export function CurrencyForm({
   const [exchangeRate, setExchangeRate] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setCode(initial?.code ?? "");
     setName(initial?.name ?? "");
     setSymbol(initial?.symbol ?? "");
     setExchangeRate(initial?.exchangeRate?.toString() ?? "");
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +65,9 @@ export function CurrencyForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Code *</label>
+            <label htmlFor={`${fieldId}-code`} className="text-sm font-medium">Code *</label>
             <Input
+              id={`${fieldId}-code`}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="USD"
@@ -74,8 +76,9 @@ export function CurrencyForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Name *</label>
+            <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
             <Input
+              id={`${fieldId}-name`}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="US Dollar"
@@ -83,8 +86,9 @@ export function CurrencyForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Symbol *</label>
+            <label htmlFor={`${fieldId}-symbol`} className="text-sm font-medium">Symbol *</label>
             <Input
+              id={`${fieldId}-symbol`}
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
               placeholder="$"
@@ -92,8 +96,9 @@ export function CurrencyForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Exchange Rate *</label>
+            <label htmlFor={`${fieldId}-exchange-rate`} className="text-sm font-medium">Exchange Rate *</label>
             <Input
+              id={`${fieldId}-exchange-rate`}
               type="number"
               step="any"
               value={exchangeRate}

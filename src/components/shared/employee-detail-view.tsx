@@ -79,7 +79,7 @@ export function EmployeeDetailView({
   useEffect(() => {
     fetchDetail(id);
     return () => setCurrent(null);
-  }, [id]);
+  }, [id, fetchDetail, setCurrent]);
 
   const reloadEmployee = () => fetchDetail(id);
   const bumpPayments = () => {
@@ -311,6 +311,7 @@ export function EmployeeDetailView({
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add salary"
                 onClick={() => setSalaryFormOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -433,6 +434,7 @@ export function EmployeeDetailView({
                     <Button
                       size="sm"
                       className="gap-1"
+                      aria-label="Add payment"
                       onClick={() => setPaymentFormOpen(true)}
                     >
                       <Plus className="size-3.5" />

@@ -50,6 +50,13 @@ function stubFetch(...responses: Response[]) {
   return fetchMock;
 }
 
+/** An unsigned JWT-shaped token: the payload is what the client reads. */
+function jwt(payload: Record<string, unknown>): string {
+  const encode = (value: unknown) =>
+    btoa(JSON.stringify(value)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(payload)}.signature`;
+}
+
 function sessionKeys(): string[] {
   const keys: string[] = [];
   for (let i = 0; i < sessionStorage.length; i++) keys.push(sessionStorage.key(i) ?? "");
@@ -109,8 +116,47 @@ describe("login", () => {
     });
   });
 
+  it("counts the expiry from the token's lifetime on the browser's clock", async () => {
+    // The server's clock is far behind the browser's: its exp would already be
+    // in the past here, while the token has a full 14 hours to live.
+    const NOW = "2026-06-15T12:00:00Z";
+    vi.setSystemTime(NOW);
+    const iat = 1_700_000_000;
+    const lifetime = 14 * 3600;
+    stubFetch(
+      jsonResponse({
+        Success: true,
+        Data: { ...LOGIN, token: jwt({ iat, exp: iat + lifetime }), expiresAt: iat + lifetime },
+      }),
+    );
+
+    await useAuthStore.getState().login("test.user", "secret");
+
+    expect(sessionStorage.getItem("auth_expires_at")).toBe(String(Date.parse(NOW) / 1000 + lifetime));
+    expect(sessionKeys()).toEqual(SESSION_KEYS);
+  });
+
+  it("falls back to the API's expiresAt when the token carries no lifetime", async () => {
+    stubFetch(
+      jsonResponse({ Success: true, Data: { ...LOGIN, token: jwt({ sub: "user-1" }) } }),
+      jsonResponse({ Success: true, Data: { ...LOGIN, token: "a.b.c" } }),
+      jsonResponse({ Success: true, Data: { ...LOGIN, expiresAt: undefined } }),
+    );
+
+    await useAuthStore.getState().login("test.user", "secret");
+    expect(sessionStorage.getItem("auth_expires_at")).toBe("1893456000");
+
+    await useAuthStore.getState().login("test.user", "secret");
+    expect(sessionStorage.getItem("auth_expires_at")).toBe("1893456000");
+
+    await useAuthStore.getState().login("test.user", "secret");
+    expect(sessionStorage.getItem("auth_expires_at")).toBe("");
+    expect(sessionKeys()).toEqual(SESSION_KEYS);
+  });
+
   it("stores an empty employee id for accounts without an employee", async () => {
-    const { employeeId, ...withoutEmployee } = LOGIN;
+    // The JSON round trip drops the undefined field.
+    const withoutEmployee = { ...LOGIN, employeeId: undefined };
     stubFetch(jsonResponse({ Success: true, Data: withoutEmployee }));
     await useAuthStore.getState().login("test.user", "secret");
     expect(sessionStorage.getItem("auth_employee_id")).toBe("");
@@ -216,18 +262,51 @@ describe("hydrate", () => {
     expect(useAuthStore.getState().hydrate()).toBe(true);
   });
 
-  // The API sends Unix seconds; Date.parse cannot read them, so the check is skipped.
-  it("still restores a session whose Unix-seconds expiry has passed", () => {
+  // The expiry is stored as Unix seconds (the API's own format).
+  it("keeps a session whose Unix-seconds expiry is still ahead", () => {
     vi.setSystemTime("2026-06-15T12:00:00Z");
-    storeSession({ ...STORED_SESSION, auth_expires_at: "1700000000" });
+    storeSession({ ...STORED_SESSION, auth_expires_at: "1893456000" });
     expect(useAuthStore.getState().hydrate()).toBe(true);
     expect(sessionStorage.getItem("token")).toBe("tok-123");
   });
 
-  it.fails("drops a session whose Unix-seconds expiry has passed", () => {
+  it("drops a session whose Unix-seconds expiry has passed", () => {
     vi.setSystemTime("2026-06-15T12:00:00Z");
     storeSession({ ...STORED_SESSION, auth_expires_at: "1700000000" });
+    localStorage.setItem("form-drafts", '{"state":{"drafts":{}},"version":0}');
+
     expect(useAuthStore.getState().hydrate()).toBe(false);
+    expect(sessionKeys()).toEqual([]);
+    expect(localStorage.getItem("form-drafts")).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  // The gate renders the app while the store says signed in, so dropping a
+  // session must sign the store out, not only clear the stored keys.
+  it("signs the store out when it drops a session that has expired since it was restored", () => {
+    vi.setSystemTime("2026-06-15T12:00:00Z");
+    const expiresAt = String(Date.parse("2026-06-15T13:00:00Z") / 1000);
+    storeSession({ ...STORED_SESSION, auth_employee_id: "emp-1", auth_expires_at: expiresAt });
+    expect(useAuthStore.getState().hydrate()).toBe(true);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+
+    vi.setSystemTime("2026-06-15T13:00:01Z");
+    expect(useAuthStore.getState().hydrate()).toBe(false);
+    expect(sessionKeys()).toEqual([]);
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState()).toMatchObject(SIGNED_OUT);
+  });
+
+  it("signs the store out when this tab's token is gone, leaving the storage alone", () => {
+    storeSession(STORED_SESSION);
+    expect(useAuthStore.getState().hydrate()).toBe(true);
+    sessionStorage.removeItem("token");
+    localStorage.setItem("form-drafts", '{"state":{"drafts":{}},"version":0}');
+
+    expect(useAuthStore.getState().hydrate()).toBe(false);
+    expect(useAuthStore.getState()).toMatchObject(SIGNED_OUT);
+    expect(sessionStorage.getItem("auth_user")).toBe("Test User");
+    expect(localStorage.getItem("form-drafts")).not.toBeNull();
   });
 });
 

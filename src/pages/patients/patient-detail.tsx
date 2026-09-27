@@ -103,7 +103,7 @@ function PatientDetailContent() {
     return () => {
       setCurrent(null);
     };
-  }, [id]);
+  }, [id, fetchDetail, setCurrent]);
 
   if (loading) return <Loading />;
   if (!patient)
@@ -213,6 +213,7 @@ function PatientDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add allergy"
                 onClick={() => setAllergyFormOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -262,6 +263,7 @@ function PatientDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add medicine"
                 onClick={() => setMedicineFormOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -333,6 +335,7 @@ function PatientDetailContent() {
                 <Button
                   size="sm"
                   className="gap-1"
+                  aria-label="Add appointment"
                   onClick={() => setAppointmentFormOpen(true)}
                 >
                   <Plus className="size-3.5" />
@@ -404,6 +407,7 @@ function PatientDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add prescription"
                 onClick={() => setPrescriptionFormOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -446,6 +450,7 @@ function PatientDetailContent() {
                 <Button
                   size="sm"
                   className="gap-1"
+                  aria-label="Add invoice"
                   onClick={() => setInvoiceFormOpen(true)}
                 >
                   <Plus className="size-3.5" />
@@ -566,6 +571,7 @@ function PatientDetailContent() {
                     <Button
                       size="sm"
                       className="gap-1"
+                      aria-label="Add payment"
                       onClick={() => setPaymentFormOpen(true)}
                     >
                       <Plus className="size-3.5" />

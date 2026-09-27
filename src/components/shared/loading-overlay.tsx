@@ -55,7 +55,9 @@ export function LoadingOverlay() {
               className="absolute size-24 rounded-full bg-[oklch(0.72_0.13_45/0.25)] blur-2xl animate-pulse"
             />
             <div className="relative size-15 overflow-hidden rounded-xl ring-1 ring-border/60 shadow-lg shadow-[oklch(0.72_0.13_45/0.25)]">
+              {/* Decorative: the status message below is what gets announced. */}
               <div
+                aria-hidden
                 className="size-full bg-cover bg-center bg-no-repeat"
                 style={{ backgroundImage: "url(/zeal.png)" }}
               />

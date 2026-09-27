@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -7,10 +8,14 @@ export function useAnalytics<T>(endpoint: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  // A new endpoint is loading from the render that asks for it.
+  useAdjustOnChange([endpoint], () => {
     setLoading(true);
     setError(null);
+  });
+
+  useEffect(() => {
+    let cancelled = false;
     api
       .get<T>(endpoint)
       .then((res) => {

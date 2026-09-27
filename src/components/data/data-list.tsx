@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import {
   DataTable,
   type Column,
@@ -56,44 +57,48 @@ function useListData<T>({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("offset", String(offset));
-      params.set("limit", String(limit));
-      if (filter) params.set("filter", filter);
-      if (from && to) {
-        const range = dateRangeToUtc(from, to);
-        params.set("from", range.from);
-        params.set("to", range.to);
-      }
-      if (sort) {
-        params.set("sort", sort.id);
-        params.set("order", sort.dir);
-      }
-      const sep = endpoint.includes("?") ? "&" : "?";
-      const res = await api.get<Paginated<T> | T[]>(
-        `${endpoint}${sep}${params}`,
-      );
-      if (isPaginated<T>(res)) {
-        setData(res.items);
-        setTotal(res.total);
-      } else {
-        setData(res);
-        setTotal(res.length);
-      }
-    } catch {
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [endpoint, offset, limit, filter, from, to, sort]);
+  const fetchData = useCallback(
+    () =>
+      Promise.resolve()
+        .then(() => {
+          const params = new URLSearchParams();
+          params.set("offset", String(offset));
+          params.set("limit", String(limit));
+          if (filter) params.set("filter", filter);
+          if (from && to) {
+            const range = dateRangeToUtc(from, to);
+            params.set("from", range.from);
+            params.set("to", range.to);
+          }
+          if (sort) {
+            params.set("sort", sort.id);
+            params.set("order", sort.dir);
+          }
+          const sep = endpoint.includes("?") ? "&" : "?";
+          return api.get<Paginated<T> | T[]>(`${endpoint}${sep}${params}`);
+        })
+        .then((res) => {
+          if (isPaginated<T>(res)) {
+            setData(res.items);
+            setTotal(res.total);
+          } else {
+            setData(res);
+            setTotal(res.length);
+          }
+        })
+        .catch(() => {
+          setData([]);
+          setTotal(0);
+        })
+        .finally(() => setLoading(false)),
+    [endpoint, offset, limit, filter, from, to, sort],
+  );
+
+  // A new query (or a refresh) is loading from the render that starts it.
+  useAdjustOnChange([fetchData, refreshKey], () => setLoading(true));
 
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchData();
   }, [fetchData, refreshKey]);
 
   return { data, total, loading };
@@ -158,7 +163,7 @@ export function DataList<T>({
     return () => clearTimeout(timer);
   }, [offsetInput]);
 
-  useEffect(() => {
+  useAdjustOnChange([resetKey], () => {
     setOffsetInput(0);
     setOffset(0);
     setFilterInput("");
@@ -166,7 +171,7 @@ export function DataList<T>({
     setFrom("");
     setTo("");
     setSort(null);
-  }, [resetKey]);
+  });
 
   const { data, total, loading } = useListData<T>({
     endpoint,
@@ -280,18 +285,19 @@ function DateFilterButton({
   to: string;
   onApply: (from: string, to: string) => void;
 }) {
+  const fieldId = useId();
   const [open, setOpen] = useState(false);
   const [draftFrom, setDraftFrom] = useState(from);
   const [draftTo, setDraftTo] = useState(to);
   const active = !!(from && to);
 
   // Seed the draft from the applied range each time the popover opens.
-  useEffect(() => {
+  useAdjustOnChange([open, from, to], () => {
     if (open) {
       setDraftFrom(from);
       setDraftTo(to);
     }
-  }, [open, from, to]);
+  });
 
   const apply = () => {
     onApply(draftFrom, draftTo);
@@ -324,14 +330,14 @@ function DateFilterButton({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label htmlFor={`${fieldId}-from`} className="text-xs font-medium text-muted-foreground">
             From
           </label>
-          <DatePicker value={draftFrom} onChange={setDraftFrom} max={draftTo} />
+          <DatePicker id={`${fieldId}-from`} value={draftFrom} onChange={setDraftFrom} max={draftTo} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">To</label>
-          <DatePicker value={draftTo} onChange={setDraftTo} min={draftFrom} />
+          <label htmlFor={`${fieldId}-to`} className="text-xs font-medium text-muted-foreground">To</label>
+          <DatePicker id={`${fieldId}-to`} value={draftTo} onChange={setDraftTo} min={draftFrom} />
         </div>
         <div className="flex items-center justify-end gap-2 pt-1">
           <Button variant="ghost" size="sm" onClick={clear} disabled={!active}>

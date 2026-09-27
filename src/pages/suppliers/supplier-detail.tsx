@@ -81,7 +81,7 @@ function SupplierDetailContent() {
     return () => {
       setCurrent(null);
     };
-  }, [id]);
+  }, [id, fetchDetail, setCurrent]);
 
   const handleDelete = async () => {
     if (!supplier) return;
@@ -192,6 +192,7 @@ function SupplierDetailContent() {
                 <Button
                   size="sm"
                   className="gap-1"
+                  aria-label="Add invoice"
                   onClick={() => setInvoiceFormOpen(true)}
                 >
                   <Plus className="size-3.5" />
@@ -313,6 +314,7 @@ function SupplierDetailContent() {
                     <Button
                       size="sm"
                       className="gap-1"
+                      aria-label="Add payment"
                       onClick={() => setPaymentFormOpen(true)}
                     >
                       <Plus className="size-3.5" />

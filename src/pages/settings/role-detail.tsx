@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,22 +45,29 @@ export default function RoleDetailPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
-  const reload = async () => {
+  const load = useCallback(
+    () =>
+      api
+        .get<Role>(`/roles/${name}`)
+        .then((r) => {
+          setRole(r);
+          setSelected(new Set(r.scopes));
+        })
+        .catch((err) => addAlert("error", getErrorMessage(err)))
+        .finally(() => setLoading(false)),
+    [name, addAlert],
+  );
+  const reload = () => {
     setLoading(true);
-    try {
-      const r = await api.get<Role>(`/roles/${name}`);
-      setRole(r);
-      setSelected(new Set(r.scopes));
-    } catch (err) {
-      addAlert("error", getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+    void load();
   };
 
+  // Another role's page is loading from the render that shows it.
+  useAdjustOnChange([name], () => setLoading(true));
+
   useEffect(() => {
-    reload();
-  }, [name]);
+    void load();
+  }, [load]);
 
   const toggleScope = (scope: string) => {
     setSelected((prev) => {

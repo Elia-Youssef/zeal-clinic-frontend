@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -23,17 +23,18 @@ export function PatientMedicineForm({
   patientId: string;
   initial?: PatientMedicine | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [medicineId, setMedicineId] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setMedicineId(initial?.medicineId ?? "");
     setNotes(initial?.notes ?? "");
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,15 +72,16 @@ export function PatientMedicineForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Medicine *</label>
+          <label htmlFor={`${fieldId}-medicine`} className="text-sm font-medium">Medicine *</label>
           {isEdit ? (
-            <Input value={initial?.medicineName ?? "---"} disabled />
+            <Input id={`${fieldId}-medicine`} value={initial?.medicineName ?? "---"} disabled />
           ) : (
             <SearchableDropdown
+              id={`${fieldId}-medicine`}
               value={medicineId}
               onChange={setMedicineId}
               apiEndpoint="/medicines/dropdown"
-              mapItem={(m: any) => ({ value: m.id, label: m.name })}
+              mapItem={(m) => ({ value: m.id, label: m.name })}
               placeholder="Select…"
               renderAddForm={({
                 open: addOpen,
@@ -99,8 +101,9 @@ export function PatientMedicineForm({
           )}
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <Input
+            id={`${fieldId}-notes`}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"

@@ -331,7 +331,7 @@ export function useAppointmentDrag({
     };
 
     return { startDrag, endSession };
-  }, []);
+  }, [gridRef, scrollRef]);
 
   useEffect(() => () => ctrl.endSession(), [ctrl]);
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useId } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
@@ -17,6 +17,7 @@ export function CancelPage({
   onBack: () => void;
   onSaved: () => void;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,8 +44,9 @@ export function CancelPage({
         Are you sure you want to cancel this appointment?
       </p>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Cancellation Reason</label>
+        <label htmlFor={`${fieldId}-cancellation-reason`} className="text-sm font-medium">Cancellation Reason</label>
         <textarea
+          id={`${fieldId}-cancellation-reason`}
           className={textareaClass}
           rows={3}
           value={reason}
@@ -145,6 +147,7 @@ export function CompletePage({
   onCompleted: (notes: string, advance: boolean) => void;
   canContinue: boolean;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -168,8 +171,9 @@ export function CompletePage({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Completion Notes</label>
+        <label htmlFor={`${fieldId}-completion-notes`} className="text-sm font-medium">Completion Notes</label>
         <textarea
+          id={`${fieldId}-completion-notes`}
           className={textareaClass}
           rows={3}
           value={notes}

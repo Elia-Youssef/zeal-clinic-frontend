@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -19,6 +20,7 @@ export function HolidayForm({
   onSaved: () => void;
   initial?: Holiday | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [name, setName] = useState("");
@@ -27,7 +29,7 @@ export function HolidayForm({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setName(initial.name);
@@ -40,7 +42,7 @@ export function HolidayForm({
       setEndDate("");
       setNotes("");
     }
-  }, [open, initial]);
+  });
 
   // Default to a single-day holiday.
   const handleStartChange = (next: string) => {
@@ -85,8 +87,9 @@ export function HolidayForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Independence Day"
@@ -95,8 +98,9 @@ export function HolidayForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Start Date *</label>
+            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
             <DatePicker
+              id={`${fieldId}-start-date`}
               value={startDate}
               onChange={handleStartChange}
               required
@@ -104,8 +108,9 @@ export function HolidayForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">End Date *</label>
+            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
             <DatePicker
+              id={`${fieldId}-end-date`}
               value={endDate}
               onChange={setEndDate}
               required
@@ -114,8 +119,9 @@ export function HolidayForm({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <Input
+            id={`${fieldId}-notes`}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"

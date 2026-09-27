@@ -54,6 +54,11 @@ export function formatGridMinutes(min: number) {
   return formatQuarterHour(Math.floor(total / 60), total % 60);
 }
 
+// The calendar carries clinic wall-clock in a Date's local fields (beirutNow(),
+// beirutZoned(), the picked day, and the day arithmetic on them), so the
+// calendar day is those fields, whatever zone the browser is in. An instant
+// from the API is not a calendar day: zone it first (beirutZoned) or use
+// beirutDayKey.
 export function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

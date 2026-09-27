@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatChange } from "@/components/analytics/analytics-kpi-card";
-import { currency, percent } from "@/components/analytics/analytics-section-panels";
+import { currency, formatChange, percent } from "@/components/analytics/analytics-format";
 import { formatMoney, round2 } from "@/lib/utils";
 
 // These formatters are deliberately separate implementations; the tests pin

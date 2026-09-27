@@ -1,9 +1,9 @@
-
-import { useId } from "react"
+import { useEffect, useId } from "react"
 import { Link } from "react-router-dom"
 import { useLocation } from "react-router-dom"
 import { motion } from "motion/react"
 import { usePermissions } from "@/hooks/use-permissions"
+import { useTitleStore } from "@/lib/stores/title-store"
 import { cn } from "@/lib/utils"
 
 export type RouteTab = {
@@ -27,6 +27,14 @@ export function RouteTabs({
     return tab.mode === "all" ? canAll(...tab.scopes) : canAny(...tab.scopes)
   })
 
+  // The active tab names the page in the browser tab's title.
+  const activeLabel = visibleTabs.find((tab) => tab.href === pathname)?.label ?? ""
+  const setTab = useTitleStore((s) => s.setTab)
+  useEffect(() => {
+    setTab(activeLabel)
+    return () => setTab("")
+  }, [activeLabel, setTab])
+
   if (visibleTabs.length === 0) return null
 
   return (
@@ -39,6 +47,7 @@ export function RouteTabs({
               <Link
                 key={tab.href}
                 to={tab.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "relative shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   isActive

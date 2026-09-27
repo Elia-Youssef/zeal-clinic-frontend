@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { getDefaultRowAction, type RowAction } from "@/components/data/data-row-actions";
+import { getDefaultRowAction } from "@/components/data/default-row-action";
+import type { RowAction } from "@/components/data/data-row-actions";
 
 type Row = { id: string; locked: boolean };
 

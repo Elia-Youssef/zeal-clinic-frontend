@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -23,6 +23,7 @@ export function ProductForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Product;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -34,14 +35,14 @@ export function ProductForm({
   const [unitPrice, setUnitPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setName(initial?.name ?? "");
     setCategoryId(initial?.categoryId ?? "");
     setQuantity(initial?.quantity?.toString() ?? "");
     setMinThreshold(initial?.minThreshold?.toString() ?? "");
     setUnitPrice(initial?.unitPrice?.toString() ?? "");
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,8 +82,9 @@ export function ProductForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -90,8 +92,9 @@ export function ProductForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Category</label>
+            <label htmlFor={`${fieldId}-category`} className="text-sm font-medium">Category</label>
             <SearchableDropdown
+              id={`${fieldId}-category`}
               value={categoryId}
               onChange={setCategoryId}
               apiEndpoint="/product-categories/dropdown"
@@ -115,8 +118,9 @@ export function ProductForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Unit Price *</label>
+            <label htmlFor={`${fieldId}-unit-price`} className="text-sm font-medium">Unit Price *</label>
             <MoneyInput
+              id={`${fieldId}-unit-price`}
               min="0"
               value={unitPrice}
               onChange={(e) => setUnitPrice(clampNonNegative(e.target.value))}
@@ -126,8 +130,9 @@ export function ProductForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Quantity</label>
+            <label htmlFor={`${fieldId}-quantity`} className="text-sm font-medium">Quantity</label>
             <Input
+              id={`${fieldId}-quantity`}
               type="number"
               min="0"
               value={quantity}
@@ -135,8 +140,9 @@ export function ProductForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Min Threshold</label>
+            <label htmlFor={`${fieldId}-min-threshold`} className="text-sm font-medium">Min Threshold</label>
             <Input
+              id={`${fieldId}-min-threshold`}
               type="number"
               min="0"
               value={minThreshold}

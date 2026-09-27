@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local environment files (the template .env.example stays tracked)
+.env
+.env.*
+!.env.example
+
 # Test output
 coverage/
 test-results/
@@ -28,3 +33,6 @@ blob-report/
 *.njsproj
 *.sln
 *.sw?
+
+# Visual goldens are kept outside the repository
+e2e/__screenshots__/

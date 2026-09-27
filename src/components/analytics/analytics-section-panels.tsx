@@ -5,23 +5,9 @@ import { DataTable, type Column } from "@/components/data/data-table";
 import { appointmentStatusTint } from "@/lib/constants";
 import { useAnalytics } from "./use-analytics";
 import { KpiPanel, KpiTile } from "./analytics-kpi-card";
+import { currency, percent, withRange, type UtcRange } from "./analytics-format";
 
-export type UtcRange = { from?: string; to?: string };
-
-export const currency = (n: number) =>
-  `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-
-export const percent = (n: number) => `${(n * 100).toFixed(1)}%`;
-
-// Appends from/to query params to a base endpoint for range-aware cards.
-export const withRange = (endpoint: string, range: UtcRange): string => {
-  if (!range.from || !range.to) return endpoint;
-  const sep = endpoint.includes("?") ? "&" : "?";
-  const qs = new URLSearchParams({ from: range.from, to: range.to }).toString();
-  return `${endpoint}${sep}${qs}`;
-};
-
-type Kpi = { value: number; previous: number; change: number };
+type Kpi ={ value: number; previous: number; change: number };
 
 type MoneyKpis = {
   revenue: Kpi;

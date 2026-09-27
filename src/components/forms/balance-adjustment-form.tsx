@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { MoneyInput } from "@/components/shared/money-input";
@@ -63,6 +64,7 @@ export function BalanceAdjustmentForm({
   mode?: "adjustment" | "write-off";
   defaultDirection?: "incoming" | "outgoing";
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const isWriteOff = mode === "write-off";
 
@@ -74,13 +76,13 @@ export function BalanceAdjustmentForm({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, defaultDirection], () => {
     if (!open) return;
     setAmount("");
     setTransactionMethod("cash");
     setDirection(defaultDirection);
     setDescription("");
-  }, [open, defaultDirection]);
+  });
 
   const canSubmit =
     !!entityId &&
@@ -127,8 +129,9 @@ export function BalanceAdjustmentForm({
           className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}
         >
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Amount *</label>
+            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
             <MoneyInput
+              id={`${fieldId}-amount`}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
@@ -136,8 +139,9 @@ export function BalanceAdjustmentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Direction *</label>
+            <label htmlFor={`${fieldId}-direction`} className="text-sm font-medium">Direction *</label>
             <SearchableDropdown
+              id={`${fieldId}-direction`}
               value={direction}
               onChange={(v) => setDirection(v as "incoming" | "outgoing")}
               options={directionOptions}
@@ -147,8 +151,9 @@ export function BalanceAdjustmentForm({
           </div>
           {!isWriteOff && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Method</label>
+              <label htmlFor={`${fieldId}-method`} className="text-sm font-medium">Method</label>
               <SearchableDropdown
+                id={`${fieldId}-method`}
                 value={transactionMethod}
                 onChange={setTransactionMethod}
                 options={transactionMethodOptions}
@@ -160,8 +165,9 @@ export function BalanceAdjustmentForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description *</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description *</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={description}

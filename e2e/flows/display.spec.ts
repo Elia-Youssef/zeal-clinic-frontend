@@ -30,7 +30,7 @@ test("the theme starts dark, toggles to light and stays light after a reload", a
   expect(await isDark(page)).toBe(false);
 });
 
-test("toasts follow the system color scheme, not the app theme", async ({ page, scenario }) => {
+test("toasts follow the app theme, not the system color scheme", async ({ page, scenario }) => {
   await page.goto("/patients/list");
   expect(await isDark(page)).toBe(true);
   await page.getByRole("button", { name: "New", exact: true }).click();
@@ -41,8 +41,8 @@ test("toasts follow the system color scheme, not the app theme", async ({ page, 
   await form.getByRole("button", { name: "Create", exact: true }).click();
   await confirm(page, "Create patient with minimal info?", "Create");
   await expectToast(page, "Patient created.");
-  // Playwright's default scheme is light: the toasts stay light while the app is dark.
-  await expect(page.locator("[data-sonner-toaster]").first()).toHaveAttribute("data-sonner-theme", "light");
+  // Playwright's default scheme is light: the toasts are dark like the app all the same.
+  await expect(page.locator("[data-sonner-toaster]").first()).toHaveAttribute("data-sonner-theme", "dark");
 });
 
 test("the UI zoom goes from 80% to 170% and stays after a reload", async ({ page }) => {

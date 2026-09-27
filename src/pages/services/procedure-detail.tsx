@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,23 +46,22 @@ function ProcedureDetailContent() {
     null,
   );
 
-  const load = async () => {
-    try {
-      const proc = await api.get<Procedure>(`/procedures/${id}`);
-      setProcedure(proc);
-    } catch {
-      addAlert("error", "Failed to load procedure.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    () =>
+      api
+        .get<Procedure>(`/procedures/${id}`)
+        .then((proc) => setProcedure(proc))
+        .catch(() => addAlert("error", "Failed to load procedure."))
+        .finally(() => setLoading(false)),
+    [id, addAlert],
+  );
 
   const bumpPricing = () => setPricingKey((k) => k + 1);
   const bumpConflicts = () => setConflictsKey((k) => k + 1);
 
   useEffect(() => {
-    load();
-  }, [id]);
+    void load();
+  }, [load]);
 
   const handleDelete = async () => {
     if (!procedure) return;
@@ -148,7 +147,7 @@ function ProcedureDetailContent() {
           </DetailField>
           <DetailField label="Category">
             {(() => {
-              let cats = [
+              const cats = [
                 procedure.category?.parent?.name || "",
                 procedure.category?.name || "",
               ].filter((c) => c);
@@ -222,6 +221,7 @@ function ProcedureDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add allergy conflict"
                 onClick={() => setConflictFormOpen(true)}
               >
                 <Plus className="size-3.5" />

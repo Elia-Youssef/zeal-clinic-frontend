@@ -27,8 +27,8 @@ export default function ProceduresPage() {
       header: "Category",
       className: "w-65",
       render: (p) => {
-        let cat = p.category?.name || "";
-        let parentcat = p.category?.parent?.name || "";
+        const cat = p.category?.name || "";
+        const parentcat = p.category?.parent?.name || "";
         if (!cat && !parentcat) return "---";
         return (
           <div className="flex flex-row gap-1">

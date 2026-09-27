@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -70,6 +71,7 @@ export function PatientForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Patient | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -79,7 +81,7 @@ export function PatientForm({
   const [isLebanon, setIsLebanon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       const hasLebanonCity = !!initial.cityId;
@@ -115,7 +117,7 @@ export function PatientForm({
       setForm(emptyForm);
       setIsLebanon(false);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof PatientFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -137,8 +139,14 @@ export function PatientForm({
       setIsLebanon(false);
     },
     // gender defaults to "Male"; country/cityName are labels that mirror their ids.
-    isEmpty: ({ gender: _g, countryName: _cn, cityName: _ccn, ...rest }) =>
-      Object.values(rest).every((v) => !v),
+    isEmpty: (d) =>
+      (Object.keys(d) as (keyof PatientFormFields)[]).every(
+        (key) =>
+          key === "gender" ||
+          key === "countryName" ||
+          key === "cityName" ||
+          !d[key],
+      ),
     label: (d) => `${d.firstName} ${d.lastName}`.trim() || "Untitled patient",
   });
 
@@ -219,23 +227,26 @@ export function PatientForm({
     <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">First Name *</label>
+            <label htmlFor={`${fieldId}-first-name`} className="text-sm font-medium">First Name *</label>
             <Input
+              id={`${fieldId}-first-name`}
               value={form.firstName}
               onChange={(e) => update("firstName", e.target.value)}
               required
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Middle Name</label>
+            <label htmlFor={`${fieldId}-middle-name`} className="text-sm font-medium">Middle Name</label>
             <Input
+              id={`${fieldId}-middle-name`}
               value={form.middleName}
               onChange={(e) => update("middleName", e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Last Name *</label>
+            <label htmlFor={`${fieldId}-last-name`} className="text-sm font-medium">Last Name *</label>
             <Input
+              id={`${fieldId}-last-name`}
               value={form.lastName}
               onChange={(e) => update("lastName", e.target.value)}
               required
@@ -245,8 +256,9 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Gender *</label>
+            <label htmlFor={`${fieldId}-gender`} className="text-sm font-medium">Gender *</label>
             <SearchableDropdown
+              id={`${fieldId}-gender`}
               value={form.gender}
               onChange={(v) => update("gender", v)}
               options={genderOptions}
@@ -255,8 +267,9 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Date of Birth</label>
+            <label htmlFor={`${fieldId}-date-of-birth`} className="text-sm font-medium">Date of Birth</label>
             <DateInput
+              id={`${fieldId}-date-of-birth`}
               value={form.dateOfBirth}
               onChange={(v) => update("dateOfBirth", v)}
             />
@@ -270,8 +283,9 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contact *</label>
+            <label htmlFor={`${fieldId}-contact`} className="text-sm font-medium">Contact *</label>
             <Input
+              id={`${fieldId}-contact`}
               value={form.contact}
               onChange={(e) => update("contact", e.target.value)}
               placeholder="Phone number"
@@ -279,8 +293,9 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Email</label>
+            <label htmlFor={`${fieldId}-email`} className="text-sm font-medium">Email</label>
             <Input
+              id={`${fieldId}-email`}
               type="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
@@ -290,19 +305,21 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
+            <label htmlFor={`${fieldId}-emergency-contact-name`} className="text-sm font-medium">
               Emergency Contact Name
             </label>
             <Input
+              id={`${fieldId}-emergency-contact-name`}
               value={form.emergencyContactName}
               onChange={(e) => update("emergencyContactName", e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
+            <label htmlFor={`${fieldId}-emergency-contact-phone`} className="text-sm font-medium">
               Emergency Contact Phone
             </label>
             <Input
+              id={`${fieldId}-emergency-contact-phone`}
               value={form.emergencyContactPhone}
               onChange={(e) => update("emergencyContactPhone", e.target.value)}
             />
@@ -311,8 +328,9 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Weight (kg)</label>
+            <label htmlFor={`${fieldId}-weight`} className="text-sm font-medium">Weight (kg)</label>
             <Input
+              id={`${fieldId}-weight`}
               type="number"
               step="0.1"
               min="0"
@@ -322,8 +340,9 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Height (cm)</label>
+            <label htmlFor={`${fieldId}-height`} className="text-sm font-medium">Height (cm)</label>
             <Input
+              id={`${fieldId}-height`}
               type="number"
               step="0.1"
               min="0"
@@ -333,8 +352,9 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Blood Type</label>
+            <label htmlFor={`${fieldId}-blood-type`} className="text-sm font-medium">Blood Type</label>
             <SearchableDropdown
+              id={`${fieldId}-blood-type`}
               value={form.bloodType}
               onChange={(v) => update("bloodType", v)}
               options={bloodTypeOptions}
@@ -345,8 +365,9 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Country</label>
+            <label htmlFor={`${fieldId}-country`} className="text-sm font-medium">Country</label>
             <SearchableDropdown
+              id={`${fieldId}-country`}
               value={form.countryId}
               defaultApiOption={
                 form.countryName
@@ -370,8 +391,9 @@ export function PatientForm({
           {isLebanon ? (
             <>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">City</label>
+                <label htmlFor={`${fieldId}-city`} className="text-sm font-medium">City</label>
                 <SearchableDropdown
+                  id={`${fieldId}-city`}
                   value={form.cityId}
                   defaultApiOption={
                     form.cityName
@@ -385,8 +407,9 @@ export function PatientForm({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Details</label>
+                <label htmlFor={`${fieldId}-details`} className="text-sm font-medium">Details</label>
                 <Input
+                  id={`${fieldId}-details`}
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
                   placeholder="Street address"
@@ -395,8 +418,9 @@ export function PatientForm({
             </>
           ) : (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Details</label>
+              <label htmlFor={`${fieldId}-details`} className="text-sm font-medium">Details</label>
               <Input
+                id={`${fieldId}-details`}
                 value={form.address}
                 onChange={(e) => update("address", e.target.value)}
                 placeholder="Street address"
@@ -407,8 +431,9 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Referred By</label>
+            <label htmlFor={`${fieldId}-referred-by`} className="text-sm font-medium">Referred By</label>
             <SearchableDropdown
+              id={`${fieldId}-referred-by`}
               value={form.referralId}
               apiEndpoint="/patients/dropdown"
               onChange={(v) => update("referralId", v)}
@@ -437,8 +462,9 @@ export function PatientForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Referral Source</label>
+            <label htmlFor={`${fieldId}-referral-source`} className="text-sm font-medium">Referral Source</label>
             <Input
+              id={`${fieldId}-referral-source`}
               value={form.referralSource}
               onChange={(e) => update("referralSource", e.target.value)}
               placeholder="e.g. Social media, Walk-in…"
@@ -447,8 +473,9 @@ export function PatientForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <textarea
+            id={`${fieldId}-notes`}
             className={textareaClass}
             rows={2}
             value={form.notes}

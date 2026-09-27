@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { X } from "lucide-react";
 import { format as fnsFormat } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ export function EmployeeScheduleChangeForm({
   defaultStartTime?: string;
   defaultEndTime?: string;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -111,11 +113,11 @@ export function EmployeeScheduleChangeForm({
     }
   }, [initial, defaultType, defaultDate, defaultStartTime, defaultEndTime]);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial, seedFields], () => {
     if (!open) return;
     seedFields();
     setEditing(!initial);
-  }, [open, initial, seedFields]);
+  });
 
   const isOvertime = type === "overtime";
   const bothTimesSet = !!startTime && !!endTime;
@@ -326,8 +328,9 @@ export function EmployeeScheduleChangeForm({
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Type *</label>
+          <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
           <SearchableDropdown
+            id={`${fieldId}-type`}
             value={type}
             onChange={(v) => setType(v as EmployeeScheduleChangeType)}
             options={typeOptions}
@@ -338,8 +341,9 @@ export function EmployeeScheduleChangeForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Start Date *</label>
+            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
             <DatePicker
+              id={`${fieldId}-start-date`}
               value={startDate}
               onChange={setStartDate}
               required
@@ -347,8 +351,9 @@ export function EmployeeScheduleChangeForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">End Date *</label>
+            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
             <DatePicker
+              id={`${fieldId}-end-date`}
               value={endDate}
               onChange={setEndDate}
               required
@@ -359,11 +364,12 @@ export function EmployeeScheduleChangeForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
+            <label htmlFor={`${fieldId}-start-time`} className="text-sm font-medium">
               Start Time{isOvertime ? " *" : ""}
             </label>
             <div className="relative">
               <Input
+                id={`${fieldId}-start-time`}
                 type="time"
                 value={startTime}
                 max={endTime || undefined}
@@ -384,11 +390,12 @@ export function EmployeeScheduleChangeForm({
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
+            <label htmlFor={`${fieldId}-end-time`} className="text-sm font-medium">
               End Time{isOvertime ? " *" : ""}
             </label>
             <div className="relative">
               <Input
+                id={`${fieldId}-end-time`}
                 type="time"
                 value={endTime}
                 min={startTime || undefined}
@@ -417,8 +424,9 @@ export function EmployeeScheduleChangeForm({
         </p>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <textarea
+            id={`${fieldId}-notes`}
             className={textareaClass}
             rows={2}
             value={notes}

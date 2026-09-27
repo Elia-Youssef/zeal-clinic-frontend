@@ -1,6 +1,10 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { formatInBeirut, getBeirutWallClockIssue } from "@/lib/tz";
+import {
+  beirutToday,
+  formatInBeirut,
+  getBeirutWallClockIssue,
+} from "@/lib/tz";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,14 +39,16 @@ export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+// Whole years up to the birthday, counted on the clinic's calendar day rather
+// than the browser's, so a patient turns 18 at the same moment on every device.
 export function isUnder18(iso: string | null | undefined): boolean {
   if (!iso) return false;
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return false;
-  const today = new Date();
-  let age = today.getFullYear() - y;
-  const monthDiff = today.getMonth() + 1 - m;
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age--;
+  const [todayYear, todayMonth, todayDay] = beirutToday().split("-").map(Number);
+  let age = todayYear - y;
+  const monthDiff = todayMonth - m;
+  if (monthDiff < 0 || (monthDiff === 0 && todayDay < d)) age--;
   return age < 18;
 }
 

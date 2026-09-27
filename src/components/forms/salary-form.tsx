@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
@@ -20,18 +20,19 @@ export function SalaryForm({
   onSaved: () => void;
   employeeId: string;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [amount, setAmount] = useState("");
   const [effectiveDate, setEffectiveDate] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open], () => {
     if (!open) return;
     setAmount("");
     setEffectiveDate("");
     setNotes("");
-  }, [open]);
+  });
 
   const canSubmit = Number(amount) > 0;
 
@@ -60,8 +61,9 @@ export function SalaryForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Amount *</label>
+            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
             <MoneyInput
+              id={`${fieldId}-amount`}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
@@ -69,15 +71,17 @@ export function SalaryForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Effective Date</label>
+            <label htmlFor={`${fieldId}-effective-date`} className="text-sm font-medium">Effective Date</label>
             <DatePicker
+              id={`${fieldId}-effective-date`}
               value={effectiveDate}
               onChange={setEffectiveDate}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes</label>
+            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
             <textarea
+              id={`${fieldId}-notes`}
               className={textareaClass}
               rows={2}
               value={notes}

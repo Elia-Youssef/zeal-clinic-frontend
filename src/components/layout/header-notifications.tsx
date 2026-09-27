@@ -13,6 +13,7 @@ import { useNotificationsStore } from "@/lib/stores/notifications-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { formatInBeirut } from "@/lib/tz";
+import { onActivateKey } from "@/lib/keyboard";
 
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -96,7 +97,16 @@ export function HeaderNotifications() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="secondary" size="icon-sm" className="relative">
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            className="relative"
+            aria-label={
+              unreadCount > 0
+                ? `Notifications, ${unreadCount} unread`
+                : "Notifications"
+            }
+          >
             <motion.span
               animate={bellControls}
               style={{ display: "inline-flex", transformOrigin: "50% 0%" }}
@@ -140,7 +150,15 @@ export function HeaderNotifications() {
               <div
                 key={notif.id}
                 onClick={() => handleItemClick(notif.id, notif.isRead)}
-                className={`group flex cursor-pointer gap-3 border-b pl-4 pr-2 py-3 hover:bg-muted/30 border-r-4 ${
+                // Every item stays focusable, so marking one read from the
+                // keyboard keeps the focus on it; Enter and Space do what a
+                // click does. It holds the delete button, so it keeps its
+                // plain role.
+                tabIndex={0}
+                onKeyDown={onActivateKey(() =>
+                  handleItemClick(notif.id, notif.isRead),
+                )}
+                className={`group flex cursor-pointer gap-3 border-b pl-4 pr-2 py-3 outline-none hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring border-r-4 ${
                   !notif.isRead
                     ? "bg-muted/50 border-r-primary"
                     : "border-r-transparent"
@@ -158,7 +176,7 @@ export function HeaderNotifications() {
                 <div className="flex flex-col items-end gap-1 justify-between">
                   <button
                     onClick={(e) => handleRemove(e, notif.id)}
-                    className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                    className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100 group-focus-visible:opacity-100 focus-visible:opacity-100"
                     aria-label="Delete notification"
                   >
                     <X className="size-3.5" />

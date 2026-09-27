@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Modal } from "@/components/shared/modal";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { Invoice } from "@/lib/types";
@@ -70,13 +71,13 @@ export function AppointmentForm({
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null);
   const [viewingStage, setViewingStage] = useState<WizardStage | null>(null);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initialPage], () => {
     if (!open) return;
     setPage(initialPage);
     setCompletionNotes(null);
     setCreatedInvoice(null);
     setViewingStage(null);
-  }, [open, initialPage]);
+  });
 
   const handleSaved = () => {
     onSaved?.();

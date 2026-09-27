@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { apiGet, apiLogout, ApiError, throwawayPassword } from "../support/api";
+import { settle } from "../support/app";
 import { browserState, signInWithForm, signOut } from "../support/auth";
 import { expect, test } from "../support/fixtures";
 import { dialog, input } from "../support/ui";
@@ -33,10 +34,12 @@ test.describe("sign-in form", () => {
   test("a disabled account can't sign in", async ({ page, guards, scenario }) => {
     const user = await scenario.user("nurse");
     await scenario.put(`/users/${user.id}`, { isActive: false });
-    guards.expectError("403 POST /api/auth/login");
+    // The server answers a disabled account exactly like a wrong password, so the form can't tell them apart.
+    guards.expectError("401 POST /api/auth/login");
     await page.goto("/");
-    expect(await signInWithForm(page, guards, user.username, user.password)).toBe(403);
-    await expect(loginError(page)).toHaveText("Your account is disabled");
+    expect(await signInWithForm(page, guards, user.username, user.password)).toBe(401);
+    await expect(loginError(page)).toHaveText("Invalid username or password");
+    expect((await browserState(page)).token).toBeNull();
   });
 
   test("returns to the page asked for before signing in", async ({ page, guards, scenario }) => {
@@ -86,7 +89,7 @@ test.describe("sign-in form", () => {
 test.describe("sessions", () => {
   test.use({ role: "staff", ownSession: true });
 
-  test("signing out goes back to the form and revokes the token", async ({ page, guards, runtime, session }) => {
+  test("signing out goes back to the form and revokes the token", async ({ page, runtime, session }) => {
     await page.goto("/dashboard");
     await signOut(page);
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
@@ -115,6 +118,66 @@ test.describe("sessions", () => {
     const state = await browserState(page);
     expect(state.token).toBeNull();
     expect(state.drafts ?? "").not.toContain(draftName);
+  });
+});
+
+// The dashboard keeps its own expiry (auth_expires_at, Unix seconds) and asks the server once it has
+// passed (src/lib/session-expiry.ts). The browser's clock is moved past it; the server's is not.
+test.describe("session expiry", () => {
+  test.use({ role: "staff", ownSession: true });
+
+  /** Moves the page's clock a minute past the stored expiry; resolves with the server's answer to the check. */
+  async function passStoredExpiry(page: Page): Promise<number> {
+    const { expiresAt, now } = await page.evaluate(() => ({
+      expiresAt: Number(sessionStorage.getItem("auth_expires_at")),
+      now: Date.now(),
+    }));
+    expect(expiresAt * 1000).toBeGreaterThan(now);
+    const verify = page.waitForResponse(
+      (r) => r.request().method() === "GET" && new URL(r.url()).pathname === "/api/auth/verify",
+    );
+    await page.clock.fastForward(expiresAt * 1000 - now + 60_000);
+    return (await verify).status();
+  }
+
+  test("a session the server still accepts goes on and drops the client's expiry", async ({ page, guards }) => {
+    await page.clock.install();
+    await page.goto("/patients/list");
+    await settle(page, guards);
+
+    expect(await passStoredExpiry(page)).toBe(200);
+    await expect.poll(() => page.evaluate(() => sessionStorage.getItem("auth_expires_at"))).toBe("");
+    expect((await browserState(page)).token).toBeTruthy();
+
+    // Signed in still: the next page opens, and the stored session is kept on the way.
+    await page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Schedule" }).click();
+    await page.waitForURL((url) => url.pathname.startsWith("/schedule"));
+    await settle(page, guards);
+    expect(new URL(page.url()).pathname).not.toBe("/");
+    expect((await browserState(page)).token).toBeTruthy();
+  });
+
+  test("a session revoked meanwhile goes back to sign-in and clears the session and the drafts", async ({ page, guards, runtime, session, scenario }) => {
+    guards.expectError("401 GET /api/auth/verify");
+    await page.clock.install();
+    await page.goto("/patients/list");
+    await page.getByRole("button", { name: "New", exact: true }).click();
+    const form = dialog(page, "New Patient");
+    const draftName = scenario.name("Draft");
+    await input(form, "First Name").fill(draftName);
+    await expect.poll(async () => (await browserState(page)).drafts ?? "").toContain(draftName);
+    await form.getByRole("button", { name: "Cancel" }).click();
+
+    // Signed out elsewhere: the tab doesn't know until it asks.
+    await apiLogout(runtime.baseURL, session!.token);
+    expect((await browserState(page)).token).toBeTruthy();
+
+    expect(await passStoredExpiry(page)).toBe(401);
+    await page.waitForURL((url) => url.pathname === "/");
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+    const keys = ["token", "auth_user", "auth_role", "auth_scopes", "auth_user_id", "auth_employee_id", "auth_expires_at"];
+    expect(await page.evaluate((names) => names.filter((name) => sessionStorage.getItem(name) !== null), keys)).toEqual([]);
+    expect((await browserState(page)).drafts ?? "").not.toContain(draftName);
   });
 });
 

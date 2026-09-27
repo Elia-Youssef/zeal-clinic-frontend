@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { MoneyInput } from "@/components/shared/money-input";
@@ -19,14 +20,15 @@ export function SalaryAdjustmentForm({
   onSaved: () => void;
   preparation: SalaryPreparation | null;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [adjustment, setAdjustment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, preparation], () => {
     if (!open || !preparation) return;
     setAdjustment(preparation.adjustment?.toString() ?? "0");
-  }, [open, preparation]);
+  });
 
   if (!preparation) return null;
 
@@ -90,8 +92,9 @@ export function SalaryAdjustmentForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Adjustment *</label>
+          <label htmlFor={`${fieldId}-adjustment`} className="text-sm font-medium">Adjustment *</label>
           <MoneyInput
+            id={`${fieldId}-adjustment`}
             value={adjustment}
             onChange={(e) => setAdjustment(e.target.value)}
             placeholder="e.g. 100 or -50"

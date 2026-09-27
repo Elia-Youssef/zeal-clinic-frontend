@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +138,7 @@ export function MainPage({
   canCreateRoom: boolean;
   canCreateProcedure: boolean;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const confirm = useConfirm();
   const [originalSnapshot] = useState(() => mergeInitial(initialData));
@@ -374,8 +375,9 @@ export function MainPage({
   return (
     <form onSubmit={submitSave} className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Patient</label>
+        <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient</label>
         <SearchableDropdown
+          id={`${fieldId}-patient`}
           value={form.patientId}
           onChange={(value) => update("patientId", value)}
           disabled={isEdit}
@@ -413,8 +415,9 @@ export function MainPage({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Room</label>
+        <label htmlFor={`${fieldId}-room`} className="text-sm font-medium">Room</label>
         <SearchableDropdown
+          id={`${fieldId}-room`}
           value={form.roomId}
           onChange={(value) => update("roomId", value)}
           apiEndpoint="/rooms/dropdown"
@@ -457,16 +460,18 @@ export function MainPage({
         }`}
       >
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Date *</label>
+          <label htmlFor={`${fieldId}-date`} className="text-sm font-medium">Date *</label>
           <DatePicker
+            id={`${fieldId}-date`}
             value={form.date}
             onChange={updateStartDate}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Start Time *</label>
+          <label htmlFor={`${fieldId}-start-time`} className="text-sm font-medium">Start Time *</label>
           <Input
+            id={`${fieldId}-start-time`}
             type="time"
             value={form.startTime}
             step={300}
@@ -476,8 +481,9 @@ export function MainPage({
         </div>
         {spansMultipleDays && (
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">End Date *</label>
+            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
             <DatePicker
+              id={`${fieldId}-end-date`}
               value={form.endDate}
               onChange={(value) => update("endDate", value)}
               min={form.date || undefined}
@@ -489,8 +495,9 @@ export function MainPage({
           </div>
         )}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">End Time *</label>
+          <label htmlFor={`${fieldId}-end-time`} className="text-sm font-medium">End Time *</label>
           <Input
+            id={`${fieldId}-end-time`}
             type="time"
             value={form.endTime}
             step={300}
@@ -510,8 +517,9 @@ export function MainPage({
       )}
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Notes</label>
+        <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
         <textarea
+          id={`${fieldId}-notes`}
           className={textareaClass}
           rows={3}
           value={form.notes}
@@ -570,9 +578,10 @@ function ProceduresField({
   ) => void;
   canCreateProcedure: boolean;
 }) {
+  const labelId = useId();
   return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium">Procedures *</label>
+    <div className="space-y-1.5" role="group" aria-labelledby={labelId}>
+      <label id={labelId} className="text-sm font-medium">Procedures *</label>
       {procedures.length > 0 && (
         <div className="space-y-1.5">
           {procedures.map((p) => (
@@ -661,14 +670,16 @@ function ReschedulePhase({
   onBack: () => void;
   onConfirm: () => void;
 }) {
+  const fieldId = useId();
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Provide a reason for rescheduling this appointment.
       </p>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Reschedule Reason</label>
+        <label htmlFor={`${fieldId}-reschedule-reason`} className="text-sm font-medium">Reschedule Reason</label>
         <textarea
+          id={`${fieldId}-reschedule-reason`}
           className={textareaClass}
           rows={3}
           value={reason}

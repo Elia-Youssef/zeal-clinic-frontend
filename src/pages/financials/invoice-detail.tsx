@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState, useId } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Printer, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import type { Invoice, InvoiceItem } from "@/lib/types";
 
 export default function InvoiceDetailPage() {
+  const fieldId = useId();
   usePageTitle("Invoice");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -52,25 +53,25 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  const load = async () => {
-    try {
-      const inv = await api.get<Invoice>(`/invoices/${id}`);
-      setInvoice(inv);
-      setNotes(inv.notes ?? "");
-    } catch {
-      addAlert("error", "Failed to load invoice.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    () =>
+      api
+        .get<Invoice>(`/invoices/${id}`)
+        .then((inv) => {
+          setInvoice(inv);
+          setNotes(inv.notes ?? "");
+        })
+        .catch(() => addAlert("error", "Failed to load invoice."))
+        .finally(() => setLoading(false)),
+    [id, addAlert],
+  );
 
   useEffect(() => {
-    load();
-  }, [id]);
+    void load();
+  }, [load]);
 
   const handleDelete = async () => {
     if (!invoice) return;
-    const isClientInvoice = invoice.fromEntityId === "self";
     const result = await confirm({
       title: "Delete invoice?",
       description: `Delete invoice #${invoice.invoiceNumber}?`,
@@ -323,8 +324,9 @@ export default function InvoiceDetailPage() {
       >
         <form onSubmit={handleItemUpdate} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Amount</label>
+            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount</label>
             <MoneyInput
+              id={`${fieldId}-amount`}
               min="0"
               value={itemAmount}
               onChange={(e) => setItemAmount(clampNonNegative(e.target.value))}
@@ -353,8 +355,8 @@ export default function InvoiceDetailPage() {
       >
         <form onSubmit={handleUpdate} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes</label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+            <Input id={`${fieldId}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button

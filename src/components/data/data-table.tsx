@@ -19,9 +19,10 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   RowActionsMenu,
-  getDefaultRowAction,
   type RowAction,
 } from "@/components/data/data-row-actions";
+import { getDefaultRowAction } from "@/components/data/default-row-action";
+import { onActivateKey } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
 export type { RowAction } from "@/components/data/data-row-actions";
@@ -164,6 +165,9 @@ export function DataTable<T>({
             return (
               <TableHead
                 key={col.key}
+                aria-sort={
+                  dir ? (dir === "asc" ? "ascending" : "descending") : undefined
+                }
                 className={cn(
                   col.className,
                   sortable &&
@@ -172,8 +176,23 @@ export function DataTable<T>({
                 onClick={sortable ? () => handleHeaderClick(col) : undefined}
               >
                 <span className="inline-flex items-center gap-1">
-                  {col.header}
-                  {sortable && <SortIndicator dir={dir} />}
+                  {sortable ? (
+                    // The whole cell sorts on a click; the button makes it
+                    // reachable and operable from the keyboard.
+                    <button
+                      type="button"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleHeaderClick(col);
+                      }}
+                    >
+                      {col.header}
+                      <SortIndicator dir={dir} />
+                    </button>
+                  ) : (
+                    col.header
+                  )}
                   {isSorted && (
                     <Button
                       variant="ghost"
@@ -203,11 +222,23 @@ export function DataTable<T>({
             ? undefined
             : getDefaultRowAction(row, actions);
           const handleRowClick = onRowClick ?? defaultRowAction?.onClick;
-          const cls = cn(handleRowClick && "cursor-pointer", extraClass);
+          const cls = cn(
+            handleRowClick &&
+              "cursor-pointer outline-none focus-visible:bg-muted",
+            extraClass,
+          );
           return (
             <TableRow
               key={rowKey(row)}
               onClick={handleRowClick ? () => handleRowClick(row) : undefined}
+              // A clickable row keeps its row role (the table stays a table
+              // for screen readers) and opens from the keyboard too.
+              tabIndex={handleRowClick ? 0 : undefined}
+              onKeyDown={
+                handleRowClick
+                  ? onActivateKey(() => handleRowClick(row))
+                  : undefined
+              }
               className={cls || undefined}
             >
               {tanRow.getVisibleCells().map((cell, i) => {

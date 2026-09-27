@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,13 +50,14 @@ export function ProcedureForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Procedure | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const [form, setForm] = useState<ProcedureFormFields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -73,7 +75,7 @@ export function ProcedureForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof ProcedureFormFields, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -122,8 +124,9 @@ export function ProcedureForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             required
@@ -132,16 +135,18 @@ export function ProcedureForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Price</label>
+            <label htmlFor={`${fieldId}-price`} className="text-sm font-medium">Price</label>
             <MoneyInput
+              id={`${fieldId}-price`}
               min="0"
               value={form.price}
               onChange={(e) => update("price", clampNonNegative(e.target.value))}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Price Note</label>
+            <label htmlFor={`${fieldId}-price-note`} className="text-sm font-medium">Price Note</label>
             <Input
+              id={`${fieldId}-price-note`}
               value={form.priceNote}
               onChange={(e) => update("priceNote", e.target.value)}
             />
@@ -150,12 +155,13 @@ export function ProcedureForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Type</label>
+            <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type</label>
             <SearchableDropdown
+              id={`${fieldId}-type`}
               value={form.typeId}
               onChange={(v) => update("typeId", v)}
               apiEndpoint="/procedure-types/dropdown"
-              mapItem={(t: any) => ({ value: t.id, label: t.name })}
+              mapItem={(t) => ({ value: t.id, label: t.name })}
               placeholder="Select type…"
               defaultApiOption={
                 form.typeName
@@ -180,12 +186,13 @@ export function ProcedureForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Category</label>
+            <label htmlFor={`${fieldId}-category`} className="text-sm font-medium">Category</label>
             <SearchableDropdown
+              id={`${fieldId}-category`}
               value={form.categoryId}
               onChange={(v) => update("categoryId", v)}
               apiEndpoint="/procedure-categories/dropdown"
-              mapItem={(c: any) => ({
+              mapItem={(c) => ({
                 value: c.id,
                 label: c.name,
               })}
@@ -215,16 +222,18 @@ export function ProcedureForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Includes</label>
+          <label htmlFor={`${fieldId}-includes`} className="text-sm font-medium">Includes</label>
           <Input
+            id={`${fieldId}-includes`}
             value={form.includes}
             onChange={(e) => update("includes", e.target.value)}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Remarks</label>
+          <label htmlFor={`${fieldId}-remarks`} className="text-sm font-medium">Remarks</label>
           <textarea
+            id={`${fieldId}-remarks`}
             className={textareaClass}
             rows={2}
             value={form.remarks}

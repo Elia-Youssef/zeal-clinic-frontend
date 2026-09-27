@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { cn } from "@/lib/utils";
 import { beirutToday } from "@/lib/tz";
 
 export function DateInput({
+  id,
   value,
   onChange,
   mode = "date",
   required,
   className,
 }: {
+  /** The day box's id, for a <label htmlFor>. */
+  id?: string;
   value: string;
   onChange: (iso: string) => void;
   mode?: "date" | "datetime";
@@ -72,7 +76,8 @@ export function DateInput({
     );
   };
 
-  useEffect(() => {
+  // The part fields follow the controlled value.
+  useAdjustOnChange([value, mode], () => {
     if (!value) {
       setDay("");
       setMonth("");
@@ -92,7 +97,7 @@ export function DateInput({
       setHours(h ?? "");
       setMinutes(min ?? "");
     }
-  }, [value, mode]);
+  });
 
   const emit = (d: string, m: string, y: string, h?: string, min?: string) => {
     if (d && m && y && y.length === 4) {
@@ -222,6 +227,7 @@ export function DateInput({
       aria-invalid={invalid}
     >
       <input
+        id={id}
         className={cn(inputBase, "w-6")}
         placeholder="DD"
         value={day}
@@ -232,6 +238,8 @@ export function DateInput({
       <span className="text-muted-foreground">/</span>
       <input
         ref={monthRef}
+        // The field's label names the day box; the other two name themselves.
+        aria-label="Month"
         className={cn(inputBase, "w-7")}
         placeholder="MM"
         value={month}
@@ -242,6 +250,7 @@ export function DateInput({
       <span className="text-muted-foreground">/</span>
       <input
         ref={yearRef}
+        aria-label="Year"
         className={cn(inputBase, "w-10")}
         placeholder="YYYY"
         value={year}

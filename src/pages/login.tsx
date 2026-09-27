@@ -16,6 +16,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { documentTitle } from "@/lib/stores/title-store";
 import { api } from "@/lib/api";
 import { useLoadingStore } from "@/lib/stores/loading-store";
 import { consumeAuthRedirect } from "@/lib/auth-redirect";
@@ -35,7 +36,10 @@ export default function Home() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    document.title = documentTitle("Sign in");
+  }, []);
+
+  useEffect(() => {
     const token = sessionStorage.getItem("token");
     if (!token) {
       unblock();
@@ -80,6 +84,8 @@ export default function Home() {
         <CardHeader className="flex flex-col items-center text-center">
           <div className="aspect-square size-14 rounded-xl overflow-hidden mb-2">
             <div
+              role="img"
+              aria-label="Zeal Clinic logo"
               className="size-full bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(/zeal.png)` }}
             />

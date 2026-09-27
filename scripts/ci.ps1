@@ -19,7 +19,8 @@
                  fails, one no longer present prints a tighten hint; the count with dev dependencies
                  included is reported for information only
       bundle     scripts/check-bundle.mjs sizes dist/assets (needs the build stage first) against
-                 scripts/baseline/bundle.json; fails if total JS or CSS raw size grows past budget
+                 scripts/baseline/bundle.json; fails if total JS or CSS raw size, or the initial JS
+                 (the entry script and the chunks index.html preloads), grows past budget
       e2e        Playwright (Chromium) against the server with dist/ embedded (needs the build stage first
                  and -BackendDir, a checkout of the backend repo, whose scripts/stack.ps1 builds, seeds, starts
                  and stops the server). -E2E smoke runs the per-role route walk on the demo instance; -E2E full

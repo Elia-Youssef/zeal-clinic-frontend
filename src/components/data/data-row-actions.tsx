@@ -18,18 +18,6 @@ export type RowAction<T> = {
   disabled?: (row: T) => boolean;
 };
 
-export function getDefaultRowAction<T>(
-  row: T,
-  actions?: RowAction<T>[],
-): RowAction<T> | undefined {
-  return actions?.find(
-    (action) =>
-      /^edit\b/i.test(action.label) &&
-      !action.hidden?.(row) &&
-      !action.disabled?.(row),
-  );
-}
-
 export function RowActionsMenu<T>({
   row,
   actions,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { beirutNow, beirutToday } from "@/lib/tz";
+import { beirutNow, beirutToday, beirutZoned } from "@/lib/tz";
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -89,38 +89,30 @@ describe("conversions", () => {
   });
 });
 
-// The clinic's day for a few instants, and the same instants as a machine in
-// each zone reads them.
+// The clinic's day for a few instants. Before, a raw instant fed to toDateStr
+// gave the machine's day instead (June 16 in Kiritimati for the first and the
+// third); the calendar's dates are zoned (beirutNow, beirutZoned, the picked
+// day), and read the same in every zone.
 const CLINIC_DAY: Record<string, string> = {
   "2026-06-15T12:00:00Z": "2026-06-15",
   "2026-06-15T21:30:00Z": "2026-06-16",
   "2026-01-15T10:30:00Z": "2026-01-15",
 };
-const LOCAL_DAY: Record<string, Record<string, string>> = {
-  "Asia/Beirut": {
-    "2026-06-15T12:00:00Z": "2026-06-15",
-    "2026-06-15T21:30:00Z": "2026-06-16",
-    "2026-01-15T10:30:00Z": "2026-01-15",
-  },
-  "Pacific/Kiritimati": {
-    "2026-06-15T12:00:00Z": "2026-06-16",
-    "2026-06-15T21:30:00Z": "2026-06-16",
-    "2026-01-15T10:30:00Z": "2026-01-16",
-  },
-};
+const CHECKED_ZONES = ["Asia/Beirut", "Pacific/Kiritimati"];
 
-describe("toDateStr (reads the machine's local date fields)", () => {
-  it("prints the local day of dates built from local fields", () => {
+describe("toDateStr (the calendar day carried in a zoned Date)", () => {
+  it("prints the day held in the local fields", () => {
     expect(toDateStr(new Date(2026, 5, 15, 0, 0))).toBe("2026-06-15");
     expect(toDateStr(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
   });
 
-  it.runIf(RUNTIME_ZONE in LOCAL_DAY)(
-    `follows the machine zone for raw instants (${RUNTIME_ZONE})`,
+  it.runIf(CHECKED_ZONES.includes(RUNTIME_ZONE))(
+    `gives the clinic's day of a zoned instant (${RUNTIME_ZONE})`,
     () => {
-      for (const [iso, day] of Object.entries(LOCAL_DAY[RUNTIME_ZONE])) {
-        expect(isoToDate(iso), iso).toBe(CLINIC_DAY[iso]);
-        expect(toDateStr(new Date(iso)), iso).toBe(day);
+      for (const [iso, day] of Object.entries(CLINIC_DAY)) {
+        expect(isoToDate(iso), iso).toBe(day);
+        expect(toDateStr(beirutZoned(iso)), iso).toBe(day);
+        expect(toDateStr(beirutZoned(new Date(iso))), iso).toBe(day);
       }
     },
   );

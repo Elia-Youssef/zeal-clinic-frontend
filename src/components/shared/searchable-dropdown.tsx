@@ -14,7 +14,11 @@ export type DropdownOption = {
   meta?: Record<string, unknown>;
 };
 
+/** A row of a `/dropdown` endpoint. */
+export type DropdownItem = { id: string; name: string };
+
 export function SearchableDropdown({
+  id,
   value,
   onChange,
   options: staticOptions,
@@ -31,13 +35,15 @@ export function SearchableDropdown({
   onSelectItem,
   renderAddForm,
 }: {
+  /** The trigger's id, for a <label htmlFor>; the label names it, the shown value describes it. */
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options?: DropdownOption[];
   defaultApiOption?: DropdownOption;
   apiEndpoint?: string;
   apiOptionsLimit?: number;
-  mapItem?: (item: any) => DropdownOption;
+  mapItem?: (item: DropdownItem) => DropdownOption;
   placeholder?: string;
   required?: boolean;
   className?: string;
@@ -61,35 +67,46 @@ export function SearchableDropdown({
   const [addFormOpen, setAddFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // The latest mapItem, outside the effect's dependencies: callers pass an
+  // inline arrow, and a fetch on every render would never settle.
+  const mapItemRef = useRef(mapItem);
   useEffect(() => {
-    if (
-      defaultApiOption &&
-      !apiOptions.some((i) => i.value == defaultApiOption.value)
-    ) {
-      setApiOptions((i) => [defaultApiOption, ...i]);
-    }
-  }, [defaultApiOption, apiOptions]);
+    mapItemRef.current = mapItem;
+  });
+  const hasMapItem = mapItem !== undefined;
 
   useEffect(() => {
-    if (!apiEndpoint || !mapItem) return;
+    if (!apiEndpoint || !hasMapItem) return;
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ limit: `${apiOptionsLimit}` });
       if (search) params.set("filter", search);
       api
-        .get<any>(
+        .get<unknown>(
           `${apiEndpoint}${apiEndpoint.includes("?") ? "&" : "?"}${params}`,
           { silent: true },
         )
         .then((res) => {
-          const items = Array.isArray(res) ? res : [];
-          setApiOptions(items.map(mapItem));
+          const map = mapItemRef.current;
+          const items: DropdownItem[] = Array.isArray(res) ? res : [];
+          setApiOptions(map ? items.map(map) : []);
         })
         .catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [apiEndpoint, search, refreshKey]);
+  }, [apiEndpoint, hasMapItem, apiOptionsLimit, search, refreshKey]);
 
-  const allOptions = staticOptions ?? apiOptions;
+  // The option chosen before (its label comes from the caller) stays listed
+  // even when the last search didn't return it.
+  const apiOptionsWithDefault = useMemo(
+    () =>
+      defaultApiOption &&
+      !apiOptions.some((i) => i.value == defaultApiOption.value)
+        ? [defaultApiOption, ...apiOptions]
+        : apiOptions,
+    [defaultApiOption, apiOptions],
+  );
+
+  const allOptions = staticOptions ?? apiOptionsWithDefault;
 
   const didAutoSelectRef = useRef(false);
   useEffect(() => {
@@ -105,7 +122,7 @@ export function SearchableDropdown({
     const first = allOptions[0];
     if (!first) return;
     didAutoSelectRef.current = true;
-    setSelectedCache(first);
+    // `first` is one of allOptions, so its label needs no cache entry.
     onSelectItem?.(first);
     onChange(first.value);
   }, [defaultFirst, allOptions, value, onChange, onSelectItem]);
@@ -149,13 +166,17 @@ export function SearchableDropdown({
 
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger
+          id={id}
+          aria-describedby={id ? `${id}-value` : undefined}
           disabled={disabled}
           className={cn(
             "flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 md:text-sm dark:bg-input/30",
             !value && "text-muted-foreground",
           )}
         >
-          <span className="truncate">{selectedLabel || placeholder}</span>
+          <span id={id ? `${id}-value` : undefined} className="truncate">
+            {selectedLabel || placeholder}
+          </span>
           {clearable && value && !disabled ? (
             <span
               role="button"
@@ -196,6 +217,7 @@ export function SearchableDropdown({
               type="text"
               className="h-7 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
               placeholder="Search"
+              aria-label="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

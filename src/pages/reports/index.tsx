@@ -1,4 +1,5 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useId, type ReactNode } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { ChevronDown, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -196,6 +197,7 @@ export default function ReportsPage() {
 }
 
 function RevenueReport() {
+  const fieldId = useId();
   const { addAlert } = useAlertStore();
   const [from, setFrom] = useState(beirutDaysAgo(30));
   const [to, setTo] = useState(beirutToday());
@@ -217,11 +219,13 @@ function RevenueReport() {
     }
   };
 
+  // A changed range or level is loading from the render that shows it.
+  useAdjustOnChange([from, to, level], () => setLoading(true));
+
   useEffect(() => {
     let aborted = false;
     const range = dateRangeToUtc(from, to);
     const params: Record<string, string> = { ...range, level };
-    setLoading(true);
     api
       .get<RevenueResponse>(`/reports/revenue${buildQuery(params)}`)
       .then((res) => {
@@ -249,10 +253,10 @@ function RevenueReport() {
           <DateField label="From" value={from} onChange={setFrom} max={to} />
           <DateField label="To" value={to} onChange={setTo} min={from} />
           <div className="w-full space-y-1.5 sm:w-56">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label htmlFor={`${fieldId}-group-by`} className="text-xs font-medium text-muted-foreground">
               Group by
             </label>
-            <LevelSelect value={level} onChange={setLevel} />
+            <LevelSelect id={`${fieldId}-group-by`} value={level} onChange={setLevel} />
           </div>
           <div className="w-full sm:ml-auto sm:w-auto">
             <Button
@@ -351,10 +355,12 @@ function ExpensesReport() {
     }
   };
 
+  // A changed range is loading from the render that shows it.
+  useAdjustOnChange([from, to], () => setLoading(true));
+
   useEffect(() => {
     let aborted = false;
     const params: Record<string, string> = dateRangeToUtc(from, to);
-    setLoading(true);
     api
       .get<ExpensesResponse>(`/reports/expenses${buildQuery(params)}`)
       .then((res) => {
@@ -465,9 +471,11 @@ function ExpensesReport() {
 }
 
 function LevelSelect({
+  id,
   value,
   onChange,
 }: {
+  id: string;
   value: RevenueLevel;
   onChange: (value: RevenueLevel) => void;
 }) {
@@ -476,8 +484,14 @@ function LevelSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30">
-        <span className="truncate">{selected?.label ?? "Select"}</span>
+      <PopoverTrigger
+        id={id}
+        aria-describedby={`${id}-value`}
+        className="flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+      >
+        <span id={`${id}-value`} className="truncate">
+          {selected?.label ?? "Select"}
+        </span>
         <ChevronDown className="ml-1 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent
@@ -527,12 +541,14 @@ function DateField({
   min?: string;
   max?: string;
 }) {
+  const fieldId = useId();
   return (
     <div className="w-full space-y-1.5 sm:w-auto">
-      <label className="text-xs font-medium text-muted-foreground">
+      <label htmlFor={`${fieldId}-date`} className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <DatePicker
+        id={`${fieldId}-date`}
         value={value}
         onChange={onChange}
         min={min}

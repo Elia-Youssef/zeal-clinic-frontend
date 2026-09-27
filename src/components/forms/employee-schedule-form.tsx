@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Trash2 } from "lucide-react";
 import { format as fnsFormat } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export function EmployeeScheduleForm({
   employeeId: string;
   target: ScheduleDayTarget | null;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const confirm = useConfirm();
@@ -84,7 +86,7 @@ export function EmployeeScheduleForm({
   const version = target?.version;
   const dayLabel = target ? fmtDayOfWeek(target.dayOfWeek) : "";
 
-  useEffect(() => {
+  useAdjustOnChange([open, target], () => {
     if (!open || !target) return;
     const existing =
       target.version?.shifts.map((s) => ({
@@ -99,7 +101,7 @@ export function EmployeeScheduleForm({
     const today = beirutToday();
     setStartDate(target.date > today ? target.date : today);
     setSubmitting(false);
-  }, [open, target]);
+  });
 
   const breaks = useMemo(() => breaksOf(shifts), [shifts]);
   // The picked date is still allowed to land on the existing schedule's own
@@ -213,9 +215,9 @@ export function EmployeeScheduleForm({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-shifts`}>
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Shifts</label>
+            <label id={`${fieldId}-shifts`} className="text-sm font-medium">Shifts</label>
             <Button
               type="button"
               variant="outline"
@@ -280,8 +282,8 @@ export function EmployeeScheduleForm({
           )}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Save as</label>
+        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-save-as`}>
+          <label id={`${fieldId}-save-as`} className="text-sm font-medium">Save as</label>
 
           {version ? (
             <>

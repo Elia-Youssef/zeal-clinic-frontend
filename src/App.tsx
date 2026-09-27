@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -8,53 +9,99 @@ import {
 
 import Home from "@/pages/login";
 import AuthenticatedLayout from "@/pages/layouts/authenticated-layout";
-import DashboardPage from "@/pages/dashboard";
-import ProfilePage from "@/pages/profile";
 import PatientsTabsLayout from "@/pages/layouts/patients-tabs-layout";
-import PatientsListPage from "@/pages/patients/list";
-import PatientsAllergiesPage from "@/pages/patients/allergies";
-import PatientsMedicinesPage from "@/pages/patients/medicines";
-import PatientDetailPage from "@/pages/patients/patient-detail";
 import ScheduleTabsLayout from "@/pages/layouts/schedule-tabs-layout";
-import ScheduleCalendarPage from "@/pages/schedule/calendar";
-import ScheduleRoomsPage from "@/pages/schedule/rooms";
-import ReportsPage from "@/pages/reports";
 import InventoryTabsLayout from "@/pages/layouts/inventory-tabs-layout";
-import InventoryProductsPage from "@/pages/inventory/products";
-import InventoryCategoriesPage from "@/pages/inventory/categories";
-import ProductDetailPage from "@/pages/inventory/product-detail";
-import SuppliersPage from "@/pages/suppliers/list";
-import SupplierDetailPage from "@/pages/suppliers/supplier-detail";
 import FinancialsTabsLayout from "@/pages/layouts/financials-tabs-layout";
-import FinancialsInvoicesPage from "@/pages/financials/invoices";
-import FinancialsExpensesPage from "@/pages/financials/expenses";
-import FinancialsDiscountsPage from "@/pages/financials/discounts";
-import FinancialsCurrenciesPage from "@/pages/financials/currencies";
-import InvoiceDetailPage from "@/pages/financials/invoice-detail";
-import ExpenseDetailPage from "@/pages/financials/expense-detail";
-import DiscountDetailPage from "@/pages/financials/discount-detail";
 import ServicesTabsLayout from "@/pages/layouts/services-tabs-layout";
-import ServicesProceduresPage from "@/pages/services/procedures";
-import ServicesTypesPage from "@/pages/services/types";
-import ServicesCategoriesPage from "@/pages/services/categories";
-import ProcedureDetailPage from "@/pages/services/procedure-detail";
-import TeamPage from "@/pages/team/list";
-import TeamHolidaysPage from "@/pages/team/holidays";
-import TeamDetailPage from "@/pages/team/team-member-detail";
 import TeamTabsLayout from "@/pages/layouts/team-tabs-layout";
 import SettingsTabsLayout from "@/pages/layouts/settings-tabs-layout";
-import SettingsRolesPage from "@/pages/settings/roles";
-import SettingsRoleDetailPage from "@/pages/settings/role-detail";
-import SettingsStaffPage from "@/pages/settings/users";
-import SettingsAuditLogPage from "@/pages/settings/audit-log";
-import SettingsAboutPage from "@/pages/settings/about";
-import SettingsConnectionPage from "@/pages/settings/connection";
-import StaffDetailPage from "@/pages/settings/user-detail";
 import { LoadingOverlay } from "@/components/shared/loading-overlay";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { RequireScopes, ScopeRedirect } from "@/components/shared/scope-guard";
+import { lazyPage } from "@/lib/lazy-page";
 import "@/lib/stores/ui-store";
 
+// The sign-in page and the layouts ship with the app; every other page is its
+// own chunk, fetched on first visit (see lib/lazy-page.ts).
+const DashboardPage = lazyPage(() => import("@/pages/dashboard"));
+const ProfilePage = lazyPage(() => import("@/pages/profile"));
+const PatientsListPage = lazyPage(() => import("@/pages/patients/list"));
+const PatientsAllergiesPage = lazyPage(
+  () => import("@/pages/patients/allergies"),
+);
+const PatientsMedicinesPage = lazyPage(
+  () => import("@/pages/patients/medicines"),
+);
+const PatientDetailPage = lazyPage(
+  () => import("@/pages/patients/patient-detail"),
+);
+const ScheduleCalendarPage = lazyPage(() => import("@/pages/schedule/calendar"));
+const ScheduleRoomsPage = lazyPage(() => import("@/pages/schedule/rooms"));
+const ReportsPage = lazyPage(() => import("@/pages/reports"));
+const InventoryProductsPage = lazyPage(
+  () => import("@/pages/inventory/products"),
+);
+const InventoryCategoriesPage = lazyPage(
+  () => import("@/pages/inventory/categories"),
+);
+const ProductDetailPage = lazyPage(
+  () => import("@/pages/inventory/product-detail"),
+);
+const SuppliersPage = lazyPage(() => import("@/pages/suppliers/list"));
+const SupplierDetailPage = lazyPage(
+  () => import("@/pages/suppliers/supplier-detail"),
+);
+const FinancialsInvoicesPage = lazyPage(
+  () => import("@/pages/financials/invoices"),
+);
+const FinancialsExpensesPage = lazyPage(
+  () => import("@/pages/financials/expenses"),
+);
+const FinancialsDiscountsPage = lazyPage(
+  () => import("@/pages/financials/discounts"),
+);
+const FinancialsCurrenciesPage = lazyPage(
+  () => import("@/pages/financials/currencies"),
+);
+const InvoiceDetailPage = lazyPage(
+  () => import("@/pages/financials/invoice-detail"),
+);
+const ExpenseDetailPage = lazyPage(
+  () => import("@/pages/financials/expense-detail"),
+);
+const DiscountDetailPage = lazyPage(
+  () => import("@/pages/financials/discount-detail"),
+);
+const ServicesProceduresPage = lazyPage(
+  () => import("@/pages/services/procedures"),
+);
+const ServicesTypesPage = lazyPage(() => import("@/pages/services/types"));
+const ServicesCategoriesPage = lazyPage(
+  () => import("@/pages/services/categories"),
+);
+const ProcedureDetailPage = lazyPage(
+  () => import("@/pages/services/procedure-detail"),
+);
+const TeamPage = lazyPage(() => import("@/pages/team/list"));
+const TeamHolidaysPage = lazyPage(() => import("@/pages/team/holidays"));
+const TeamDetailPage = lazyPage(() => import("@/pages/team/team-member-detail"));
+const SettingsRolesPage = lazyPage(() => import("@/pages/settings/roles"));
+const SettingsRoleDetailPage = lazyPage(
+  () => import("@/pages/settings/role-detail"),
+);
+const SettingsStaffPage = lazyPage(() => import("@/pages/settings/users"));
+const SettingsAuditLogPage = lazyPage(
+  () => import("@/pages/settings/audit-log"),
+);
+const SettingsAboutPage = lazyPage(() => import("@/pages/settings/about"));
+const SettingsConnectionPage = lazyPage(
+  () => import("@/pages/settings/connection"),
+);
+const StaffDetailPage = lazyPage(() => import("@/pages/settings/user-detail"));
+
+// A page chunk that is still loading keeps the layout (shell or tabs) in
+// place and leaves its content area empty until it arrives.
 function LayoutRoute({
   layout: Layout,
 }: {
@@ -62,7 +109,9 @@ function LayoutRoute({
 }) {
   return (
     <Layout>
-      <Outlet />
+      <Suspense fallback={null}>
+        <Outlet />
+      </Suspense>
     </Layout>
   );
 }

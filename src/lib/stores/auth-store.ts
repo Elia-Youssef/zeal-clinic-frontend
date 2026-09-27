@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api, BASE_URL } from "@/lib/api";
+import { expiryFromLogin, isSessionExpired } from "@/lib/session-expiry";
 import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
 
 const AUTH_KEYS = [
@@ -17,15 +18,10 @@ function clearAuthStorage(): void {
   clearFormDrafts();
 }
 
-function isExpired(raw: string | null): boolean {
-  if (!raw) return false;
-  const expiry = Date.parse(raw);
-  return Number.isFinite(expiry) && Date.now() >= expiry;
-}
-
 type LoginResponse = {
   token: string;
-  expiresAt: string;
+  /** Unix seconds. */
+  expiresAt: number;
   user: string;
   role: string;
   scopes: string[];
@@ -58,14 +54,19 @@ type AuthState = {
   refreshAuth: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+/** The store with nobody signed in: at start, after a sign-out and after hydrate drops a session. */
+const SIGNED_OUT = {
   token: "",
   isAuthenticated: false,
   user: "",
   role: "",
-  scopes: [],
+  scopes: [] as string[],
   userId: "",
   employeeId: "",
+};
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  ...SIGNED_OUT,
 
   login: async (username, password) => {
     let res: Response;
@@ -83,7 +84,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       Success?: boolean;
       Error?: string;
       Data?: LoginResponse;
-    } = {};
+    };
     try {
       json = await res.json();
     } catch {
@@ -100,7 +101,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.setItem("auth_scopes", JSON.stringify(json.Data.scopes));
     sessionStorage.setItem("auth_user_id", json.Data.userId);
     sessionStorage.setItem("auth_employee_id", json.Data.employeeId ?? "");
-    sessionStorage.setItem("auth_expires_at", String(json.Data.expiresAt ?? ""));
+    // Counted on this browser's clock from the token's lifetime; the API's
+    // own expiresAt is the fallback. See lib/session-expiry.ts.
+    const expiresAt = expiryFromLogin(json.Data.token, json.Data.expiresAt);
+    sessionStorage.setItem(
+      "auth_expires_at",
+      expiresAt === null ? "" : String(expiresAt),
+    );
     set({
       token: json.Data.token,
       isAuthenticated: true,
@@ -114,15 +121,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     clearAuthStorage();
-    set({
-      token: "",
-      isAuthenticated: false,
-      user: "",
-      role: "",
-      scopes: [],
-      userId: "",
-      employeeId: "",
-    });
+    set(SIGNED_OUT);
   },
 
   // Used after a scopes_changed realtime event.
@@ -143,10 +142,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   hydrate: () => {
-    if (typeof window === "undefined") return false;
     const token = sessionStorage.getItem("token") ?? "";
-    if (token && isExpired(sessionStorage.getItem("auth_expires_at"))) {
-      clearAuthStorage();
+    if (token && isSessionExpired(sessionStorage.getItem("auth_expires_at"))) {
+      // Dropped like a sign-out: the session keys and drafts go and the store
+      // is signed out, so nothing keeps rendering for the dropped session.
+      get().logout();
       return false;
     }
     if (token) {
@@ -154,7 +154,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const role = sessionStorage.getItem("auth_role") ?? "";
       const userId = sessionStorage.getItem("auth_user_id") ?? "";
       const employeeId = sessionStorage.getItem("auth_employee_id") ?? "";
-      let scopes: string[] = [];
+      let scopes: string[];
       try {
         scopes = JSON.parse(sessionStorage.getItem("auth_scopes") ?? "[]");
       } catch {
@@ -163,6 +163,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ token, isAuthenticated: true, user, role, scopes, userId, employeeId });
       return true;
     }
+    // No token in this tab: the store is signed out too. The storage is left
+    // as it is: the drafts in localStorage may belong to another tab's session.
+    set(SIGNED_OUT);
     return false;
   },
 }));

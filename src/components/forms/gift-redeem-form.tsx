@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -23,17 +23,18 @@ export function GiftRedeemForm({
   prefilledCode?: string;
   codeLocked?: boolean;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const [code, setCode] = useState("");
   const [patientId, setPatientId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, prefilledCode], () => {
     if (!open) return;
     setCode(prefilledCode ?? "");
     setPatientId("");
-  }, [open, prefilledCode]);
+  });
 
   const canSubmit = code.trim() && patientId;
 
@@ -59,8 +60,9 @@ export function GiftRedeemForm({
     <Modal open={open} onClose={onClose} title="Redeem Gift Card">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Code *</label>
+          <label htmlFor={`${fieldId}-code`} className="text-sm font-medium">Code *</label>
           <Input
+            id={`${fieldId}-code`}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="GIFT-XXXX"
@@ -70,8 +72,9 @@ export function GiftRedeemForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Patient *</label>
+          <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient *</label>
           <SearchableDropdown
+            id={`${fieldId}-patient`}
             value={patientId}
             onChange={setPatientId}
             apiEndpoint="/patients/dropdown"

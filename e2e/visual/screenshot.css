@@ -1,0 +1,6 @@
+/* Applied while a visual golden is taken (expect.toHaveScreenshot.stylePath in playwright.config.ts). */
+
+/* Toasts come and go on their own clock. */
+[data-sonner-toaster] {
+  visibility: hidden !important;
+}

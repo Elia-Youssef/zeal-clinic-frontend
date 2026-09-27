@@ -151,11 +151,14 @@ export function HeaderSearch() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Clearing the box clears the results at once; the effect only searches.
+  const updateQuery = (next: string) => {
+    setQuery(next);
+    if (!next.trim()) setGroups([]);
+  };
+
   useEffect(() => {
-    if (!query.trim()) {
-      setGroups([]);
-      return;
-    }
+    if (!query.trim()) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       fetchResults(query)
@@ -188,7 +191,7 @@ export function HeaderSearch() {
   const handleSelect = (hit: GlobalSearchHit) => {
     setOpen(false);
     setMobileOpen(false);
-    setQuery("");
+    updateQuery("");
     navigate(hit.href);
   };
 
@@ -246,7 +249,7 @@ export function HeaderSearch() {
           type="search"
           placeholder="Search..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => updateQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           className="h-8 w-48 pl-8 bg-secondary lg:w-64"
         />
@@ -284,7 +287,7 @@ export function HeaderSearch() {
               type="search"
               placeholder="Search..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => updateQuery(e.target.value)}
               onFocus={() => setOpen(true)}
               className="h-9 pl-8 bg-secondary"
             />

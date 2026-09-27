@@ -35,7 +35,7 @@ test("the main pages render in the dark theme", async ({ page }) => {
   }
 });
 
-test("toasts are dark with the dark system scheme, even after the app switches to light", async ({ page, scenario }) => {
+test("toasts follow the app theme, light once the app switches to light, whatever the system scheme", async ({ page, scenario }) => {
   await createPatient(page, scenario);
   await expect(page.locator("[data-sonner-toaster]").first()).toHaveAttribute("data-sonner-theme", "dark");
 
@@ -44,5 +44,5 @@ test("toasts are dark with the dark system scheme, even after the app switches t
   await page.keyboard.press("Escape");
   expect(await isDark(page)).toBe(false);
   await createPatient(page, scenario);
-  await expect(page.locator("[data-sonner-toaster]").first()).toHaveAttribute("data-sonner-theme", "dark");
+  await expect(page.locator("[data-sonner-toaster]").first()).toHaveAttribute("data-sonner-theme", "light");
 });

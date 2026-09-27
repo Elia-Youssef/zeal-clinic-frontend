@@ -1,5 +1,5 @@
-
-import { useState, useEffect, KeyboardEvent } from "react";
+import { useState, KeyboardEvent, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,11 +33,13 @@ const splitCsv = (value: string | null | undefined): string[] =>
     .filter(Boolean);
 
 function TagsInput({
+  id,
   value,
   onChange,
   placeholder,
   type = "text",
 }: {
+  id?: string;
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
@@ -71,6 +73,7 @@ function TagsInput({
   return (
     <div className="space-y-1.5">
       <Input
+        id={id}
         type={type}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -115,13 +118,14 @@ export function SupplierForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Supplier | null;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
 
   const [form, setForm] = useState<SupplierFormFields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -134,7 +138,7 @@ export function SupplierForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,8 +181,9 @@ export function SupplierForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={form.name}
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             placeholder="Supplier name"
@@ -188,16 +193,18 @@ export function SupplierForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Contacts</label>
+            <label htmlFor={`${fieldId}-contacts`} className="text-sm font-medium">Contacts</label>
             <TagsInput
+              id={`${fieldId}-contacts`}
               value={form.contacts}
               onChange={(contacts) => setForm((p) => ({ ...p, contacts }))}
               placeholder="Phone number, press Enter"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Emails</label>
+            <label htmlFor={`${fieldId}-emails`} className="text-sm font-medium">Emails</label>
             <TagsInput
+              id={`${fieldId}-emails`}
               type="email"
               value={form.emails}
               onChange={(emails) => setForm((p) => ({ ...p, emails }))}
@@ -207,8 +214,9 @@ export function SupplierForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Address</label>
+          <label htmlFor={`${fieldId}-address`} className="text-sm font-medium">Address</label>
           <Input
+            id={`${fieldId}-address`}
             value={form.address}
             onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
             placeholder="Address"
@@ -216,8 +224,9 @@ export function SupplierForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <textarea
+            id={`${fieldId}-notes`}
             className={textareaClass}
             rows={2}
             value={form.notes}

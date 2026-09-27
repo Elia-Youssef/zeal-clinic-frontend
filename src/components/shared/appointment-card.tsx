@@ -14,6 +14,7 @@ import {
 import { MultilineText } from "@/components/shared/multiline-text";
 import type { Appointment } from "@/lib/types";
 import { cn, formatTimeRange } from "@/lib/utils";
+import { onActivateKey } from "@/lib/keyboard";
 import { usePermissions } from "@/hooks/use-permissions";
 
 type Density = "full" | "compact" | "tiny";
@@ -91,7 +92,7 @@ export function AppointmentCard({
           <div
             ref={setNode}
             className={cn(
-              "absolute w-full cursor-pointer overflow-hidden rounded-sm border border-border border-l-5 bg-muted shadow-sm transition-opacity hover:opacity-90",
+              "absolute w-full cursor-pointer overflow-hidden rounded-sm border border-border border-l-5 bg-muted shadow-sm transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring",
               statusStyle.rail,
               cancelled && "opacity-60",
               onGrab && "select-none",
@@ -102,6 +103,9 @@ export function AppointmentCard({
               e.stopPropagation();
               onClick?.(appt);
             }}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? onActivateKey(() => onClick(appt)) : undefined}
             onPointerDown={onGrab ? (e) => onGrab(e, "move") : undefined}
           />
         }

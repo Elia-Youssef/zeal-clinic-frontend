@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { MoneyInput } from "@/components/shared/money-input";
@@ -20,6 +21,7 @@ export function EmployeePaymentForm({
   onSaved: () => void;
   employeeId: string;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
 
   const [amount, setAmount] = useState("");
@@ -27,12 +29,12 @@ export function EmployeePaymentForm({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open], () => {
     if (!open) return;
     setAmount("");
     setTransactionMethod("cash");
     setDescription("");
-  }, [open]);
+  });
 
   const canSubmit = Number(amount) > 0 && !!transactionMethod;
 
@@ -62,8 +64,9 @@ export function EmployeePaymentForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Amount *</label>
+            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
             <MoneyInput
+              id={`${fieldId}-amount`}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
@@ -71,8 +74,9 @@ export function EmployeePaymentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Type *</label>
+            <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
             <SearchableDropdown
+              id={`${fieldId}-type`}
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={employeePaymentTypeOptions}
@@ -83,8 +87,9 @@ export function EmployeePaymentForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={description}

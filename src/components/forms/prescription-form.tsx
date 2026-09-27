@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ export function PrescriptionForm({
   patientId: string;
   initial?: Prescription | null;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const selfEmployeeId = useAuthStore((s) => s.employeeId);
@@ -83,7 +85,7 @@ export function PrescriptionForm({
     return opts;
   }, [selfEmployeeId, selfName, initial]);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setForm(
       initial
@@ -107,7 +109,7 @@ export function PrescriptionForm({
           }))
         : [blankMedicine()],
     );
-  }, [open, initial]);
+  });
 
   const update = (field: keyof FormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -166,14 +168,15 @@ export function PrescriptionForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Prescribed By *</label>
+          <label htmlFor={`${fieldId}-prescribed-by`} className="text-sm font-medium">Prescribed By *</label>
           <SearchableDropdown
+            id={`${fieldId}-prescribed-by`}
             value={form.prescribedById}
             onChange={(v) => update("prescribedById", v)}
             apiEndpoint={canReadEmployees ? "/employees/dropdown" : undefined}
             mapItem={
               canReadEmployees
-                ? (item: any) => ({ value: item.id, label: item.name })
+                ? (item) => ({ value: item.id, label: item.name })
                 : undefined
             }
             options={canReadEmployees ? undefined : selfOptions}
@@ -214,8 +217,9 @@ export function PrescriptionForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Start Date *</label>
+            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
             <DatePicker
+              id={`${fieldId}-start-date`}
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
               required
@@ -223,8 +227,9 @@ export function PrescriptionForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">End Date</label>
+            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date</label>
             <DatePicker
+              id={`${fieldId}-end-date`}
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
               min={form.startDate}
@@ -232,9 +237,9 @@ export function PrescriptionForm({
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-medicines`}>
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Medicines</label>
+            <label id={`${fieldId}-medicines`} className="text-sm font-medium">Medicines</label>
             <Button
               type="button"
               size="sm"
@@ -267,12 +272,13 @@ export function PrescriptionForm({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5 min-w-0">
-                  <label className="text-sm font-medium">Medicine *</label>
+                  <label htmlFor={`${fieldId}-medicine-${idx}-medicine`} className="text-sm font-medium">Medicine *</label>
                   <SearchableDropdown
+                    id={`${fieldId}-medicine-${idx}-medicine`}
                     value={med.medicineId}
                     onChange={(v) => updateMedicine(idx, { medicineId: v })}
                     apiEndpoint="/medicines/dropdown"
-                    mapItem={(m: any) => ({ value: m.id, label: m.name })}
+                    mapItem={(m) => ({ value: m.id, label: m.name })}
                     placeholder="Select medicine…"
                     defaultApiOption={
                       med.medicineId && med.medicineName
@@ -299,8 +305,9 @@ export function PrescriptionForm({
                   />
                 </div>
                 <div className="space-y-1.5 min-w-0">
-                  <label className="text-sm font-medium">Instructions</label>
+                  <label htmlFor={`${fieldId}-medicine-${idx}-instructions`} className="text-sm font-medium">Instructions</label>
                   <Input
+                    id={`${fieldId}-medicine-${idx}-instructions`}
                     placeholder="e.g. Twice daily after meals"
                     value={med.instructions}
                     onChange={(e) =>

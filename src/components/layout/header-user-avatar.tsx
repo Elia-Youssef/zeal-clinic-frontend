@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useId, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Sun, Moon, ZoomIn, User } from "lucide-react";
 
@@ -30,7 +30,6 @@ function getInitials(name: string): string {
 export function HeaderUserAvatar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
   const isConnected = useRealtimeStore((s) => s.isConnected);
   const cloudConnected = useRealtimeStore((s) => s.cloudConnected);
@@ -45,10 +44,18 @@ export function HeaderUserAvatar() {
       : cloudConnected
         ? "bg-positive"
         : "bg-warning";
+  // The dot's colour in words, for the tooltip and for screen readers.
+  const connectionLabel = !isConnected
+    ? "Live updates offline"
+    : cloudConnected === null
+      ? "Cloud sync status unknown"
+      : cloudConnected
+        ? "Cloud sync connected"
+        : "Cloud sync disconnected";
+  const connectionId = useId();
 
-  useEffect(() => {
-    setPendingScale(scale);
-  }, [scale]);
+  // The slider follows the saved scale until the user moves it.
+  useAdjustOnChange([scale], () => setPendingScale(scale));
 
   const handleLogout = async () => {
     useLoadingStore.getState().block("Signing out");
@@ -69,6 +76,8 @@ export function HeaderUserAvatar() {
             type="button"
             className="relative inline-flex outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
             aria-label="Staff menu"
+            aria-describedby={connectionId}
+            title={connectionLabel}
           >
             <Avatar size="sm">
               <AvatarFallback>{getInitials(user)}</AvatarFallback>
@@ -79,6 +88,9 @@ export function HeaderUserAvatar() {
                 connectionClass,
               )}
             />
+            <span id={connectionId} className="sr-only">
+              {connectionLabel}
+            </span>
           </button>
         }
       />

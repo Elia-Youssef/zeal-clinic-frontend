@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +25,6 @@ import { beirutDayKey } from "@/lib/tz";
 import type { BalanceTransaction, Expense } from "@/lib/types";
 import { transactionColors, adjustmentRowTint } from "@/lib/constants";
 
-function formatMoney(amount: number | undefined) {
-  if (amount == null) return "---";
-  return `${amount < 0 ? "-" : ""}$${Math.abs(amount).toFixed(2)}`;
-}
-
 function ExpenseDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -44,22 +40,29 @@ function ExpenseDetailContent() {
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [paymentsKey, setPaymentsKey] = useState(0);
 
-  const load = async () => {
+  const load = useCallback(
+    () =>
+      api
+        .get<Expense>(`/expenses/${id}`)
+        .then((loaded) => setExpense(loaded))
+        .catch(() => {
+          addAlert("error", "Failed to load expense.");
+          setExpense(null);
+        })
+        .finally(() => setLoading(false)),
+    [id, addAlert],
+  );
+  const reload = () => {
     setLoading(true);
-    try {
-      const loaded = await api.get<Expense>(`/expenses/${id}`);
-      setExpense(loaded);
-    } catch {
-      addAlert("error", "Failed to load expense.");
-      setExpense(null);
-    } finally {
-      setLoading(false);
-    }
+    void load();
   };
 
+  // Another expense's page is loading from the render that shows it.
+  useAdjustOnChange([id], () => setLoading(true));
+
   useEffect(() => {
-    load();
-  }, [id]);
+    void load();
+  }, [load]);
 
   const bumpPayments = () => setPaymentsKey((k) => k + 1);
 
@@ -222,6 +225,7 @@ function ExpenseDetailContent() {
               <Button
                 size="sm"
                 className="gap-1"
+                aria-label="Add payment"
                 onClick={() => setPaymentOpen(true)}
               >
                 <Plus className="size-3.5" />
@@ -246,7 +250,7 @@ function ExpenseDetailContent() {
       <ExpenseForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={load}
+        onSaved={reload}
         initial={expense}
       />
       <ExpensePaymentForm

@@ -10,7 +10,6 @@ import {
   UsersRound,
   BarChart3,
   Settings,
-  Activity,
   Truck,
   Cable,
 } from "lucide-react";
@@ -27,8 +26,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/use-sidebar";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 const navItems = {
@@ -151,7 +150,9 @@ export function AppSidebar() {
               onClick={handleNavClick}
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                {/* Decorative: the link's own text names the clinic. */}
                 <div
+                  aria-hidden
                   className="w-full h-full bg-no-repeat bg-center bg-cover"
                   style={{ backgroundImage: `url(/zeal.png)` }}
                 />

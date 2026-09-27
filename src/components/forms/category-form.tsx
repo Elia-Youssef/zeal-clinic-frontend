@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -21,6 +21,7 @@ export function CategoryForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: ProductCategory;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [name, setName] = useState("");
@@ -28,12 +29,12 @@ export function CategoryForm({
   const [parentId, setParentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setName(initial?.name ?? "");
     setDesc(initial?.description ?? "");
     setParentId(initial?.parentId ?? "");
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,16 +73,18 @@ export function CategoryForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Parent Category</label>
+          <label htmlFor={`${fieldId}-parent-category`} className="text-sm font-medium">Parent Category</label>
           <SearchableDropdown
+            id={`${fieldId}-parent-category`}
             value={parentId}
             onChange={setParentId}
             apiEndpoint="/product-categories/dropdown"
@@ -101,8 +104,9 @@ export function CategoryForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={desc}

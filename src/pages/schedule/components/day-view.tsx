@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { format as fnsFormat } from "date-fns";
 import { Loader2, MoreHorizontal, Plus, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { cn, formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { beirutNow, dateRangeToUtc } from "@/lib/tz";
+import { onActivateKey } from "@/lib/keyboard";
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -141,7 +143,8 @@ export function DayView({
   const [printing, setPrinting] = useState(false);
   const [pending, setPending] = useState<PendingDrop | null>(null);
 
-  useEffect(() => setPending(null), [dateStr]);
+  // A drop waiting for confirmation belongs to the day it was made on.
+  useAdjustOnChange([dateStr], () => setPending(null));
 
   const handlePrint = async () => {
     setPrinting(true);
@@ -336,6 +339,8 @@ export function DayView({
                 <RoomColumn
                   key={room.id}
                   roomId={room.id}
+                  roomName={room.name}
+                  canCreate={canWrite}
                   dayWindow={dayWindow}
                   appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
                   calendarStartHour={calendarBounds.startHour}
@@ -697,6 +702,8 @@ const HourLinesColumn = memo(function HourLinesColumn({
 
 const RoomColumn = memo(function RoomColumn({
   roomId,
+  roomName,
+  canCreate,
   dayWindow,
   appointments,
   calendarStartHour,
@@ -709,6 +716,9 @@ const RoomColumn = memo(function RoomColumn({
   overlay,
 }: {
   roomId: string;
+  roomName: string;
+  /** Whether a click on an empty hour opens a new appointment there. */
+  canCreate: boolean;
   dayWindow: BeirutDayWindow;
   appointments: Appointment[];
   calendarStartHour: number;
@@ -730,9 +740,21 @@ const RoomColumn = memo(function RoomColumn({
       {HOURS.map((hour) => (
         <div
           key={hour}
-          className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer"
+          className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer outline-none focus-visible:bg-muted/50"
           style={{ height: `${HOUR_HEIGHT}rem` }}
           onClick={() => onCellClick(roomId, hour)}
+          role={canCreate ? "button" : undefined}
+          tabIndex={canCreate ? 0 : undefined}
+          aria-label={
+            canCreate
+              ? `New appointment in ${roomName} at ${formatHour(hour)}`
+              : undefined
+          }
+          onKeyDown={
+            canCreate
+              ? onActivateKey(() => onCellClick(roomId, hour))
+              : undefined
+          }
         />
       ))}
       <OutOfScheduleBand height={afterScheduleRem} />

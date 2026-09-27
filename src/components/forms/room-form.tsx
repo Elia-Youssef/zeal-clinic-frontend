@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +22,7 @@ export function RoomForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Room;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [name, setName] = useState(initial?.name ?? "");
@@ -28,12 +30,12 @@ export function RoomForm({
   const [isAvailable, setIsAvailable] = useState(initial?.isAvailable ?? true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setName(initial?.name ?? "");
     setType(initial?.type ?? "General");
     setIsAvailable(initial?.isAvailable ?? true);
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,16 +70,18 @@ export function RoomForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Type *</label>
+          <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
           <SearchableDropdown
+            id={`${fieldId}-type`}
             value={type}
             onChange={setType}
             options={roomTypeOptions}

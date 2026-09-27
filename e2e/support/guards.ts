@@ -92,6 +92,12 @@ export class Guards {
       if (message.type() === "error") this.onConsoleError(page, message);
     });
     page.on("request", (request) => {
+      // A page's own chunk (and the assets it pulls in) loads on its first visit; the page has
+      // nothing to show before it, so it counts as in flight for settle().
+      if (this.isAsset(request.url())) {
+        this.inflight.add(request);
+        return;
+      }
       if (!this.isApi(request.url())) return;
       this.requestRoute.set(request, this.routeOf(page.url()));
       if (!this.isEventStream(request.url())) this.inflight.add(request);
@@ -101,7 +107,7 @@ export class Guards {
     page.on("response", (response) => this.onResponse(page, response));
   }
 
-  /** API requests still waiting for an answer (the event stream never ends, so it doesn't count). */
+  /** API requests still waiting for an answer and assets still loading (the event stream never ends, so it doesn't count). */
   pendingRequests(): number {
     return this.inflight.size;
   }
@@ -140,6 +146,16 @@ export class Guards {
     try {
       const u = new URL(url);
       return u.origin === this.options.origin && u.pathname.startsWith("/api/");
+    } catch {
+      return false;
+    }
+  }
+
+  /** A built file under /assets (page chunks, styles, fonts) served by the app itself. */
+  private isAsset(url: string): boolean {
+    try {
+      const u = new URL(url);
+      return u.origin === this.options.origin && u.pathname.startsWith("/assets/");
     } catch {
       return false;
     }

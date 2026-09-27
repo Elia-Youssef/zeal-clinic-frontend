@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -30,13 +30,14 @@ export function ExpenseForm({
   onSaved: (expense: Expense) => void;
   initial?: Expense;
 }) {
+  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const [form, setForm] = useState<Fields>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!initial;
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     if (initial) {
       setForm({
@@ -46,7 +47,7 @@ export function ExpenseForm({
     } else {
       setForm(emptyForm);
     }
-  }, [open, initial]);
+  });
 
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -84,8 +85,9 @@ export function ExpenseForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             required
@@ -93,8 +95,9 @@ export function ExpenseForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Notes</label>
+          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
           <textarea
+            id={`${fieldId}-notes`}
             className={textareaClass}
             rows={3}
             value={form.notes}

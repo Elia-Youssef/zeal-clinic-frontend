@@ -1,8 +1,10 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { pickerDayKey } from "./time";
 
-// Page-object helpers. Most form labels aren't linked to their controls yet, so fields are found by
-// the label text next to them; once they are, only these internals change to getByLabel.
+// Page-object helpers. Form labels are linked to their controls, so inputs and dropdown or date
+// triggers are found by their label (getByLabel), limited to the kind of control each helper is for;
+// field() still gives a field's wrapper, for the inputs made of several boxes and for whatever sits
+// next to the control.
 
 type Scope = Page | Locator;
 
@@ -27,14 +29,19 @@ export function field(scope: Scope, label: string): Locator {
   return scope.locator(`xpath=.//*[label[normalize-space(.)=${plain} or normalize-space(.)=${required}]]`);
 }
 
-/** The text input or textarea of a field. */
-export function input(scope: Scope, label: string): Locator {
-  return field(scope, label).locator('input:not([tabindex="-1"]), textarea').first();
+/** A field label's text, with or without the " *" of a required field. */
+function labelText(label: string): RegExp {
+  return new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?: \\*)?\\s*$`);
 }
 
-/** The trigger button of a field's dropdown or date picker. */
+/** The text input or textarea of a field (the first one in the scope with that label). */
+export function input(scope: Scope, label: string): Locator {
+  return scope.getByLabel(labelText(label)).and(scope.locator("input, textarea")).first();
+}
+
+/** The trigger button of a field's dropdown or date picker (the first one in the scope with that label). */
 export function trigger(scope: Scope, label: string): Locator {
-  return field(scope, label).locator('[data-slot="popover-trigger"]').first();
+  return scope.getByLabel(labelText(label)).and(scope.locator('[data-slot="popover-trigger"]')).first();
 }
 
 /** The popover that is open right now. */
@@ -131,7 +138,7 @@ export function card(scope: Scope, title: string | RegExp): Locator {
     .locator('xpath=ancestor::*[@data-slot="card"][1]');
 }
 
-/** The unnamed "+" button in a card's header (the first button there). */
+/** The "+" button in a card's header (the first button there). */
 export function cardAddButton(scope: Locator): Locator {
   return scope.locator('[data-slot="card-header"]').first().getByRole("button").first();
 }

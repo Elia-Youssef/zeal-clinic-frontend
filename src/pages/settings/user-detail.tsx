@@ -66,11 +66,11 @@ function StaffDetailContent() {
   const reload = () => fetchDetail(id);
 
   useEffect(() => {
-    reload();
+    fetchDetail(id);
     return () => {
       setCurrent(null);
     };
-  }, [id]);
+  }, [id, fetchDetail, setCurrent]);
 
   const handleToggleActive = async () => {
     if (!user) return;
@@ -114,6 +114,23 @@ function StaffDetailContent() {
               variant={user.isActive ? "default" : "outline"}
               className={can("users:write") ? "cursor-pointer" : undefined}
               onClick={can("users:write") ? handleToggleActive : undefined}
+              // A button when it toggles the status, so the keyboard reaches it.
+              render={can("users:write") ? <button type="button" /> : undefined}
+              // Its name says what pressing it does, after the status it shows.
+              aria-label={
+                can("users:write")
+                  ? user.isActive
+                    ? "Active, deactivate account"
+                    : "Inactive, activate account"
+                  : undefined
+              }
+              title={
+                can("users:write")
+                  ? user.isActive
+                    ? "Deactivate"
+                    : "Activate"
+                  : undefined
+              }
             >
               {user.isActive ? "Active" : "Inactive"}
             </Badge>

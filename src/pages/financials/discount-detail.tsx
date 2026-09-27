@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,30 +31,30 @@ function DiscountDetailContent() {
   const [editOpen, setEditOpen] = useState(false);
   const [redeemOpen, setRedeemOpen] = useState(false);
 
-  const load = async () => {
-    try {
-      const d = await api.get<Discount>(`/discounts/${id}`);
-      setDiscount(d);
-      if (d.patientId) {
-        try {
-          const p = await api.get<Patient>(`/patients/${d.patientId}`);
-          setRecipient(p);
-        } catch {
-          setRecipient(null);
-        }
-      } else {
-        setRecipient(null);
-      }
-    } catch {
-      addAlert("error", "Failed to load discount.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    () =>
+      api
+        .get<Discount>(`/discounts/${id}`)
+        .then(async (d) => {
+          setDiscount(d);
+          if (!d.patientId) {
+            setRecipient(null);
+            return;
+          }
+          try {
+            setRecipient(await api.get<Patient>(`/patients/${d.patientId}`));
+          } catch {
+            setRecipient(null);
+          }
+        })
+        .catch(() => addAlert("error", "Failed to load discount."))
+        .finally(() => setLoading(false)),
+    [id, addAlert],
+  );
 
   useEffect(() => {
-    load();
-  }, [id]);
+    void load();
+  }, [load]);
 
   const handleDelete = async () => {
     if (!discount) return;

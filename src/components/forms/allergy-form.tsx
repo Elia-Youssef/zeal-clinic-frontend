@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useState, useId } from "react";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
@@ -20,17 +20,18 @@ export function AllergyForm({
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Allergy;
 }) {
+  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [name, setName] = useState(initial?.name ?? "");
   const [desc, setDesc] = useState(initial?.description ?? "");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useAdjustOnChange([open, initial], () => {
     if (!open) return;
     setName(initial?.name ?? "");
     setDesc(initial?.description ?? "");
-  }, [open, initial]);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,16 +65,18 @@ export function AllergyForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
+          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
           <Input
+            id={`${fieldId}-name`}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
           <textarea
+            id={`${fieldId}-description`}
             className={textareaClass}
             rows={2}
             value={desc}
