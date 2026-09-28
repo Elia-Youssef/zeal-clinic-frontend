@@ -4,6 +4,7 @@ import { api, BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useFormDraftsStore } from "@/lib/stores/form-drafts-store";
 import { useLoadingStore } from "@/lib/stores/loading-store";
+import { useNotificationsStore } from "@/lib/stores/notifications-store";
 
 const SESSION_KEYS = [
   "auth_employee_id",
@@ -210,6 +211,27 @@ describe("logout", () => {
     expect(localStorage.getItem("ui-settings")).toBe("{}");
     expect(useFormDraftsStore.getState().drafts).toEqual({});
     expect(useAuthStore.getState()).toMatchObject(SIGNED_OUT);
+  });
+
+  it("drops the account's notifications, so the next sign-in starts with the bell's panel closed", async () => {
+    useAuthStore.setState({ token: "tok-123", isAuthenticated: true });
+    useNotificationsStore.setState({
+      items: [{ id: "n1", title: "Notice", description: "", isRead: false, createdAt: "2026-06-15T09:00:00Z" }],
+      unreadCount: 1,
+      receivedNonce: 1,
+    });
+    useNotificationsStore.getState().setPanelOpen(true);
+
+    useAuthStore.getState().logout();
+    stubFetch(jsonResponse({ Success: true, Data: LOGIN }));
+    await useAuthStore.getState().login("test.user", "secret");
+
+    expect(useNotificationsStore.getState()).toMatchObject({
+      items: [],
+      unreadCount: 0,
+      receivedNonce: 0,
+      panelOpen: false,
+    });
   });
 });
 

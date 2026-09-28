@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import { Bell, X } from "lucide-react";
 
@@ -27,7 +27,8 @@ function timeAgo(iso: string): string {
 }
 
 export function HeaderNotifications() {
-  const [open, setOpen] = useState(false);
+  const open = useNotificationsStore((s) => s.panelOpen);
+  const setOpen = useNotificationsStore((s) => s.setPanelOpen);
   const items = useNotificationsStore((s) => s.items);
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
   const receivedNonce = useNotificationsStore((s) => s.receivedNonce);

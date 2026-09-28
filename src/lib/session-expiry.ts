@@ -1,4 +1,5 @@
 import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
+import { clearNotifications } from "@/lib/stores/notifications-store";
 
 // A sign-in answers with `expiresAt` (Unix seconds) and a JWT whose payload
 // carries `iat` and `exp`. The client keeps its own expiry, as Unix seconds in
@@ -38,12 +39,14 @@ export function storeExpiry(expiresAt: number | null): void {
 }
 
 /**
- * Clears the stored session the way a sign-out does: every session key and the
- * form drafts. Sign-out and every expiry path go through here.
+ * Clears the stored session the way a sign-out does: every session key, the
+ * form drafts and the account's notifications (the bell's panel closes too).
+ * Sign-out and every expiry path go through here.
  */
 export function clearStoredSession(): void {
   for (const key of SESSION_KEYS) sessionStorage.removeItem(key);
   clearFormDrafts();
+  clearNotifications();
 }
 
 type JwtPayload = { iat?: unknown; exp?: unknown };

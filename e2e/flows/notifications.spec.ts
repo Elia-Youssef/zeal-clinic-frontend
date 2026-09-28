@@ -84,9 +84,13 @@ test("live notifications: the bell counts them; mark read, delete, mark all read
   await expect.poll(() => bellAhead(page, scenario, session)).toBe(0);
 });
 
-test("a low-stock notice arrives when an invoice brings stock down to the threshold", async ({ openPage, scenario }) => {
+test("a low-stock notice arrives when an invoice brings stock down to the threshold and leaves on restock", async ({ openPage, scenario }) => {
   const { session, page } = await signedInUser(scenario, openPage);
-  const [product, patient] = await Promise.all([scenario.product({ quantity: 5, minThreshold: 3 }), scenario.patient()]);
+  const [product, patient, supplier] = await Promise.all([
+    scenario.product({ quantity: 5, minThreshold: 3 }),
+    scenario.patient(),
+    scenario.supplier(),
+  ]);
   await scenario.clientInvoice(patient.id, [{ itemType: "product", itemId: product.id, quantity: 2, amount: 40 }]);
 
   // The stock check runs after the invoice is answered, so the notice follows a moment later.
@@ -97,6 +101,13 @@ test("a low-stock notice arrives when an invoice brings stock down to the thresh
   const { rows } = panelRows(page, title);
   await expect(rows).toHaveCount(1);
   await expect(rows).toContainText("Quantity 3 at or below min threshold 3.");
+
+  // Restocked, the notice is deleted on the server, which tells the open tab: the row leaves the
+  // panel and the bell stops counting it (it would stay one ahead of the server otherwise).
+  await scenario.supplierInvoice(supplier.id, [{ productId: product.id, quantity: 10, amount: 50 }]);
+  await expect.poll(async () => (await notices(scenario, session, title)).length).toBe(0);
+  await expect(rows).toHaveCount(0);
+  await expect.poll(() => bellAhead(page, scenario, session)).toBe(0);
 });
 
 test("the hello event on reconnect refreshes the unread count", async ({ openPage, scenario }) => {

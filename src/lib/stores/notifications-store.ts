@@ -9,6 +9,10 @@ type NotificationsState = {
   // Bumped each time an unread notification arrives in real time, so the bell
   // can animate on receipt without also firing on the initial load fetch.
   receivedNonce: number;
+  // Whether the bell's panel shows the list, so a reload the server asks for
+  // fetches the list only while someone can see it.
+  panelOpen: boolean;
+  setPanelOpen: (open: boolean) => void;
   fetch: () => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
@@ -17,11 +21,19 @@ type NotificationsState = {
   addIncoming: (notification: Notification) => void;
 };
 
-export const useNotificationsStore = create<NotificationsState>((set, get) => ({
-  items: [],
+/** The store with nobody signed in: at start and after a sign-out. */
+const SIGNED_OUT = {
+  items: [] as Notification[],
   unreadCount: 0,
   loading: false,
   receivedNonce: 0,
+  panelOpen: false,
+};
+
+export const useNotificationsStore = create<NotificationsState>((set, get) => ({
+  ...SIGNED_OUT,
+
+  setPanelOpen: (open) => set({ panelOpen: open }),
 
   fetch: async () => {
     set({ loading: true });
@@ -82,3 +94,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     });
   },
 }));
+
+/** Drops the account's notifications and closes the bell's panel, the way a
+ * sign-out does, so the next sign-in in this tab starts from nothing. */
+export function clearNotifications(): void {
+  useNotificationsStore.setState(SIGNED_OUT);
+}

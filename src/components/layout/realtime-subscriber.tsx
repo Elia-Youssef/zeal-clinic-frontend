@@ -21,7 +21,11 @@ export function RealtimeSubscriber() {
   }, [navigate]);
 
   useEffect(() => {
-    const { fetchUnreadCount, addIncoming } = useNotificationsStore.getState();
+    const {
+      fetch: fetchNotifications,
+      fetchUnreadCount,
+      addIncoming,
+    } = useNotificationsStore.getState();
     const { addAlert } = useAlertStore.getState();
     const {
       setConnected,
@@ -41,6 +45,15 @@ export function RealtimeSubscriber() {
         hello: () => {
           setConnected(true);
           fetchUnreadCount().catch(() => {});
+        },
+        // The server changed this account's notifications without sending
+        // them (it cleared some): load the count again, and the list too
+        // while the panel shows it.
+        notifications_changed: () => {
+          const reload = useNotificationsStore.getState().panelOpen
+            ? fetchNotifications
+            : fetchUnreadCount;
+          reload().catch(() => {});
         },
         notification: (e) => {
           try {
