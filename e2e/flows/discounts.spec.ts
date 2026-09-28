@@ -94,7 +94,7 @@ test("percent and fixed offers over a date range, applied on invoices and listed
   await expectToast(page, "This discount is used by invoices and can't be deleted");
 });
 
-test("an offer created as inactive is saved as active", async ({ page, scenario }) => {
+test("an offer created as inactive is listed as inactive", async ({ page, scenario }) => {
   const name = scenario.name("Offer");
   await page.goto("/financials/discounts");
   await discountsList(page).getByRole("button", { name: "New", exact: true }).click();
@@ -105,8 +105,9 @@ test("an offer created as inactive is saved as active", async ({ page, scenario 
   await form.getByRole("button", { name: "Create", exact: true }).click();
   await expectToast(page, "Discount created.");
   await searchList(discountsList(page), name);
-  await expect(rows(discountsList(page), name)).toContainText("Active");
-  await expect(rows(discountsList(page), name)).not.toContainText("Inactive");
+  const row = rows(discountsList(page), name);
+  await expect(row).toContainText("Inactive");
+  await expect(row.getByText("Active", { exact: true })).not.toBeVisible();
 });
 
 test("a gift card is sold on an invoice, redeemed once and credits the recipient", async ({ page, guards, scenario }) => {
