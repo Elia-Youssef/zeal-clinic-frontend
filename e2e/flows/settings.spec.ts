@@ -1,6 +1,6 @@
 import { apiRequest } from "../support/api";
 import { expect, test } from "../support/fixtures";
-import { card, choose, detail, dialog, expectToast, input, rows, searchList } from "../support/ui";
+import { card, choose, detail, expectToast, input, openDialog, rows, searchList } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -9,8 +9,7 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   const displayName = scenario.name("Nurse");
   await page.goto("/settings/staff");
   const staff = card(page, "Staff");
-  await staff.getByRole("button", { name: "New", exact: true }).click();
-  let form = dialog(page, "New Staff");
+  let form = await openDialog(page, "New Staff", staff.getByRole("button", { name: "New", exact: true }));
   await input(form, "Username").fill(username);
   await input(form, "Display Name").fill(displayName);
   await choose(form, "Role", "Nurse");
@@ -41,8 +40,7 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   await expect(rows(history, `patients #${patient.id.slice(0, 8)}`)).toContainText("update");
   await expect(rows(history).filter({ hasText: "create" })).toContainText("patients #");
 
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  form = dialog(page, "Edit Staff");
+  form = await openDialog(page, "Edit Staff", page.getByRole("button", { name: "Edit", exact: true }));
   await expect(input(form, "Username")).toHaveValue(username);
   await expect(input(form, "Username")).toBeDisabled();
   await input(form, "Display Name").fill(`${displayName} Two`);
@@ -61,8 +59,7 @@ test("staff: create, edit with the username locked, deactivate and activate, the
 test("the new-staff form starts on a role it doesn't offer, so skipping the role is refused", async ({ page, guards, scenario }) => {
   guards.expectError("400 POST /api/users");
   await page.goto("/settings/staff");
-  await card(page, "Staff").getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Staff");
+  const form = await openDialog(page, "New Staff", card(page, "Staff").getByRole("button", { name: "New", exact: true }));
   await expect(form.locator('[data-slot="popover-trigger"]')).toContainText("Select role…");
   await input(form, "Username").fill(scenario.tag());
   await input(form, "Display Name").fill(scenario.name("Staff"));
@@ -75,8 +72,7 @@ test("the super-admin appears neither in the staff list nor in the audit log", a
   // Setup data is written as the super-admin all the time; the admin's own write must still show.
   const allergy = scenario.name("Allergy");
   await page.goto("/patients/allergies");
-  await card(page, "Allergies").getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Allergy");
+  const form = await openDialog(page, "New Allergy", card(page, "Allergies").getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(allergy);
   await form.getByRole("button", { name: "Create", exact: true }).click();
   await expectToast(page, "Allergy created.");

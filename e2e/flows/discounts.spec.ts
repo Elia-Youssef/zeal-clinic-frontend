@@ -7,9 +7,9 @@ import {
   choose,
   confirm,
   detail,
-  dialog,
   expectToast,
   input,
+  openDialog,
   pickDate,
   rows,
   searchList,
@@ -25,8 +25,7 @@ const discountsList = (page: Page): Locator =>
 
 async function newOffer(page: Page, name: string, valueType: "Percentage" | "Fixed", value: string, from: string, to: string) {
   await page.goto("/financials/discounts");
-  await discountsList(page).getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Discount");
+  const form = await openDialog(page, "New Discount", discountsList(page).getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(name);
   await choose(form, "Value Type", valueType);
   await input(form, "Value").fill(value);
@@ -39,8 +38,7 @@ async function newOffer(page: Page, name: string, valueType: "Percentage" | "Fix
 /** Creates an invoice with one "other" line from the patient's record, with an offer applied. */
 async function invoiceWithOffer(page: Page, patientId: string, amount: string, offerLabel: string, offerName: string) {
   await page.goto(`/patients/${patientId}`);
-  await cardAddButton(card(page, "Invoices")).click();
-  const form = dialog(page, "New Client Invoice");
+  const form = await openDialog(page, "New Client Invoice", cardAddButton(card(page, "Invoices")));
   const item = form.locator("div").filter({ has: page.getByText("Item #1", { exact: true }) }).filter({ has: page.locator("label", { hasText: /^Type$/ }) }).last();
   await choose(item, "Type", "Other");
   await input(item, "Amount").fill(amount);
@@ -97,8 +95,7 @@ test("percent and fixed offers over a date range, applied on invoices and listed
 test("an offer created as inactive is listed as inactive", async ({ page, scenario }) => {
   const name = scenario.name("Offer");
   await page.goto("/financials/discounts");
-  await discountsList(page).getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Discount");
+  const form = await openDialog(page, "New Discount", discountsList(page).getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(name);
   await input(form, "Value").fill("5");
   await choose(form, "Status", "Inactive");
@@ -124,8 +121,7 @@ test("a gift card is sold on an invoice, redeemed once and credits the recipient
   await expect(row).toContainText("$50.00");
   await expect(row).toContainText("Active");
 
-  await page.getByRole("button", { name: "Redeem Gift" }).click();
-  let form = dialog(page, "Redeem Gift Card");
+  let form = await openDialog(page, "Redeem Gift Card", page.getByRole("button", { name: "Redeem Gift" }));
   await input(form, "Code").fill(code.toLowerCase());
   await expect(input(form, "Code")).toHaveValue(code);
   await choose(form, "Patient", recipient.fullName, recipient.fullName);
@@ -134,8 +130,7 @@ test("a gift card is sold on an invoice, redeemed once and credits the recipient
   await expect(rows(discountsList(page), giftName)).toContainText("Redeemed");
 
   guards.expectError("400 POST /api/gift-cards/redeem");
-  await page.getByRole("button", { name: "Redeem Gift" }).click();
-  form = dialog(page, "Redeem Gift Card");
+  form = await openDialog(page, "Redeem Gift Card", page.getByRole("button", { name: "Redeem Gift" }));
   await input(form, "Code").fill(code);
   await choose(form, "Patient", buyer.fullName, buyer.fullName);
   await form.getByRole("button", { name: "Redeem", exact: true }).click();

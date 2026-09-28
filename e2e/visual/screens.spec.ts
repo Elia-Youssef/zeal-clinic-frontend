@@ -3,7 +3,7 @@ import type { Session } from "../support/api";
 import { settle } from "../support/app";
 import { expect, seedContext, test as base } from "../support/fixtures";
 import type { Guards } from "../support/guards";
-import { card, choose, chooseIn, detail, dialog, field, input, openPopover, pickDate, pickInCalendar, searchList, trigger } from "../support/ui";
+import { card, choose, chooseIn, detail, field, input, openDialog, openPopover, pickDate, pickInCalendar, searchList, trigger } from "../support/ui";
 import { visualData, type VisualData } from "./visual-data";
 
 // The screens compared with the visual goldens, at the default desktop size, in the app's light theme
@@ -144,9 +144,10 @@ function scheduleMasks(page: Page, schedule: Locator): Locator[] {
 
 async function newAppointment(screen: Screen): Promise<Locator> {
   const { page, data } = screen;
-  await page.getByRole("button", { name: "Quick Action" }).click();
-  await page.getByRole("menuitem", { name: "New Appointment" }).click();
-  const form = dialog(page, "New Appointment");
+  const form = await openDialog(page, "New Appointment", async () => {
+    await page.getByRole("button", { name: "Quick Action" }).click();
+    await page.getByRole("menuitem", { name: "New Appointment" }).click();
+  });
   const [alma] = data.patients;
   await choose(form, "Patient", `${alma.firstName} ${alma.lastName}`, alma.firstName);
   await choose(form, "Room", data.rooms[0].name, data.rooms[0].name);
@@ -212,9 +213,7 @@ const screens: Record<string, (screen: Screen) => Promise<void>> = {
 
   async "patient-form"({ page, open, shot }) {
     await open("/patients/list");
-    await listCard(page).getByRole("button", { name: "New", exact: true }).click();
-    const form = dialog(page, "New Patient");
-    await expect(form).toBeVisible();
+    const form = await openDialog(page, "New Patient", listCard(page).getByRole("button", { name: "New", exact: true }));
     await shot("patient-form", [], form);
   },
 
@@ -254,8 +253,7 @@ const screens: Record<string, (screen: Screen) => Promise<void>> = {
 
   async "invoice-form"({ page, data, open, shot }) {
     await open("/financials/invoices");
-    await page.getByRole("button", { name: "New", exact: true }).click();
-    const form = dialog(page, "New Client Invoice");
+    const form = await openDialog(page, "New Client Invoice", page.getByRole("button", { name: "New", exact: true }));
     const [alma] = data.patients;
     await choose(form, "Patient", `${alma.firstName} ${alma.lastName}`, alma.firstName);
     const item = line(form, 1);
@@ -369,9 +367,7 @@ const screens: Record<string, (screen: Screen) => Promise<void>> = {
 
   async "settings-staff-form"({ page, open, shot }) {
     await open("/settings/staff");
-    await listCard(page).getByRole("button", { name: "New", exact: true }).click();
-    const form = dialog(page, "New Staff");
-    await expect(form).toBeVisible();
+    const form = await openDialog(page, "New Staff", listCard(page).getByRole("button", { name: "New", exact: true }));
     await shot("settings-staff-form", [], form);
   },
 

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
 import { addDays, clinicDay, clinicTime, formatDay } from "../support/time";
-import { dialog, input, pickDate } from "../support/ui";
+import { input, openDialog, pickDate } from "../support/ui";
 
 // Beirut's clock changes: back at midnight on 2026-10-25 (23:00-23:59 on the 24th happens twice),
 // forward at midnight on 2027-03-28 (00:00-00:59 doesn't exist).
@@ -63,9 +63,10 @@ for (const zone of ["America/New_York", "Pacific/Kiritimati"]) {
 
     test("times that don't exist or happen twice in Beirut are refused", async ({ page }) => {
       await page.goto("/schedule/calendar");
-      await page.getByRole("button", { name: "Quick Action" }).click();
-      await page.getByRole("menuitem", { name: "New Appointment" }).click();
-      const form = dialog(page, "New Appointment");
+      const form = await openDialog(page, "New Appointment", async () => {
+        await page.getByRole("button", { name: "Quick Action" }).click();
+        await page.getByRole("menuitem", { name: "New Appointment" }).click();
+      });
 
       await pickDate(form, "Date", SPRING_FORWARD_DAY);
       await input(form, "Start Time").fill("00:30");

@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { apiRequest } from "../support/api";
 import { expect, test } from "../support/fixtures";
 import { addDays, clinicDay, clinicTime } from "../support/time";
-import { card, dialog, input, rows, searchList, trigger } from "../support/ui";
+import { card, input, openDialog, opened, openPopover, rows, searchList, trigger } from "../support/ui";
 
 // What the keyboard alone reaches and opens, and the browser tab's title.
 
@@ -75,9 +75,7 @@ test("the day calendar: Enter on an empty hour starts an appointment there, Ente
   await hourCell("9 AM").focus();
   await page.keyboard.press("Tab");
   await expect(hourCell("10 AM")).toBeFocused();
-  await page.keyboard.press("Enter");
-  let form = dialog(page, "New Appointment");
-  await expect(form).toBeVisible();
+  let form = await openDialog(page, "New Appointment", () => page.keyboard.press("Enter"));
   await expect(trigger(form, "Date")).toContainText(shown(day));
   await expect(input(form, "Start Time")).toHaveValue("10:00");
   await expect(input(form, "End Time")).toHaveValue("11:00");
@@ -88,9 +86,7 @@ test("the day calendar: Enter on an empty hour starts an appointment there, Ente
   await hourCell("7 PM").focus();
   await page.keyboard.press("Tab");
   await expect(appointmentCard).toBeFocused();
-  await page.keyboard.press("Enter");
-  form = dialog(page, "Edit Appointment");
-  await expect(form).toBeVisible();
+  form = await openDialog(page, "Edit Appointment", () => page.keyboard.press("Enter"));
   await expect(input(form, "Start Time")).toHaveValue("14:00");
   await expect(input(form, "End Time")).toHaveValue("15:00");
 });
@@ -148,8 +144,7 @@ test("Enter on an unread notification marks it read and leaves the focus on it",
   const sent = await apiRequest<{ id: string }>(scenario.baseURL, session.token, "POST", "/notifications/test");
 
   await bell(page).focus();
-  await page.keyboard.press("Enter");
-  const panel = page.locator('[data-slot="popover-content"][data-open]');
+  const panel = await opened(openPopover(page), () => page.keyboard.press("Enter"));
   // The item's body is a button named by the notification, plus "Unread" while unread.
   const body = { name: /^Test notification/ };
   const row = panel.getByRole("listitem").filter({ has: page.getByRole("button", body) });

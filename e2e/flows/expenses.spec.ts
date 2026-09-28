@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
-import { card, cardAddButton, choose, confirm, detail, dialog, expectToast, input, menuItem, rowAction, rows, searchList } from "../support/ui";
+import { card, cardAddButton, choose, confirm, detail, expectToast, input, menuItem, openDialog, rowAction, rows, searchList } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -9,8 +9,7 @@ const expensesList = (page: Page): Locator => card(page, "Expenses");
 test("expense account: payments are a charge plus a payment; adjustments, write-offs and deletes", async ({ page, guards, scenario }) => {
   const name = scenario.name("Expense");
   await page.goto("/financials/expenses");
-  await expensesList(page).getByRole("button", { name: "New", exact: true }).click();
-  let form = dialog(page, "New Expense");
+  let form = await openDialog(page, "New Expense", expensesList(page).getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(name);
   await input(form, "Notes").fill("Monthly rent");
   await form.getByRole("button", { name: "Create", exact: true }).click();
@@ -23,8 +22,7 @@ test("expense account: payments are a charge plus a payment; adjustments, write-
   const payments = card(page, "Payments");
   await expect(payments).toContainText("No payments recorded yet.");
 
-  await cardAddButton(payments).click();
-  form = dialog(page, "New Expense Payment");
+  form = await openDialog(page, "New Expense Payment", cardAddButton(payments));
   await input(form, "Amount").fill("300");
   await choose(form, "Method", "Transfer");
   await input(form, "Description").fill("September rent");
@@ -39,8 +37,7 @@ test("expense account: payments are a charge plus a payment; adjustments, write-
   const balance = await scenario.get<{ amount: number }>(`/balances/expense/${expenseId}`);
   expect(balance.amount).toBe(0);
 
-  await menuItem(payments, "Payment actions", "Adjustment");
-  form = dialog(page, "New Balance Adjustment");
+  form = await openDialog(page, "New Balance Adjustment", () => menuItem(payments, "Payment actions", "Adjustment"));
   await input(form, "Amount").fill("5");
   await input(form, "Description").fill("Bank fee");
   await form.getByRole("button", { name: "Create Adjustment", exact: true }).click();
@@ -48,8 +45,7 @@ test("expense account: payments are a charge plus a payment; adjustments, write-
   await expect(rows(payments, "Bank fee")).toContainText("adjustment");
   await expect(rows(payments, "Bank fee")).toContainText("-$5.00");
 
-  await menuItem(payments, "Payment actions", "Write-Off");
-  form = dialog(page, "New Write-Off");
+  form = await openDialog(page, "New Write-Off", () => menuItem(payments, "Payment actions", "Write-Off"));
   await input(form, "Amount").fill("2");
   await choose(form, "Direction", "Incoming");
   await input(form, "Description").fill("Rounding");

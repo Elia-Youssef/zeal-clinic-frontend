@@ -3,7 +3,7 @@ import { apiGet, apiLogout, ApiError, throwawayPassword } from "../support/api";
 import { settle } from "../support/app";
 import { browserState, signInWithForm, signOut } from "../support/auth";
 import { expect, test } from "../support/fixtures";
-import { dialog, input } from "../support/ui";
+import { input, openDialog } from "../support/ui";
 
 /** The message under the sign-in fields. */
 const loginError = (page: Page) => page.locator("form p");
@@ -104,8 +104,7 @@ test.describe("sessions", () => {
     // Today the page that made the call also throws "Session expired" uncaught while the tab reloads.
     guards.expectPageError(/^Session expired$/);
     await page.goto("/patients/list");
-    await page.getByRole("button", { name: "New", exact: true }).click();
-    const form = dialog(page, "New Patient");
+    const form = await openDialog(page, "New Patient", page.getByRole("button", { name: "New", exact: true }));
     const draftName = scenario.name("Draft");
     await input(form, "First Name").fill(draftName);
     await expect.poll(async () => (await browserState(page)).drafts ?? "").toContain(draftName);
@@ -161,8 +160,7 @@ test.describe("session expiry", () => {
     guards.expectError("401 GET /api/auth/verify");
     await page.clock.install();
     await page.goto("/patients/list");
-    await page.getByRole("button", { name: "New", exact: true }).click();
-    const form = dialog(page, "New Patient");
+    const form = await openDialog(page, "New Patient", page.getByRole("button", { name: "New", exact: true }));
     const draftName = scenario.name("Draft");
     await input(form, "First Name").fill(draftName);
     await expect.poll(async () => (await browserState(page)).drafts ?? "").toContain(draftName);

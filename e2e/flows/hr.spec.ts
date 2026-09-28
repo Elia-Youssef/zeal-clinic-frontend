@@ -7,9 +7,9 @@ import {
   choose,
   confirm,
   detail,
-  dialog,
   expectToast,
   input,
+  openDialog,
   pickDate,
   rowAction,
   rows,
@@ -27,8 +27,7 @@ test("an employee with a linked account; the account button opens the staff reco
   const username = scenario.tag();
   await page.goto("/team/employees");
   const list = card(page, "Employees");
-  await list.getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Employee");
+  const form = await openDialog(page, "New Employee", list.getByRole("button", { name: "New", exact: true }));
   await input(form, "First Name").fill(first);
   await input(form, "Last Name").fill("Employee");
   await input(form, "Role").fill("Nurse");
@@ -64,8 +63,7 @@ test("a weekday schedule saved from a date keeps the earlier version", async ({ 
   await page.goto(`/team/${employee.id}`);
   const schedule = card(page, "Schedule");
   await schedule.getByRole("button", { name: "Table", exact: true }).click();
-  await rowAction(rows(schedule, "Mon"), "Edit schedule");
-  const form = dialog(page, "Monday Schedule");
+  const form = await openDialog(page, "Monday Schedule", () => rowAction(rows(schedule, "Mon"), "Edit schedule"));
   await expect(form).toContainText(`These hours have been in place since ${formatDay(pastMonday, "d MMM yyyy")}.`);
   await expect(form.getByLabel("Shift 1 start time")).toHaveValue("09:00");
   await form.getByLabel("Shift 1 end time").fill("13:00");
@@ -93,14 +91,12 @@ test("staff request time off and overtime for themselves; an admin accepts one a
   await expect(staff.getByRole("heading", { level: 2 })).toHaveText(employee.fullName);
   const own = card(staff, "Schedule");
   await own.getByRole("button", { name: "Table", exact: true }).click();
-  await rowAction(rows(own, "Tue"), "Request time off");
-  let form = dialog(staff, "Request Time Off");
+  let form = await openDialog(staff, "Request Time Off", () => rowAction(rows(own, "Tue"), "Request time off"));
   await input(form, "Notes").fill(offNote);
   await form.getByRole("button", { name: "Submit Request", exact: true }).click();
   await expectToast(staff, "Time off request submitted.");
 
-  await rowAction(rows(own, "Wed"), "Request overtime");
-  form = dialog(staff, "Request Overtime");
+  form = await openDialog(staff, "Request Overtime", () => rowAction(rows(own, "Wed"), "Request overtime"));
   await input(form, "Start Time").fill("18:00");
   await input(form, "End Time").fill("20:00");
   await input(form, "Notes").fill(overtimeNote);
@@ -108,14 +104,12 @@ test("staff request time off and overtime for themselves; an admin accepts one a
   await expectToast(staff, "Overtime request submitted.");
 
   await page.goto(`/team/${employee.id}`);
-  await page.getByTitle(`pending time off — ${offNote}`).click();
-  let view = dialog(page, "Time Off");
+  let view = await openDialog(page, "Time Off", page.getByTitle(`pending time off — ${offNote}`));
   await expect(view).toContainText("pending");
   await view.getByRole("button", { name: "Accept", exact: true }).click();
   await expectToast(page, "Time Off accepted.");
 
-  await page.getByTitle(`pending overtime — ${overtimeNote}`).click();
-  view = dialog(page, "Overtime");
+  view = await openDialog(page, "Overtime", page.getByTitle(`pending overtime — ${overtimeNote}`));
   await view.getByRole("button", { name: "Reject", exact: true }).click();
   await expectToast(page, "Overtime rejected.");
   await expect(page.getByTitle(`rejected overtime — ${overtimeNote}`)).toBeVisible();
@@ -131,8 +125,7 @@ test("holidays are added and deleted", async ({ page, scenario }) => {
   const end = addDays(start, 1);
   await page.goto("/team/holidays");
   const list = card(page, "Holidays");
-  await list.getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "Add Holiday");
+  const form = await openDialog(page, "Add Holiday", list.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(name);
   await pickDate(form, "Start Date", start);
   await pickDate(form, "End Date", end);
@@ -159,16 +152,14 @@ test("salaries by effective date, salary preparation and the employee payment th
 
   await page.goto(`/team/${employee.id}`);
   const salaries = card(page, "Salaries");
-  await cardAddButton(salaries).click();
-  let form = dialog(page, "Add Salary");
+  let form = await openDialog(page, "Add Salary", cardAddButton(salaries));
   await input(form, "Amount").fill("1500");
   await pickDate(form, "Effective Date", lastMonthStart);
   await form.getByRole("button", { name: "Add Salary", exact: true }).click();
   await expectToast(page, "Salary added.");
   await expect(rows(salaries, "$1500.00")).toContainText(lastMonthStart);
 
-  await cardAddButton(salaries).click();
-  form = dialog(page, "Add Salary");
+  form = await openDialog(page, "Add Salary", cardAddButton(salaries));
   await input(form, "Amount").fill("1800");
   await pickDate(form, "Effective Date", today);
   await form.getByRole("button", { name: "Add Salary", exact: true }).click();
@@ -177,8 +168,7 @@ test("salaries by effective date, salary preparation and the employee payment th
   await expect(rows(salaries, "$1500.00")).toContainText("Inactive");
 
   await page.goto("/team/employees");
-  await page.getByRole("button", { name: "Prepare Salaries" }).click();
-  form = dialog(page, "Prepare Salaries");
+  form = await openDialog(page, "Prepare Salaries", page.getByRole("button", { name: "Prepare Salaries" }));
   await form.getByRole("button", { name: "Prepare", exact: true }).click();
   await expectToast(page, /^Prepared salaries for \d+ employees?\.$/);
   await expect(rows(form, employee.fullName)).toContainText("1500.00");
@@ -188,8 +178,7 @@ test("salaries by effective date, salary preparation and the employee payment th
   const prepared = card(page, "Prepared Salaries");
   const row = rows(prepared, `${lastMonthStart} → ${lastMonthEnd}`);
   await expect(row).toContainText("$1500.00");
-  await rowAction(row, "Edit Adjustment");
-  form = dialog(page, "Edit Adjustment");
+  form = await openDialog(page, "Edit Adjustment", () => rowAction(row, "Edit Adjustment"));
   await input(form, "Adjustment").fill("100");
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expectToast(page, "Adjustment updated.");
@@ -197,8 +186,7 @@ test("salaries by effective date, salary preparation and the employee payment th
   await expect(row).toContainText("$1600.00");
   await expect(balanceLine(page)).toHaveText("Balance: -$1600.00");
 
-  await cardAddButton(card(page, "Payments")).click();
-  form = dialog(page, "Record Employee Payment");
+  form = await openDialog(page, "Record Employee Payment", cardAddButton(card(page, "Payments")));
   await input(form, "Amount").fill("1600");
   await input(form, "Description").fill("Salary paid");
   await form.getByRole("button", { name: "Record Payment", exact: true }).click();

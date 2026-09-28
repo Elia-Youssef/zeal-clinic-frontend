@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
 import { capturePdf, expectPdf } from "../support/pdf";
 import { addDays, clinicDay, clinicTime } from "../support/time";
-import { card, detail, dialog, expectToast, input, rows } from "../support/ui";
+import { card, detail, dialog, expectToast, input, openDialog, rows } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -26,10 +26,11 @@ test("completion wizard: notes, invoice, payment; then the invoice, the balance 
   });
 
   await page.goto(`/schedule/calendar?date=${day}`);
-  await gridCard(page, patient.fullName).click();
-  await dialog(page, "Edit Appointment").getByRole("button", { name: "Scheduled", exact: true }).click();
+  const form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
+  await form.getByRole("button", { name: "Scheduled", exact: true }).click();
   await page.getByRole("menuitem", { name: "Completed" }).click();
 
+  // The status change turns the open dialog into the completion wizard.
   const wizard = dialog(page, "Complete Appointment");
   for (const step of ["Complete", "Invoice", "Payment"]) {
     await expect(wizard.getByRole("button", { name: new RegExp(step) }).first()).toBeVisible();
@@ -51,8 +52,7 @@ test("completion wizard: notes, invoice, payment; then the invoice, the balance 
   await expectToast(page, "Client payment recorded.");
   await expect(wizard).toBeHidden();
 
-  await gridCard(page, patient.fullName).click();
-  const view = dialog(page, "View Appointment");
+  const view = await openDialog(page, "View Appointment", gridCard(page, patient.fullName));
   await expect(detail(view, "Completion Notes")).toContainText("Went well");
   await view.getByRole("button", { name: "Close", exact: true }).last().click();
 
@@ -101,17 +101,17 @@ test("completing without the invoice step keeps the notes and opens read-only", 
     endTime: clinicTime(day, "16:30"),
   });
   await page.goto(`/schedule/calendar?date=${day}`);
-  await gridCard(page, patient.fullName).click();
-  await dialog(page, "Edit Appointment").getByRole("button", { name: "Scheduled", exact: true }).click();
+  const form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
+  await form.getByRole("button", { name: "Scheduled", exact: true }).click();
   await page.getByRole("menuitem", { name: "Completed" }).click();
+  // The status change turns the open dialog into the completion wizard.
   const wizard = dialog(page, "Complete Appointment");
   await input(wizard, "Completion Notes").fill("No charge today");
   await wizard.getByRole("button", { name: "Complete", exact: true }).click();
   await expectToast(page, "Appointment completed.");
   await expect(wizard).toBeHidden();
 
-  await gridCard(page, patient.fullName).click();
-  const view = dialog(page, "View Appointment");
+  const view = await openDialog(page, "View Appointment", gridCard(page, patient.fullName));
   await expect(detail(view, "Completion Notes")).toContainText("No charge today");
   await expect(view.getByRole("button", { name: "Completed", exact: true })).toBeVisible();
   expect((await scenario.get<{ items: unknown[] }>(`/patients/${patient.id}/invoices`)).items).toHaveLength(0);

@@ -5,9 +5,9 @@ import {
   choose,
   confirm,
   detail,
-  dialog,
   expectToast,
   input,
+  openDialog,
   rowAction,
   rows,
   searchList,
@@ -24,8 +24,7 @@ test("types, nested categories, a procedure with price history, inclusions and t
 
   await page.goto("/services/types");
   const types = card(page, "Procedure Types");
-  await types.getByRole("button", { name: "New", exact: true }).click();
-  let form = dialog(page, "New Procedure Type");
+  let form = await openDialog(page, "New Procedure Type", types.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(type);
   await input(form, "Description").fill("Made by the tests");
   await form.getByRole("button", { name: "Create", exact: true }).click();
@@ -35,13 +34,11 @@ test("types, nested categories, a procedure with price history, inclusions and t
 
   await page.goto("/services/categories");
   const categories = card(page, "Procedure Categories");
-  await categories.getByRole("button", { name: "New", exact: true }).click();
-  form = dialog(page, "New Procedure Category");
+  form = await openDialog(page, "New Procedure Category", categories.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(parent);
   await form.getByRole("button", { name: "Create", exact: true }).click();
   await expectToast(page, "Category created.");
-  await categories.getByRole("button", { name: "New", exact: true }).click();
-  form = dialog(page, "New Procedure Category");
+  form = await openDialog(page, "New Procedure Category", categories.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(child);
   await choose(form, "Parent Category", parent, parent);
   await form.getByRole("button", { name: "Create", exact: true }).click();
@@ -51,8 +48,7 @@ test("types, nested categories, a procedure with price history, inclusions and t
 
   await page.goto("/services/procedures");
   const procedures = card(page, "Procedures");
-  await procedures.getByRole("button", { name: "New", exact: true }).click();
-  form = dialog(page, "New Procedure");
+  form = await openDialog(page, "New Procedure", procedures.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(procedure);
   await input(form, "Price").fill("350");
   await input(form, "Price Note").fill("per session");
@@ -82,8 +78,7 @@ test("types, nested categories, a procedure with price history, inclusions and t
   const pick = async () => scenario.get<{ id: string }[]>(`/procedures/dropdown?limit=7&filter=${encodeURIComponent(procedure)}`);
   expect((await pick()).map((p) => p.id)).toEqual([id]);
 
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  form = dialog(page, "Edit Procedure");
+  form = await openDialog(page, "Edit Procedure", page.getByRole("button", { name: "Edit", exact: true }));
   await expect(form.getByRole("checkbox", { name: "Active" })).toBeChecked();
   await input(form, "Price").fill("400");
   await form.getByRole("checkbox", { name: "Active" }).click();
@@ -102,8 +97,7 @@ test("types, nested categories, a procedure with price history, inclusions and t
 
   await page.goto(`/services/procedures/${id}`);
   const conflicts = card(page, "Allergy Conflicts");
-  await cardAddButton(conflicts).click();
-  form = dialog(page, "Add Allergy Conflict");
+  form = await openDialog(page, "Add Allergy Conflict", cardAddButton(conflicts));
   await choose(form, "Allergy", allergy.name, allergy.name);
   await input(form, "Notes").fill("Avoid lidocaine");
   await form.getByRole("button", { name: "Add", exact: true }).click();

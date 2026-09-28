@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
 import type { Scenario } from "../support/scenario";
-import { confirm, dialog, expectToast, input } from "../support/ui";
+import { confirm, expectToast, input, openDialog } from "../support/ui";
 
 // The browser reports a dark color scheme here.
 test.use({ role: "staff" });
@@ -10,8 +10,7 @@ const isDark = (page: Page) => page.evaluate(() => document.documentElement.clas
 
 async function createPatient(page: Page, scenario: Scenario): Promise<void> {
   await page.goto("/patients/list");
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Patient");
+  const form = await openDialog(page, "New Patient", page.getByRole("button", { name: "New", exact: true }));
   await input(form, "First Name").fill(scenario.name("").trim());
   await input(form, "Last Name").fill("Patient");
   await input(form, "Contact").fill(scenario.phone());

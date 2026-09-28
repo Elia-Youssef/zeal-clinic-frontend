@@ -9,6 +9,9 @@ import { pickerDayKey } from "./time";
 
 type Scope = Page | Locator;
 
+/** What opens a popup: the control to click, or the steps that open it (a menu pick, a key press). */
+type Opener = Locator | (() => Promise<unknown>);
+
 function pageOf(scope: Scope): Page {
   return "page" in scope && typeof scope.page === "function" ? scope.page() : (scope as Page);
 }
@@ -106,9 +109,31 @@ export async function typeDate(scope: Scope, label: string, day: string): Promis
   await group.getByRole("textbox", { name: "Year", exact: true }).fill(y);
 }
 
-/** A modal dialog by its title. */
+/**
+ * Opens a popup (a dialog, popover or menu) with `opener` and returns `popup` once it is ready for input.
+ *
+ * Base UI moves a freshly opened popup's focus to its first control (or to the popup itself, when nothing
+ * inside is tabbable or it opened by touch) one animation frame after it opens. A step in that frame can
+ * lose to it: fill focuses its own field and then types in a separate step, and a focus() followed by a
+ * key press can see the focus move in between. Once focus is inside the popup, that first focus is done
+ * and nothing moves focus again, so the popup is ready. A popup opened with `initialFocus={false}`
+ * (SearchableDropdown's list) never takes focus, so it must not be opened with this.
+ */
+export async function opened(popup: Locator, opener: Opener): Promise<Locator> {
+  if (typeof opener === "function") await opener();
+  else await opener.click();
+  await expect(popup.and(popup.page().locator(":focus-within"))).toBeVisible();
+  return popup;
+}
+
+/** A modal dialog by its title, one that is open already or should be gone (openDialog() opens one). */
 export function dialog(page: Page, title: string | RegExp): Locator {
   return page.getByRole("dialog", { name: title, exact: typeof title === "string" });
+}
+
+/** Opens a modal dialog and returns it once its first focus has landed (see opened()). */
+export async function openDialog(page: Page, title: string | RegExp, opener: Opener): Promise<Locator> {
+  return opened(dialog(page, title), opener);
 }
 
 /** A confirmation dialog by its title. */

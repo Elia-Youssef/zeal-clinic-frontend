@@ -5,9 +5,9 @@ import {
   choose,
   confirm,
   detail,
-  dialog,
   expectToast,
   input,
+  openDialog,
   rowAction,
   rows,
   searchList,
@@ -23,13 +23,11 @@ test("nested categories, a product with a threshold, its price history and aller
 
   await page.goto("/inventory/categories");
   const categories = card(page, "Categories");
-  await categories.getByRole("button", { name: "New", exact: true }).click();
-  let form = dialog(page, "New Category");
+  let form = await openDialog(page, "New Category", categories.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(parent);
   await form.getByRole("button", { name: "Create", exact: true }).click();
   await expectToast(page, "Category created.");
-  await categories.getByRole("button", { name: "New", exact: true }).click();
-  form = dialog(page, "New Category");
+  form = await openDialog(page, "New Category", categories.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(child);
   await choose(form, "Parent Category", parent, parent);
   await input(form, "Description").fill("Nested one level");
@@ -41,8 +39,7 @@ test("nested categories, a product with a threshold, its price history and aller
 
   await page.getByRole("link", { name: "Products", exact: true }).last().click();
   const products = card(page, "Products");
-  await products.getByRole("button", { name: "New", exact: true }).click();
-  form = dialog(page, "New Product");
+  form = await openDialog(page, "New Product", products.getByRole("button", { name: "New", exact: true }));
   await input(form, "Name").fill(product);
   await choose(form, "Category", child, child);
   await input(form, "Unit Price").fill("12.5");
@@ -66,8 +63,7 @@ test("nested categories, a product with a threshold, its price history and aller
   await expect(rows(history)).toHaveCount(1);
   await expect(rows(history).first()).toContainText("Current");
 
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  form = dialog(page, "Edit Product");
+  form = await openDialog(page, "Edit Product", page.getByRole("button", { name: "Edit", exact: true }));
   await input(form, "Unit Price").fill("15");
   await form.getByRole("button", { name: "Update", exact: true }).click();
   await expectToast(page, "Product updated.");
@@ -79,15 +75,13 @@ test("nested categories, a product with a threshold, its price history and aller
 
   const conflicts = card(page, "Allergy Conflicts");
   await expect(conflicts).toContainText("No allergy conflicts.");
-  await cardAddButton(conflicts).click();
-  form = dialog(page, "Add Allergy Conflict");
+  form = await openDialog(page, "Add Allergy Conflict", cardAddButton(conflicts));
   await choose(form, "Allergy", allergy.name, allergy.name);
   await input(form, "Notes").fill("Contains latex");
   await form.getByRole("button", { name: "Add", exact: true }).click();
   await expectToast(page, "Conflict added.");
   await expect(rows(conflicts, allergy.name)).toContainText("Contains latex");
-  await rowAction(rows(conflicts, allergy.name), "Edit");
-  form = dialog(page, "Edit Allergy Conflict");
+  form = await openDialog(page, "Edit Allergy Conflict", () => rowAction(rows(conflicts, allergy.name), "Edit"));
   await input(form, "Notes").fill("Latex gloves");
   await form.getByRole("button", { name: "Update", exact: true }).click();
   await expectToast(page, "Conflict updated.");

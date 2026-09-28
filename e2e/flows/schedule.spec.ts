@@ -4,7 +4,7 @@ import { expect, test } from "../support/fixtures";
 import { capturePdf, expectPdf } from "../support/pdf";
 import type { Scenario } from "../support/scenario";
 import { addDays, clinicDay, clinicTime, formatDay } from "../support/time";
-import { choose, chooseIn, dialog, expectToast, field, input, pickDate, rows, trigger } from "../support/ui";
+import { choose, chooseIn, dialog, expectToast, field, input, openDialog, pickDate, rows, trigger } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -37,9 +37,10 @@ async function booking(scenario: Scenario, times?: [string, string]) {
 }
 
 async function openNewAppointment(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: "Quick Action" }).click();
-  await page.getByRole("menuitem", { name: "New Appointment" }).click();
-  return dialog(page, "New Appointment");
+  return openDialog(page, "New Appointment", async () => {
+    await page.getByRole("button", { name: "Quick Action" }).click();
+    await page.getByRole("menuitem", { name: "New Appointment" }).click();
+  });
 }
 
 /** Presses on (x, y), moves by dy in small steps, and releases unless told not to. */
@@ -136,14 +137,13 @@ test("moving into a booked slot is refused; creating one answers with a server e
 
   guards.expectError("409 PUT /api/appointments/:id");
   await openDay(page, day);
-  const form = dialog(page, "Edit Appointment");
   // Opened one after the other, each appointment shows its own values.
-  await gridCard(page, patient.fullName).click();
+  let form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
   await expect(trigger(form, "Patient")).toContainText(patient.fullName);
   await expect(input(form, "Start Time")).toHaveValue("11:00");
   await form.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(form).toBeHidden();
-  await gridCard(page, other.fullName).click();
+  form = await openDialog(page, "Edit Appointment", gridCard(page, other.fullName));
   await expect(trigger(form, "Patient")).toContainText(other.fullName);
   await expect(input(form, "Start Time")).toHaveValue("13:00");
 
@@ -206,8 +206,7 @@ test("drags on the day grid: moving and stretching snap to 15 minutes, Esc cance
 test("reschedule from the form creates a linked appointment", async ({ page, scenario }) => {
   const { day, patient, appointment } = await booking(scenario, ["15:00", "16:00"]);
   await openDay(page, day);
-  await gridCard(page, patient.fullName).click();
-  const form = dialog(page, "Edit Appointment");
+  const form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
   await input(form, "Start Time").fill("16:00");
   await input(form, "End Time").fill("17:00");
   await form.getByRole("button", { name: "Reschedule", exact: true }).click();
@@ -226,10 +225,10 @@ test("status moves: in-progress, cancelled, back to scheduled", async ({ page, s
   const employee = await scenario.employee();
   await openDay(page, day);
 
-  await gridCard(page, patient.fullName).click();
-  let form = dialog(page, "Edit Appointment");
+  let form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
   await form.getByRole("button", { name: "Scheduled", exact: true }).click();
   await page.getByRole("menuitem", { name: "In-Progress" }).click();
+  // Each status change turns the open dialog into its confirmation page.
   form = dialog(page, "Mark In-Progress");
   await expect(form).toContainText("Assign an employee to each procedure before starting this appointment.");
   await expect(form.getByRole("button", { name: "Confirm", exact: true })).toBeDisabled();
@@ -237,8 +236,7 @@ test("status moves: in-progress, cancelled, back to scheduled", async ({ page, s
   await form.getByRole("button", { name: "Confirm", exact: true }).click();
   await expectToast(page, "Appointment marked in-progress.");
 
-  await gridCard(page, patient.fullName).click();
-  form = dialog(page, "Edit Appointment");
+  form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
   await form.getByRole("button", { name: "In-Progress", exact: true }).click();
   await page.getByRole("menuitem", { name: "Cancelled" }).click();
   form = dialog(page, "Cancel Appointment");
@@ -252,8 +250,7 @@ test("status moves: in-progress, cancelled, back to scheduled", async ({ page, s
   const row = rows(page, patient.fullName);
   await expect(row).toContainText("Cancelled");
   await expect(row).toContainText(procedure.name);
-  await row.click();
-  form = dialog(page, "Edit Appointment");
+  form = await openDialog(page, "Edit Appointment", row);
   await form.getByRole("button", { name: "Cancelled", exact: true }).click();
   await page.getByRole("menuitem", { name: "Scheduled" }).click();
   form = dialog(page, "Return to Scheduled");

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
-import { card, cardAddButton, choose, confirm, dialog, expectToast, field, input, menuItem, rowAction, rows } from "../support/ui";
+import { card, cardAddButton, choose, confirm, expectToast, field, input, menuItem, openDialog, rowAction, rows } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -17,8 +17,7 @@ test("supplier: payment, adjustment and write-off against an invoice; balance an
   await expect(totalsLine(page)).toHaveText(/^In: \$0\.00\s+· Out: \$0\.00$/);
   const payments = card(page, "Payments");
 
-  await cardAddButton(payments).click();
-  let form = dialog(page, "New Supplier Payment");
+  let form = await openDialog(page, "New Supplier Payment", cardAddButton(payments));
   await expect(field(form, "Supplier").locator('[data-slot="popover-trigger"]')).toContainText(supplier.name);
   await input(form, "Amount").fill("60");
   await choose(form, "Method", "Transfer");
@@ -29,8 +28,7 @@ test("supplier: payment, adjustment and write-off against an invoice; balance an
   await expect(rows(payments, "First instalment")).toContainText("transfer");
   await expect(balanceLine(page)).toHaveText("Balance: -$40.00");
 
-  await menuItem(payments, "Payment actions", "Adjustment");
-  form = dialog(page, "New Balance Adjustment");
+  form = await openDialog(page, "New Balance Adjustment", () => menuItem(payments, "Payment actions", "Adjustment"));
   await input(form, "Amount").fill("10");
   await choose(form, "Direction", "Outgoing");
   await input(form, "Description").fill("Price correction");
@@ -38,8 +36,7 @@ test("supplier: payment, adjustment and write-off against an invoice; balance an
   await expectToast(page, "Adjustment created.");
   await expect(balanceLine(page)).toHaveText("Balance: -$30.00");
 
-  await menuItem(payments, "Payment actions", "Write-Off");
-  form = dialog(page, "New Write-Off");
+  form = await openDialog(page, "New Write-Off", () => menuItem(payments, "Payment actions", "Write-Off"));
   await input(form, "Amount").fill("30");
   await choose(form, "Direction", "Outgoing");
   await input(form, "Description").fill("Settled");
@@ -64,8 +61,7 @@ test("employee: payment, adjustment and write-off; balance", async ({ page, scen
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(employee.fullName);
   const payments = card(page, "Payments");
 
-  await cardAddButton(payments).click();
-  let form = dialog(page, "Record Employee Payment");
+  let form = await openDialog(page, "Record Employee Payment", cardAddButton(payments));
   await input(form, "Amount").fill("250");
   await choose(form, "Type", "Card");
   await input(form, "Description").fill("Advance");
@@ -75,8 +71,7 @@ test("employee: payment, adjustment and write-off; balance", async ({ page, scen
   await expect(rows(payments, "Advance")).toContainText("$250.00");
   await expect(balanceLine(page)).toHaveText("Balance: $250.00");
 
-  await menuItem(payments, "Payment actions", "Adjustment");
-  form = dialog(page, "New Balance Adjustment");
+  form = await openDialog(page, "New Balance Adjustment", () => menuItem(payments, "Payment actions", "Adjustment"));
   await input(form, "Amount").fill("50");
   await choose(form, "Direction", "Incoming");
   await input(form, "Description").fill("Returned part");
@@ -84,8 +79,7 @@ test("employee: payment, adjustment and write-off; balance", async ({ page, scen
   await expectToast(page, "Adjustment created.");
   await expect(balanceLine(page)).toHaveText("Balance: $200.00");
 
-  await menuItem(payments, "Payment actions", "Write-Off");
-  form = dialog(page, "New Write-Off");
+  form = await openDialog(page, "New Write-Off", () => menuItem(payments, "Payment actions", "Write-Off"));
   await input(form, "Amount").fill("200");
   await choose(form, "Direction", "Incoming");
   await input(form, "Description").fill("Forgiven");

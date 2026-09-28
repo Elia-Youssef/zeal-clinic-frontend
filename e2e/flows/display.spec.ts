@@ -1,6 +1,6 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
-import { confirm, dialog, expectToast, input } from "../support/ui";
+import { confirm, expectToast, input, openDialog, opened } from "../support/ui";
 
 test.use({ role: "staff" });
 
@@ -12,8 +12,9 @@ const uiSettings = (page: Page) =>
     sidebarOpen: boolean;
   } | null>;
 
-async function openStaffMenu(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Staff menu" }).click();
+/** Opens the header's Staff menu and returns it once its first focus has landed. */
+async function openStaffMenu(page: Page): Promise<Locator> {
+  return opened(page.getByRole("menu"), page.getByRole("button", { name: "Staff menu" }));
 }
 
 test("the theme starts dark, toggles to light and stays light after a reload", async ({ page }) => {
@@ -33,8 +34,7 @@ test("the theme starts dark, toggles to light and stays light after a reload", a
 test("toasts follow the app theme, not the system color scheme", async ({ page, scenario }) => {
   await page.goto("/patients/list");
   expect(await isDark(page)).toBe(true);
-  await page.getByRole("button", { name: "New", exact: true }).click();
-  const form = dialog(page, "New Patient");
+  const form = await openDialog(page, "New Patient", page.getByRole("button", { name: "New", exact: true }));
   await input(form, "First Name").fill(scenario.name("").trim());
   await input(form, "Last Name").fill("Patient");
   await input(form, "Contact").fill(scenario.phone());
@@ -49,10 +49,10 @@ test("the UI zoom goes from 80% to 170% and stays after a reload", async ({ page
   await page.goto("/dashboard");
   const rootSize = () => page.evaluate(() => getComputedStyle(document.documentElement).fontSize);
   expect(await rootSize()).toBe("16px");
-  await openStaffMenu(page);
+  const menu = await openStaffMenu(page);
   // Today the scale slider has two thumbs for its one value (the slider component draws one per end).
-  await expect(page.getByRole("slider")).toHaveCount(2);
-  const slider = page.getByRole("slider").first();
+  await expect(menu.getByRole("slider")).toHaveCount(2);
+  const slider = menu.getByRole("slider").first();
   await slider.focus();
   await page.keyboard.press("Home");
   await expect(page.getByText("80%", { exact: true })).toBeVisible();

@@ -10,11 +10,11 @@ import {
   confirm,
   dateGroup,
   detail,
-  dialog,
   expectToast,
   field,
   input,
   menuItem,
+  openDialog,
   pickDate,
   rowAction,
   rows,
@@ -33,8 +33,7 @@ async function openPatient(page: Page, id: string, fullName: string): Promise<vo
 }
 
 async function openNewPatient(page: Page): Promise<Locator> {
-  await card(page, "Patients").getByRole("button", { name: "New", exact: true }).click();
-  return dialog(page, "New Patient");
+  return openDialog(page, "New Patient", card(page, "Patients").getByRole("button", { name: "New", exact: true }));
 }
 
 test("creates a patient after confirming the minimal-info warning", async ({ page, scenario }) => {
@@ -97,8 +96,7 @@ test("edits the record: date of birth, country and city, then clears the date of
   }
 
   await openPatient(page, patient.id, patient.fullName);
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  let form = dialog(page, "Edit Patient");
+  let form = await openDialog(page, "Edit Patient", page.getByRole("button", { name: "Edit", exact: true }));
   await typeDate(form, "Date of Birth", "1990-04-12");
   await choose(form, "Country", "Lebanon", "Lebanon");
   await choose(form, "City", city.label, city.name);
@@ -110,8 +108,7 @@ test("edits the record: date of birth, country and city, then clears the date of
   await expect(detail(page, "Address")).toContainText(city.name);
   await expect(detail(page, "Address")).toContainText("Test Street 1");
 
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  form = dialog(page, "Edit Patient");
+  form = await openDialog(page, "Edit Patient", page.getByRole("button", { name: "Edit", exact: true }));
   await dateGroup(form, "Date of Birth").getByRole("button", { name: "Clear date" }).click();
   await form.getByRole("button", { name: "Update", exact: true }).click();
   await expectToast(page, "Patient updated.");
@@ -121,8 +118,7 @@ test("edits the record: date of birth, country and city, then clears the date of
 test("a future date of birth is refused in the form", async ({ page, scenario }) => {
   const patient = await scenario.patient();
   await openPatient(page, patient.id, patient.fullName);
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  const form = dialog(page, "Edit Patient");
+  const form = await openDialog(page, "Edit Patient", page.getByRole("button", { name: "Edit", exact: true }));
   const nextYear = String(Number(clinicDay().slice(0, 4)) + 1);
   await typeDate(form, "Date of Birth", `${nextYear}-01-15`);
   const dateOfBirth = dateGroup(form, "Date of Birth");
@@ -165,16 +161,14 @@ test("allergies, medicines and prescriptions on the record", async ({ page, scen
   await openPatient(page, patient.id, patient.fullName);
 
   const allergies = card(page, "Allergies");
-  await cardAddButton(allergies).click();
-  let form = dialog(page, "Add Allergy");
+  let form = await openDialog(page, "Add Allergy", cardAddButton(allergies));
   await choose(form, "Allergy", allergy.name, allergy.name);
   await input(form, "Notes").fill("Rash on contact");
   await form.getByRole("button", { name: "Add", exact: true }).click();
   await expectToast(page, "Allergy added.");
   await expect(rows(allergies, allergy.name)).toContainText("Rash on contact");
 
-  await rowAction(rows(allergies, allergy.name), "Edit");
-  form = dialog(page, "Edit Allergy");
+  form = await openDialog(page, "Edit Allergy", () => rowAction(rows(allergies, allergy.name), "Edit"));
   await expect(input(form, "Allergy")).toHaveValue(allergy.name);
   await input(form, "Notes").fill("Severe rash");
   await form.getByRole("button", { name: "Update", exact: true }).click();
@@ -187,8 +181,7 @@ test("allergies, medicines and prescriptions on the record", async ({ page, scen
   await expect(rows(allergies, allergy.name)).toHaveCount(0);
 
   const medicines = card(page, "Medicines");
-  await cardAddButton(medicines).click();
-  form = dialog(page, "Add Medicine");
+  form = await openDialog(page, "Add Medicine", cardAddButton(medicines));
   await choose(form, "Medicine", medicine.name, medicine.name);
   await input(form, "Notes").fill("Morning dose");
   await form.getByRole("button", { name: "Add", exact: true }).click();
@@ -196,8 +189,7 @@ test("allergies, medicines and prescriptions on the record", async ({ page, scen
   await expect(rows(medicines, medicine.name)).toContainText("Morning dose");
 
   const prescriptions = card(page, "Prescriptions");
-  await cardAddButton(prescriptions).click();
-  form = dialog(page, "New Prescription");
+  form = await openDialog(page, "New Prescription", cardAddButton(prescriptions));
   await choose(form, "Prescribed By", employee.fullName, employee.fullName);
   await pickDate(form, "Start Date", clinicDay());
   await choose(form, "Medicine", medicine.name, medicine.name);
@@ -215,8 +207,7 @@ test("payment, refund, adjustment and write-off from the record", async ({ page,
   const payments = card(page, "Payments");
   await expect(balanceLine(page)).toHaveText("Balance: $0.00");
 
-  await cardAddButton(payments).click();
-  let form = dialog(page, "New Client Payment");
+  let form = await openDialog(page, "New Client Payment", cardAddButton(payments));
   await expect(field(form, "Patient").locator('[data-slot="popover-trigger"]')).toContainText(patient.fullName);
   await input(form, "Amount").fill("100");
   await input(form, "Description").fill("Deposit");
@@ -225,8 +216,7 @@ test("payment, refund, adjustment and write-off from the record", async ({ page,
   await expect(rows(payments, "Deposit")).toContainText("+$100.00");
   await expect(balanceLine(page)).toHaveText("Balance: -$100.00");
 
-  await menuItem(payments, "Payment actions", "Refund");
-  form = dialog(page, "New Client Refund");
+  form = await openDialog(page, "New Client Refund", () => menuItem(payments, "Payment actions", "Refund"));
   await input(form, "Amount").fill("30");
   await input(form, "Description").fill("Partial refund");
   await form.getByRole("button", { name: "Record Refund", exact: true }).click();
@@ -234,16 +224,14 @@ test("payment, refund, adjustment and write-off from the record", async ({ page,
   await expect(rows(payments, "Partial refund")).toContainText("-$30.00");
   await expect(balanceLine(page)).toHaveText("Balance: -$70.00");
 
-  await menuItem(payments, "Payment actions", "Adjustment");
-  form = dialog(page, "New Balance Adjustment");
+  form = await openDialog(page, "New Balance Adjustment", () => menuItem(payments, "Payment actions", "Adjustment"));
   await input(form, "Amount").fill("10");
   await input(form, "Description").fill("Rounding adjustment");
   await form.getByRole("button", { name: "Create Adjustment", exact: true }).click();
   await expectToast(page, "Adjustment created.");
   await expect(rows(payments, "Rounding adjustment")).toContainText("adjustment");
 
-  await menuItem(payments, "Payment actions", "Write-Off");
-  form = dialog(page, "New Write-Off");
+  form = await openDialog(page, "New Write-Off", () => menuItem(payments, "Payment actions", "Write-Off"));
   await input(form, "Amount").fill("5");
   await input(form, "Description").fill("Small write-off");
   await form.getByRole("button", { name: "Create Write-Off", exact: true }).click();

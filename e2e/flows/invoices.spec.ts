@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
-import { card, cardAddButton, choose, confirm, dialog, expectToast, input, rowAction, rows } from "../support/ui";
+import { card, cardAddButton, choose, confirm, expectToast, input, openDialog, rowAction, rows } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -32,8 +32,7 @@ test("client invoice with product, procedure, gift card and other lines; stock c
   guards.expectError("409 POST /api/client-invoices");
 
   await page.goto(`/patients/${patient.id}`);
-  await cardAddButton(card(page, "Invoices")).click();
-  const form = dialog(page, "New Client Invoice");
+  const form = await openDialog(page, "New Client Invoice", cardAddButton(card(page, "Invoices")));
   await expect(form.getByRole("checkbox", { name: "Auto" })).toBeChecked();
 
   let item = line(form, 1);
@@ -77,8 +76,7 @@ test("client invoice with product, procedure, gift card and other lines; stock c
   await expect(balanceLine(page)).toHaveText("Balance: $165.00");
   expect((await scenario.get<{ quantity: number }>(`/products/${product.id}`)).quantity).toBe(1);
 
-  await cardAddButton(card(page, "Invoices")).click();
-  const again = dialog(page, "New Client Invoice");
+  const again = await openDialog(page, "New Client Invoice", cardAddButton(card(page, "Invoices")));
   await choose(line(again, 1), "Type", "Other");
   await input(line(again, 1), "Amount").fill("10");
   await again.getByRole("checkbox", { name: "Auto" }).click();
@@ -114,8 +112,7 @@ test("supplier invoice adds stock; an item amount can be edited; deleting is ref
   guards.expectError("409 DELETE /api/supplier-invoices/:id");
 
   await page.goto(`/suppliers/${supplier.id}`);
-  await cardAddButton(card(page, "Invoices")).click();
-  const form = dialog(page, "New Supplier Invoice");
+  const form = await openDialog(page, "New Supplier Invoice", cardAddButton(card(page, "Invoices")));
   await choose(form, "Product", product.name, product.name);
   await input(form, "Qty").fill("10");
   await input(form, "Amount").fill("4.5");
@@ -131,8 +128,7 @@ test("supplier invoice adds stock; an item amount can be edited; deleting is ref
   await page.waitForURL(`**/financials/invoices/${invoice.id}`);
 
   const items = card(page, "Items");
-  await rowAction(rows(items, product.name), "Edit Amount");
-  const edit = dialog(page, "Edit Item Amount");
+  const edit = await openDialog(page, "Edit Item Amount", () => rowAction(rows(items, product.name), "Edit Amount"));
   await expect(input(edit, "Amount")).toHaveValue("45");
   await input(edit, "Amount").fill("50");
   await edit.getByRole("button", { name: "Update", exact: true }).click();
