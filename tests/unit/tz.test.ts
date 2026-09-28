@@ -2,15 +2,18 @@ import { format } from "date-fns";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BEIRUT_TZ,
+  CLINIC_WEEK_STARTS_ON,
   getClinicTimezone,
   beirutDayKey,
   beirutDaysAgo,
   beirutNow,
   beirutToday,
   beirutZoned,
+  clinicWeekDays,
   dateRangeToUtc,
   formatInBeirut,
   getBeirutWallClockIssue,
+  startOfClinicWeek,
   wallClockToUtc,
 } from "@/lib/tz";
 import {
@@ -295,5 +298,88 @@ describe("clock-based helpers", () => {
     const machineOffset = -new Date(now).getTimezoneOffset();
     const shiftMinutes = (Date.parse(now) - beirutNow().getTime()) / 60_000;
     expect(shiftMinutes).toBe(machineOffset - 180);
+  });
+});
+
+describe("clinic week rule (startOfClinicWeek)", () => {
+  const weekStart = (day: Date | string) => format(startOfClinicWeek(day), "yyyy-MM-dd");
+
+  it("starts the week on a Monday, at 00:00", () => {
+    expect(CLINIC_WEEK_STARTS_ON).toBe(1);
+    const start = startOfClinicWeek("2026-09-28");
+    expect(start.getDay()).toBe(1);
+    expect(format(start, "yyyy-MM-dd HH:mm:ss")).toBe("2026-09-28 00:00:00");
+  });
+
+  it("gives a Sunday the week it closes", () => {
+    expect(weekStart("2026-09-27")).toBe("2026-09-21");
+  });
+
+  it("gives a Saturday and a mid-week day the Monday before", () => {
+    expect(weekStart("2026-10-03")).toBe("2026-09-28");
+    expect(weekStart("2026-06-17")).toBe("2026-06-15");
+  });
+
+  it("resolves a week crossing a month boundary", () => {
+    for (const day of ["2026-09-28", "2026-09-30", "2026-10-01", "2026-10-04"]) {
+      expect(weekStart(day), day).toBe("2026-09-28");
+    }
+  });
+
+  it("resolves a week crossing a year boundary", () => {
+    for (const day of ["2026-12-28", "2026-12-31", "2027-01-01", "2027-01-03"]) {
+      expect(weekStart(day), day).toBe("2026-12-28");
+    }
+  });
+
+  it("starts a new week when a year ends on a Sunday", () => {
+    expect(weekStart("2028-12-31")).toBe("2028-12-25");
+    expect(weekStart("2029-01-01")).toBe("2029-01-01");
+  });
+
+  it("reads a Date by its local fields and keeps only the day", () => {
+    const wednesday = new Date(2026, 5, 17, 10, 30);
+    expect(format(startOfClinicWeek(wednesday), "yyyy-MM-dd HH:mm")).toBe("2026-06-15 00:00");
+    expect(format(wednesday, "yyyy-MM-dd HH:mm")).toBe("2026-06-17 10:30");
+    expect(weekStart(new Date(2026, 5, 21, 23, 59))).toBe("2026-06-15");
+  });
+
+  it("gives the clinic's week from beirutNow() at simulated clock instants", () => {
+    for (const [now, expected] of [
+      ["2026-09-28T10:00:00Z", "2026-09-28"], // Monday
+      ["2026-09-27T10:00:00Z", "2026-09-21"], // Sunday
+      ["2026-09-30T10:00:00Z", "2026-09-28"], // Wednesday
+      ["2026-10-03T10:00:00Z", "2026-09-28"], // Saturday
+      ["2026-09-27T20:30:00Z", "2026-09-21"], // Week edge (Beirut: Sunday 23:30)
+      ["2026-09-27T21:30:00Z", "2026-09-28"], // Week edge (Beirut: Monday 00:30, still Sunday in UTC)
+      ["2028-12-31T21:30:00Z", "2028-12-25"], // Week and year edge (Beirut: Sunday 31 Dec 23:30)
+      ["2028-12-31T22:30:00Z", "2029-01-01"], // Week and year edge (Beirut: Monday 1 Jan 00:30)
+    ]) {
+      vi.setSystemTime(now);
+      expect(weekStart(beirutNow()), now).toBe(expected);
+    }
+  });
+});
+
+describe("clinicWeekDays", () => {
+  const days = (day: Date | string) => clinicWeekDays(day).map((d) => format(d, "yyyy-MM-dd"));
+
+  it("lists the clinic week holding the day, Monday to Sunday", () => {
+    const week = ["2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21"];
+    expect(days(new Date(2026, 5, 17, 10, 30))).toEqual(week);
+    expect(days(new Date(2026, 5, 21, 9))).toEqual(week);
+    expect(days("2026-06-15")).toEqual(week);
+  });
+
+  it("keeps whole days in a week with a clock change", () => {
+    expect(days(new Date(2026, 2, 25, 0, 30))).toEqual([
+      "2026-03-23",
+      "2026-03-24",
+      "2026-03-25",
+      "2026-03-26",
+      "2026-03-27",
+      "2026-03-28",
+      "2026-03-29",
+    ]);
   });
 });

@@ -8,9 +8,9 @@ import { holidayBadgeClass, holidayTint } from "@/lib/constants";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { beirutNow } from "@/lib/tz";
+import { beirutNow, clinicWeekDays } from "@/lib/tz";
 import { activatable } from "@/lib/keyboard";
-import { getWeekDays, toDateStr } from "./sched-utils";
+import { toDateStr } from "./sched-utils";
 
 // Week-view Dates carry Beirut wall-clock in their local fields (built via
 // beirutNow()), so format with date-fns rather than toLocaleDateString, which
@@ -33,7 +33,7 @@ export function WeekView({
 }) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [printing, setPrinting] = useState(false);
-  const weekDays = useMemo(() => getWeekDays(date), [date]);
+  const weekDays = useMemo(() => clinicWeekDays(date), [date]);
   const today = toDateStr(beirutNow());
   const gridCols = `6.25rem repeat(${rooms.length}, 1fr)`;
 

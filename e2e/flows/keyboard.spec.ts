@@ -97,22 +97,22 @@ test("the employee schedule's hour cells are one Tab stop, with arrows between t
   const schedule = card(page, "Schedule");
 
   // The whole grid costs one Tab stop, right after the week controls; a cell
-  // names its day in words, not as a raw date.
+  // names its day in words, not as a raw date. The columns run Monday to Sunday.
   await schedule.getByRole("button", { name: "Go to this week" }).focus();
   await page.keyboard.press("Tab");
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Sunday \d+ [A-Z][a-z]+, 8 AM$/);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 8 AM$/);
 
   await page.keyboard.press("ArrowRight");
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 8 AM$/);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Tuesday \d+ [A-Z][a-z]+, 8 AM$/);
   await page.keyboard.press("ArrowDown");
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 9 AM$/);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Tuesday \d+ [A-Z][a-z]+, 9 AM$/);
 
   // One Tab leaves the grid (no other cell is a stop), and Shift+Tab comes
   // back to the cell last used.
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus[data-roving-row]")).toHaveCount(0);
   await page.keyboard.press("Shift+Tab");
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 9 AM$/);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Tuesday \d+ [A-Z][a-z]+, 9 AM$/);
 
   // Enter opens the focused cell's menu, the way a click does.
   await page.keyboard.press("Enter");

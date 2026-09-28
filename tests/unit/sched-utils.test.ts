@@ -11,8 +11,6 @@ import {
   formatGridMinutes,
   formatHour,
   formatQuarterHour,
-  getWeekDays,
-  getWeekStart,
   gridColsFor,
   gridMinutesToWallClock,
   isoToDate,
@@ -128,38 +126,5 @@ describe("toDateStr (the calendar day carried in a zoned Date)", () => {
       vi.setSystemTime(now);
       expect(toDateStr(beirutNow()), now).toBe(beirutToday());
     }
-  });
-});
-
-describe("getWeekStart and getWeekDays (local fields, weeks start on Monday)", () => {
-  it("moves back to Monday and keeps the time of day", () => {
-    const wednesday = new Date(2026, 5, 17, 10, 30);
-    const start = getWeekStart(wednesday);
-    expect(toDateStr(start)).toBe("2026-06-15");
-    expect([start.getHours(), start.getMinutes()]).toEqual([10, 30]);
-    expect(toDateStr(wednesday)).toBe("2026-06-17");
-    expect(toDateStr(getWeekStart(new Date(2026, 5, 21, 9)))).toBe("2026-06-15");
-    expect(toDateStr(getWeekStart(new Date(2026, 5, 15, 9)))).toBe("2026-06-15");
-  });
-
-  it("lists Monday to Sunday, also in a week with a clock change", () => {
-    expect(getWeekDays(new Date(2026, 5, 17, 12)).map(toDateStr)).toEqual([
-      "2026-06-15",
-      "2026-06-16",
-      "2026-06-17",
-      "2026-06-18",
-      "2026-06-19",
-      "2026-06-20",
-      "2026-06-21",
-    ]);
-    expect(getWeekDays(new Date(2026, 2, 25, 0, 30)).map(toDateStr)).toEqual([
-      "2026-03-23",
-      "2026-03-24",
-      "2026-03-25",
-      "2026-03-26",
-      "2026-03-27",
-      "2026-03-28",
-      "2026-03-29",
-    ]);
   });
 });

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { format as fnsFormat } from "date-fns";
 import { cn } from "@/lib/utils";
-import { beirutDayKey, beirutNow } from "@/lib/tz";
+import { beirutDayKey, beirutNow, clinicWeekDays } from "@/lib/tz";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -29,7 +29,7 @@ import { useRoomsStore } from "@/lib/stores/rooms-store";
 import type { Appointment } from "@/lib/types";
 import { DayView } from "./components/day-view";
 import { WeekView } from "./components/week-view";
-import { getWeekDays, padHour, toDateStr } from "./components/sched-utils";
+import { padHour, toDateStr } from "./components/sched-utils";
 
 type View = "Day" | "Week";
 
@@ -265,7 +265,7 @@ function NavigationControls({
 
   const dateLabel = useMemo(() => {
     if (view === "Day") return fnsFormat(currentDate, "d MMM yyyy");
-    const days = getWeekDays(currentDate);
+    const days = clinicWeekDays(currentDate);
     const fmt = (d: Date) => fnsFormat(d, "d MMM");
     return `${fmt(days[0])} - ${fmt(days[6])}`;
   }, [view, currentDate]);

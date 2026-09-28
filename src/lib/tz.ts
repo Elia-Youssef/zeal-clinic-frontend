@@ -1,4 +1,4 @@
-import { addDays, format as fnsFormat } from "date-fns";
+import { addDays, format as fnsFormat, parseISO, startOfWeek } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 // The clinic operates in its configured timezone (default: Asia/Beirut).
@@ -160,8 +160,8 @@ export function beirutDaysAgo(n: number): string {
 }
 
 // "Now" anchored to Beirut as a Date whose local fields (getDate/getHours/...)
-// reflect Beirut wall-clock. Use ONLY when feeding date-fns helpers that work
-// on local fields (startOfWeek, etc.); never send this to the API.
+// reflect Beirut wall-clock. Use ONLY when feeding helpers that read local
+// fields (startOfClinicWeek, date-fns format, etc.); never send it to the API.
 export function beirutNow(): Date {
   return toZonedTime(new Date(), CLINIC_TIMEZONE);
 }
@@ -170,4 +170,31 @@ export function beirutNow(): Date {
 // timestamp needs to be navigated in Beirut wall-clock terms.
 export function beirutZoned(ts: string | Date): Date {
   return toZonedTime(ts, CLINIC_TIMEZONE);
+}
+
+// The clinic week runs Monday to Sunday, the week the API counts in: every
+// week the dashboard shows starts on this day (0 = Sunday, as Date#getDay,
+// date-fns and the month grid number the days).
+export const CLINIC_WEEK_STARTS_ON = 1;
+
+/**
+ * The first day, at 00:00, of the clinic week (CLINIC_WEEK_STARTS_ON) that
+ * holds `day`. `day` is a Date read by its local fields, which carry the
+ * clinic wall clock the way beirutNow() and beirutZoned() give it, or a bare
+ * YYYY-MM-DD calendar day; the result carries its day in its local fields the
+ * same way.
+ */
+export function startOfClinicWeek(day: Date | string): Date {
+  return startOfWeek(typeof day === "string" ? parseISO(day) : day, {
+    weekStartsOn: CLINIC_WEEK_STARTS_ON,
+  });
+}
+
+/**
+ * The seven days of the clinic week that holds `day`, in order, each at 00:00
+ * in its local fields (see startOfClinicWeek).
+ */
+export function clinicWeekDays(day: Date | string): Date[] {
+  const start = startOfClinicWeek(day);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }

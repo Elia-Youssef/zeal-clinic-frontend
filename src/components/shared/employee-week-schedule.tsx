@@ -16,8 +16,10 @@ import { api, type Paginated } from "@/lib/api";
 import {
   beirutDayKey,
   beirutNow,
+  clinicWeekDays,
   dateRangeToUtc,
   formatInBeirut,
+  startOfClinicWeek,
 } from "@/lib/tz";
 import { format as fnsFormat } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,8 +87,6 @@ const HOURS = Array.from(
 );
 const GRID_HEIGHT = HOURS.length * HOUR_HEIGHT;
 const GRID_COLS = `50px 12px repeat(7, 1fr)`;
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const EMPTY_APPTS: Appointment[] = [];
 const EMPTY_CHANGES: EmployeeScheduleChange[] = [];
@@ -184,14 +184,6 @@ function appointmentBlockBounds(
   };
 }
 
-function startOfWeek(d: Date) {
-  const r = new Date(d);
-  r.setHours(0, 0, 0, 0);
-  // Week starts on Monday; Sunday (0) is the last day.
-  const diff = r.getDay() === 0 ? 6 : r.getDay() - 1;
-  r.setDate(r.getDate() - diff);
-  return r;
-}
 function addDays(d: Date, n: number) {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
@@ -254,7 +246,9 @@ export function EmployeeWeekSchedule({
   const canReadAppointments = can("appointments:read");
   const canWriteAppointments = can("appointments:write");
 
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(beirutNow()));
+  const [weekStart, setWeekStart] = useState(() =>
+    startOfClinicWeek(beirutNow()),
+  );
   const [view, setView] = useState<ScheduleView>("Calendar");
   const [genForm, setGenForm] = useState<GenForm>(closedGen);
   const [changeForm, setChangeForm] = useState<ChangeForm>(closedChange);
@@ -309,16 +303,18 @@ export function EmployeeWeekSchedule({
   );
   const data = loadedSchedule ?? emptySchedule;
 
-  const weekDates = useMemo(() => {
-    // weekStart is the Monday; display the surrounding Sun-to-Sat calendar so the
-    // work week (Mon–Fri) is centered. The Monday is still what's sent to the API.
-    const start = addDays(startOfWeek(weekStart), -1);
-    return DAYS.map((label, i) => {
-      const date = addDays(start, i);
-      // dayOfWeek follows JS dates (0 = Sunday), independent of column order.
-      return { dayOfWeek: date.getDay(), label, date, iso: toIsoDate(date) };
-    });
-  }, [weekStart]);
+  // One column per day of the clinic week. `dayOfWeek` is the JS weekday
+  // (0 = Sunday) of the column's date, as the schedule data counts days.
+  const weekDates = useMemo(
+    () =>
+      clinicWeekDays(weekStart).map((date) => ({
+        dayOfWeek: date.getDay(),
+        label: fnsFormat(date, "EEE"),
+        date,
+        iso: toIsoDate(date),
+      })),
+    [weekStart],
+  );
 
   // `templates` is a flat row list carrying superseded versions too; the
   // editable unit is the version those rows group into.
@@ -571,7 +567,7 @@ export function EmployeeWeekSchedule({
                   selected={weekStart}
                   onSelect={(date) => {
                     if (date) {
-                      setWeekStart(startOfWeek(date));
+                      setWeekStart(startOfClinicWeek(date));
                       setDatePickerOpen(false);
                     }
                   }}
@@ -592,7 +588,7 @@ export function EmployeeWeekSchedule({
               variant="outline"
               size="icon"
               className="size-8"
-              onClick={() => setWeekStart(startOfWeek(beirutNow()))}
+              onClick={() => setWeekStart(startOfClinicWeek(beirutNow()))}
               title="Go to this week"
             >
               <RotateCcw className="size-4" />

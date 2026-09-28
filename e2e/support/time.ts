@@ -39,8 +39,8 @@ export function weekday(day: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
-/** The Monday of the week the Schedule card shows on `day`: the card starts weeks on Monday, so a Sunday belongs to the week before. */
-export function scheduleCardMonday(day: string): string {
+/** The Monday that starts the clinic week holding `day`: the clinic week runs Monday to Sunday, so a Sunday closes its week. */
+export function clinicWeekMonday(day: string): string {
   return addDays(day, -((weekday(day) + 6) % 7));
 }
 

@@ -63,23 +63,6 @@ export function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function getWeekStart(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  return d;
-}
-
-export function getWeekDays(date: Date) {
-  const start = getWeekStart(date);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
-}
-
 export function padHour(hour: number) {
   return String(hour).padStart(2, "0");
 }
