@@ -89,7 +89,7 @@ test("percent and fixed offers over a date range, applied on invoices and listed
   guards.expectError("409 DELETE /api/discounts/:id");
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await confirm(page, "Delete discount?", "Delete");
-  await expectToast(page, "This discount is used by invoices and can't be deleted");
+  await expectToast(page, "Can't delete discount while it's in use");
 });
 
 test("an offer created as inactive is listed as inactive", async ({ page, scenario }) => {

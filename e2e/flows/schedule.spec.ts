@@ -116,7 +116,7 @@ test("an appointment must last at least 15 minutes", async ({ page, scenario }) 
   await expect(form.getByRole("button", { name: "Create", exact: true })).toBeEnabled();
 });
 
-test("moving into a booked slot is refused; creating one answers with a server error", async ({ page, guards, scenario }) => {
+test("a booked slot refuses a new or moved appointment with the room conflict", async ({ page, guards, scenario }) => {
   const { day, room, patient, procedure } = await booking(scenario, ["11:00", "12:00"]);
   const other = await scenario.patient();
   await scenario.appointment({
@@ -127,18 +127,34 @@ test("moving into a booked slot is refused; creating one answers with a server e
     endTime: clinicTime(day, "14:00"),
   });
 
-  // Today's behavior: the API creates nothing, but reports the clash as a 500.
+  // The API refuses the clash with a 409 and the store's message, and creates nothing.
   const clash = await scenario
     .appointment({ patientId: other.id, roomId: room.id, procedureIds: [procedure.id], startTime: clinicTime(day, "11:30"), endTime: clinicTime(day, "12:30") })
     .catch((e: ApiError) => e);
   expect(clash).toBeInstanceOf(ApiError);
-  expect((clash as ApiError).status).toBe(500);
-  expect((clash as ApiError).serverMessage).toBe("Couldn't create appointment");
+  expect((clash as ApiError).status).toBe(409);
+  expect((clash as ApiError).serverMessage).toBe("This room is already booked for that time");
 
+  guards.expectError("409 POST /api/appointments");
   guards.expectError("409 PUT /api/appointments/:id");
   await openDay(page, day);
+  // Creating the clash from the form shows the same message and keeps the form open.
+  let form = await openNewAppointment(page);
+  await choose(form, "Patient", other.fullName, other.fullName);
+  await choose(form, "Room", room.name, room.name);
+  await chooseIn(field(form, "Procedures").locator('[data-slot="popover-trigger"]').last(), procedure.name, procedure.name);
+  await pickDate(form, "Date", day);
+  await input(form, "Start Time").fill("11:30");
+  await input(form, "End Time").fill("12:30");
+  await form.getByRole("button", { name: "Create", exact: true }).click();
+  await expectToast(page, "This room is already booked for that time");
+  await expect(form).toBeVisible();
+  await form.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(form).toBeHidden();
+  await expect(gridCard(page, other.fullName)).toHaveCount(1);
+
   // Opened one after the other, each appointment shows its own values.
-  let form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
+  form = await openDialog(page, "Edit Appointment", gridCard(page, patient.fullName));
   await expect(trigger(form, "Patient")).toContainText(patient.fullName);
   await expect(input(form, "Start Time")).toHaveValue("11:00");
   await form.getByRole("button", { name: "Cancel", exact: true }).click();
