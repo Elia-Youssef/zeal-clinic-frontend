@@ -215,22 +215,23 @@ const emptySchedule: ScheduleState = {
 
 type ScheduleView = "Calendar" | "Table";
 
-type GenForm = { open: false } | { open: true; target: ScheduleDayTarget };
-
-type ChangeForm =
-  | { open: false }
+type ChangeFormData =
   | {
-      open: true;
       mode: "add";
       changeType: EmployeeScheduleChangeType;
       date?: string;
       start?: string;
       end?: string;
     }
-  | { open: true; mode: "edit"; change: EmployeeScheduleChange };
+  | { mode: "edit"; change: EmployeeScheduleChange };
 
-const closedGen: GenForm = { open: false };
-const closedChange: ChangeForm = { open: false };
+// A dialog and the data it was opened with. Closing keeps the data, so the
+// dialog still shows it while it animates out; the next open replaces it.
+type DialogState<T> = { open: boolean; data?: T };
+
+function closeDialog<T>(state: DialogState<T>): DialogState<T> {
+  return { ...state, open: false };
+}
 
 export function EmployeeWeekSchedule({
   employeeId,
@@ -250,14 +251,16 @@ export function EmployeeWeekSchedule({
     startOfClinicWeek(beirutNow()),
   );
   const [view, setView] = useState<ScheduleView>("Calendar");
-  const [genForm, setGenForm] = useState<GenForm>(closedGen);
-  const [changeForm, setChangeForm] = useState<ChangeForm>(closedChange);
+  const [genForm, setGenForm] = useState<DialogState<ScheduleDayTarget>>({
+    open: false,
+  });
+  const [changeForm, setChangeForm] = useState<DialogState<ChangeFormData>>({
+    open: false,
+  });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [apptForm, setApptForm] = useState<{
-    open: boolean;
-    data?: Partial<AppointmentFormData>;
-    scheduleDate?: string;
-  }>({ open: false });
+  const [apptForm, setApptForm] = useState<
+    DialogState<Partial<AppointmentFormData>>
+  >({ open: false });
 
   // The hour cells are one Tab stop, the arrow keys moving between them.
   const { gridProps: rovingGrid, cellProps: rovingCell } = useRovingFocus();
@@ -445,7 +448,7 @@ export function EmployeeWeekSchedule({
       );
     setGenForm({
       open: true,
-      target: { dayOfWeek, date, version, seed: collides ? undefined : seed },
+      data: { dayOfWeek, date, version, seed: collides ? undefined : seed },
     });
   };
   const openAddChange = (
@@ -456,16 +459,18 @@ export function EmployeeWeekSchedule({
     if (!canRequestChange) return;
     setChangeForm({
       open: true,
-      mode: "add",
-      changeType,
-      date,
-      start: hour !== undefined ? hourToTime(hour) : undefined,
-      end: hour !== undefined ? hourToTime(hour + 1) : undefined,
+      data: {
+        mode: "add",
+        changeType,
+        date,
+        start: hour !== undefined ? hourToTime(hour) : undefined,
+        end: hour !== undefined ? hourToTime(hour + 1) : undefined,
+      },
     });
   };
   const openEditChange = (change: EmployeeScheduleChange) => {
     if (!canRequestChange) return;
-    setChangeForm({ open: true, mode: "edit", change });
+    setChangeForm({ open: true, data: { mode: "edit", change } });
   };
 
   // Mirror the calendar: open the full appointment form so the card keeps all
@@ -495,14 +500,15 @@ export function EmployeeWeekSchedule({
         cancelNotes: appt.cancelNotes,
         completionNotes: appt.completionNotes,
       },
-      scheduleDate: beirutDayKey(appt.startTime),
     });
   };
 
   const changeAdd =
-    changeForm.open && changeForm.mode === "add" ? changeForm : null;
+    changeForm.data?.mode === "add" ? changeForm.data : null;
   const changeEdit =
-    changeForm.open && changeForm.mode === "edit" ? changeForm : null;
+    changeForm.data?.mode === "edit" ? changeForm.data : null;
+  // The open appointment's clinic day, for the link to the schedule.
+  const apptDate = apptForm.data?.date;
 
   const monthEntry =
     data.monthHours.find((m) => m.employeeId === employeeId) ??
@@ -685,14 +691,14 @@ export function EmployeeWeekSchedule({
 
       <EmployeeScheduleForm
         open={genForm.open}
-        onClose={() => setGenForm(closedGen)}
+        onClose={() => setGenForm(closeDialog)}
         onSaved={() => reload({ quiet: true })}
         employeeId={employeeId}
-        target={genForm.open ? genForm.target : null}
+        target={genForm.data ?? null}
       />
       <EmployeeScheduleChangeForm
         open={changeForm.open}
-        onClose={() => setChangeForm(closedChange)}
+        onClose={() => setChangeForm(closeDialog)}
         onSaved={() => reload({ quiet: true })}
         employeeId={employeeId}
         initial={changeEdit?.change ?? null}
@@ -703,13 +709,13 @@ export function EmployeeWeekSchedule({
       />
       <AppointmentForm
         open={apptForm.open}
-        onClose={() => setApptForm({ open: false })}
+        onClose={() => setApptForm(closeDialog)}
         initialData={apptForm.data}
         onSaved={() => reload({ quiet: true })}
         readOnly={apptForm.data?.status === "Completed"}
         onOpenInSchedule={
-          apptForm.scheduleDate
-            ? () => navigate(`/schedule/calendar?date=${apptForm.scheduleDate}`)
+          apptDate
+            ? () => navigate(`/schedule/calendar?date=${apptDate}`)
             : undefined
         }
       />

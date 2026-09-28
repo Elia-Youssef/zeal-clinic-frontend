@@ -26,6 +26,7 @@ export function DateInput({
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
 
+  const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
   const hoursRef = useRef<HTMLInputElement>(null);
@@ -208,6 +209,8 @@ export function DateInput({
     yearEl.setCustomValidity(message);
   }, [fullDateFuture, fullDateInvalid, fullTimeInvalid]);
 
+  // The clear button goes away with the value, so the focus moves to the day
+  // box rather than dropping to the page.
   const clear = () => {
     setDay("");
     setMonth("");
@@ -215,6 +218,7 @@ export function DateInput({
     setHours("");
     setMinutes("");
     onChange("");
+    dayRef.current?.focus();
   };
 
   return (
@@ -229,6 +233,7 @@ export function DateInput({
       aria-invalid={invalid}
     >
       <input
+        ref={dayRef}
         aria-label="Day"
         className={cn(inputBase, "w-6")}
         placeholder="DD"

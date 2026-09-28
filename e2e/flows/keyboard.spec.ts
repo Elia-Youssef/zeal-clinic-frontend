@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { apiRequest } from "../support/api";
 import { expect, test } from "../support/fixtures";
 import { addDays, clinicDay, clinicTime } from "../support/time";
-import { card, input, openDialog, opened, openPopover, rows, searchList, trigger } from "../support/ui";
+import { card, cardAddButton, dateGroup, field, input, openDialog, opened, openPopover, pickInCalendar, rows, searchList, trigger, typeDate } from "../support/ui";
 
 // What the keyboard alone reaches and opens, and the browser tab's title.
 
@@ -162,4 +162,34 @@ test("Enter on an unread notification marks it read and leaves the focus on it",
   expect(stored.items.find((n) => n.id === sent.id)?.isRead).toBe(true);
   // The focus shows as a ring inside the item.
   await expect(item).toHaveCSS("box-shadow", /inset/);
+});
+
+test("Clear date from the keyboard keeps the focus in the field", async ({ page, scenario }) => {
+  const patient = await scenario.patient();
+  await page.goto(`/patients/${patient.id}`);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText(patient.fullName);
+
+  // A date picker: the focus goes back to the field's own button. Picking a day closes the calendar,
+  // which hands the focus back to that button too; Clear is the next Tab stop.
+  let form = await openDialog(page, "New Prescription", cardAddButton(card(page, "Prescriptions")));
+  const endDate = trigger(form, "End Date");
+  await pickInCalendar(await opened(openPopover(page), endDate), clinicDay());
+  await expect(endDate).toContainText(shown(clinicDay()));
+  await expect(endDate).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(field(form, "End Date").getByRole("button", { name: "Clear date" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(endDate).toContainText("Pick a date");
+  await expect(endDate).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(form).toBeHidden();
+
+  // A date input made of boxes: the focus goes to the day box.
+  form = await openDialog(page, "Edit Patient", page.getByRole("button", { name: "Edit", exact: true }));
+  await typeDate(form, "Date of Birth", "1990-04-12");
+  const dateOfBirth = dateGroup(form, "Date of Birth");
+  await dateOfBirth.getByRole("button", { name: "Clear date" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(dateOfBirth.getByRole("textbox", { name: "Year", exact: true })).toHaveValue("");
+  await expect(dateOfBirth.getByRole("textbox", { name: "Day", exact: true })).toBeFocused();
 });

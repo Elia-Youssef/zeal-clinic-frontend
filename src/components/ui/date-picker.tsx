@@ -58,6 +58,7 @@ export function DatePicker({
   max?: string
 }) {
   const [open, setOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const selected = parseISO(value)
   const showClear = !required && !!value && !disabled
   // The label names the trigger, so its own text is read only through these ids.
@@ -76,6 +77,7 @@ export function DatePicker({
     <div className={cn("relative w-full", className)}>
       <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger
+          ref={triggerRef}
           id={id}
           aria-describedby={
             [valueId, requiredId].filter(Boolean).join(" ") || undefined
@@ -124,6 +126,8 @@ export function DatePicker({
           onClick={(e) => {
             e.stopPropagation()
             onChange("")
+            // This button goes away with the value; keep the focus on the field.
+            triggerRef.current?.focus()
           }}
           onPointerDown={(e) => e.stopPropagation()}
           className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded p-0 text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
