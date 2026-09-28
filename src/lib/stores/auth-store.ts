@@ -1,22 +1,12 @@
 import { create } from "zustand";
 import { api, BASE_URL } from "@/lib/api";
-import { expiryFromLogin, isSessionExpired } from "@/lib/session-expiry";
-import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
-
-const AUTH_KEYS = [
-  "token",
-  "auth_user",
-  "auth_role",
-  "auth_scopes",
-  "auth_user_id",
-  "auth_employee_id",
-  "auth_expires_at",
-];
-
-function clearAuthStorage(): void {
-  for (const key of AUTH_KEYS) sessionStorage.removeItem(key);
-  clearFormDrafts();
-}
+import {
+  clearStoredSession,
+  expiryFromLogin,
+  isSessionExpired,
+  readStoredExpiry,
+  storeExpiry,
+} from "@/lib/session-expiry";
 
 type LoginResponse = {
   token: string;
@@ -103,11 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     sessionStorage.setItem("auth_employee_id", json.Data.employeeId ?? "");
     // Counted on this browser's clock from the token's lifetime; the API's
     // own expiresAt is the fallback. See lib/session-expiry.ts.
-    const expiresAt = expiryFromLogin(json.Data.token, json.Data.expiresAt);
-    sessionStorage.setItem(
-      "auth_expires_at",
-      expiresAt === null ? "" : String(expiresAt),
-    );
+    storeExpiry(expiryFromLogin(json.Data.token, json.Data.expiresAt));
     set({
       token: json.Data.token,
       isAuthenticated: true,
@@ -120,7 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    clearAuthStorage();
+    clearStoredSession();
     set(SIGNED_OUT);
   },
 
@@ -141,11 +127,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
+  // The stored session is read again on every navigation and after a sign-in.
+  // A stored session whose time is up is dropped like a sign-out, so nothing
+  // keeps rendering for it and the caller's soft redirect keeps the way back.
   hydrate: () => {
     const token = sessionStorage.getItem("token") ?? "";
-    if (token && isSessionExpired(sessionStorage.getItem("auth_expires_at"))) {
-      // Dropped like a sign-out: the session keys and drafts go and the store
-      // is signed out, so nothing keeps rendering for the dropped session.
+    if (token && isSessionExpired(readStoredExpiry())) {
       get().logout();
       return false;
     }

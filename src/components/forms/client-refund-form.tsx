@@ -1,7 +1,7 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -13,37 +13,39 @@ import type { BalanceTransaction, ClientRefundRequest } from "@/lib/types";
 import { PatientForm } from "./patient-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-export function ClientRefundForm({
-  open,
-  onClose,
-  onSaved,
-  defaultPatientId,
-  defaultPatientLabel,
-  defaultAmount,
-}: {
+type ClientRefundFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (transaction: BalanceTransaction) => void;
   defaultPatientId?: string;
   defaultPatientLabel?: string;
   defaultAmount?: number;
-}) {
-  const fieldId = useId();
+};
+
+export function ClientRefundForm({ open, ...props }: ClientRefundFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="New Client Refund">
+      <ClientRefundFormBody {...props} />
+    </Modal>
+  );
+}
+
+function ClientRefundFormBody({
+  onClose,
+  onSaved,
+  defaultPatientId,
+  defaultPatientLabel,
+  defaultAmount,
+}: Omit<ClientRefundFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
-  const [patientId, setPatientId] = useState("");
-  const [amount, setAmount] = useState("");
+  const [patientId, setPatientId] = useState(defaultPatientId ?? "");
+  const [amount, setAmount] = useState(
+    defaultAmount != null ? String(defaultAmount) : "",
+  );
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, defaultPatientId, defaultAmount], () => {
-    if (!open) return;
-    setPatientId(defaultPatientId ?? "");
-    setAmount(defaultAmount != null ? String(defaultAmount) : "");
-    setTransactionMethod("cash");
-    setDescription("");
-  });
 
   const canSubmit = !!patientId && Number(amount) > 0;
 
@@ -73,12 +75,11 @@ export function ClientRefundForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="New Client Refund">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Patient" required>
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-patient`}
+            id={id}
             value={patientId}
             onChange={setPatientId}
             defaultApiOption={
@@ -114,52 +115,55 @@ export function ClientRefundForm({
                 : undefined
             }
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Amount" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-amount`}
+              id={id}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-method`} className="text-sm font-medium">Method</label>
+          )}
+        </FormField>
+        <FormField label="Method">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-method`}
+              id={id}
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={transactionMethodOptions}
               placeholder="Select method…"
               defaultFirst
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
+      <FormField label="Description">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording…" : "Record Refund"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Recording…" : "Record Refund"}
+        </Button>
+      </div>
+    </form>
   );
 }

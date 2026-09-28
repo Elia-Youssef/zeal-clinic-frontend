@@ -1,16 +1,50 @@
-import { api, expireSession } from "@/lib/api";
+import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
 
 // A sign-in answers with `expiresAt` (Unix seconds) and a JWT whose payload
 // carries `iat` and `exp`. The client keeps its own expiry, as Unix seconds in
 // sessionStorage, counted on the browser's clock from the token's lifetime
 // (exp - iat), so a clock difference between the server and the browser
 // neither cuts a session short nor stretches it. The server still has the last
-// word: see settleExpiredSession.
+// word: the expiry watcher asks it before ending a session.
 
-export const EXPIRES_AT_KEY = "auth_expires_at";
+/** The sessionStorage key the expiry is stored under. */
+const EXPIRES_AT_KEY = "auth_expires_at";
 
-/** Pause before the second server check when the first one fails to reach the server. */
-export const VERIFY_RETRY_MS = 30_000;
+/** The stored session's other keys; the form drafts live in localStorage beside them. */
+const SESSION_KEYS = [
+  "token",
+  "auth_user",
+  "auth_role",
+  "auth_scopes",
+  "auth_user_id",
+  "auth_employee_id",
+  EXPIRES_AT_KEY,
+];
+
+/** The stored expiry exactly as stored ("" once dropped), or null when absent. */
+export function readStoredExpiry(): string | null {
+  return sessionStorage.getItem(EXPIRES_AT_KEY);
+}
+
+/**
+ * Stores the expiry of a sign-in as Unix seconds; null drops it back to none,
+ * which is what a kept session does once the server overruled the estimate.
+ */
+export function storeExpiry(expiresAt: number | null): void {
+  sessionStorage.setItem(
+    EXPIRES_AT_KEY,
+    expiresAt === null ? "" : String(expiresAt),
+  );
+}
+
+/**
+ * Clears the stored session the way a sign-out does: every session key and the
+ * form drafts. Sign-out and every expiry path go through here.
+ */
+export function clearStoredSession(): void {
+  for (const key of SESSION_KEYS) sessionStorage.removeItem(key);
+  clearFormDrafts();
+}
 
 type JwtPayload = { iat?: unknown; exp?: unknown };
 
@@ -60,15 +94,13 @@ export function expiryFromLogin(
 }
 
 /**
- * The stored expiry as epoch milliseconds: Unix seconds (the format written at
- * sign-in) or a date string; null when absent or unreadable.
+ * The stored expiry as epoch milliseconds: Unix seconds, the format written at
+ * sign-in; null when absent or not in that format.
  */
 export function parseStoredExpiry(raw: string | null | undefined): number | null {
   const text = raw?.trim();
-  if (!text) return null;
-  if (/^\d+(\.\d+)?$/.test(text)) return Number(text) * 1000;
-  const parsed = Date.parse(text);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (!text || !/^\d+(\.\d+)?$/.test(text)) return null;
+  return Number(text) * 1000;
 }
 
 export function isSessionExpired(
@@ -77,33 +109,4 @@ export function isSessionExpired(
 ): boolean {
   const expiry = parseStoredExpiry(raw);
   return expiry !== null && nowMs >= expiry;
-}
-
-/**
- * Called once the client-side expiry has passed while the app is open. The
- * server decides: when `GET /auth/verify` still accepts the token, the client's
- * estimate was wrong, so it is dropped and the session goes on until the server
- * answers 401 (the shared 401 path ends it then). A 401 now ends it through
- * that same path. When the server can't be reached, one more attempt follows
- * after `retryDelayMs`; a second failure ends the session like a 401 would.
- */
-export async function settleExpiredSession(
-  retryDelayMs = VERIFY_RETRY_MS,
-): Promise<"kept" | "ended"> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    // Signed out meanwhile (or the 401 path already cleared the session).
-    if (!sessionStorage.getItem("token")) return "ended";
-    try {
-      await api.get("/auth/verify");
-      sessionStorage.setItem(EXPIRES_AT_KEY, "");
-      return "kept";
-    } catch {
-      if (!sessionStorage.getItem("token")) return "ended";
-    }
-    if (attempt === 0) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-    }
-  }
-  expireSession();
-  return "ended";
 }

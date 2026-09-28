@@ -27,7 +27,7 @@ import { cn, formatTimeRange, getErrorMessage } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { beirutNow, dateRangeToUtc } from "@/lib/tz";
-import { onActivateKey } from "@/lib/keyboard";
+import { activatable } from "@/lib/keyboard";
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -340,13 +340,12 @@ export function DayView({
                   key={room.id}
                   roomId={room.id}
                   roomName={room.name}
-                  canCreate={canWrite}
                   dayWindow={dayWindow}
                   appointments={appointmentsByRoom[room.id] ?? EMPTY_APPTS}
                   calendarStartHour={calendarBounds.startHour}
                   beforeScheduleRem={calendarBounds.beforeScheduleRem}
                   afterScheduleRem={calendarBounds.afterScheduleRem}
-                  onCellClick={onCellClick}
+                  onCellClick={canWrite ? onCellClick : undefined}
                   onAppointmentClick={onAppointmentClick}
                   onApptGrab={canWrite ? startDrag : undefined}
                   ghostApptId={
@@ -703,7 +702,6 @@ const HourLinesColumn = memo(function HourLinesColumn({
 const RoomColumn = memo(function RoomColumn({
   roomId,
   roomName,
-  canCreate,
   dayWindow,
   appointments,
   calendarStartHour,
@@ -717,14 +715,13 @@ const RoomColumn = memo(function RoomColumn({
 }: {
   roomId: string;
   roomName: string;
-  /** Whether a click on an empty hour opens a new appointment there. */
-  canCreate: boolean;
   dayWindow: BeirutDayWindow;
   appointments: Appointment[];
   calendarStartHour: number;
   beforeScheduleRem: number;
   afterScheduleRem: number;
-  onCellClick: (roomId: string, hour: number) => void;
+  /** Opens a new appointment in an empty hour; absent when not allowed. */
+  onCellClick?: (roomId: string, hour: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
   onApptGrab?: (
     e: React.PointerEvent,
@@ -742,17 +739,12 @@ const RoomColumn = memo(function RoomColumn({
           key={hour}
           className="border-b border-border transition-colors hover:bg-muted/30 cursor-pointer outline-none focus-visible:bg-muted/50"
           style={{ height: `${HOUR_HEIGHT}rem` }}
-          onClick={() => onCellClick(roomId, hour)}
-          role={canCreate ? "button" : undefined}
-          tabIndex={canCreate ? 0 : undefined}
+          {...activatable(
+            onCellClick ? () => onCellClick(roomId, hour) : undefined,
+          )}
           aria-label={
-            canCreate
+            onCellClick
               ? `New appointment in ${roomName} at ${formatHour(hour)}`
-              : undefined
-          }
-          onKeyDown={
-            canCreate
-              ? onActivateKey(() => onCellClick(roomId, hour))
               : undefined
           }
         />

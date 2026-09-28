@@ -22,7 +22,7 @@ import {
   type RowAction,
 } from "@/components/data/data-row-actions";
 import { getDefaultRowAction } from "@/components/data/default-row-action";
-import { onActivateKey } from "@/lib/keyboard";
+import { activatable } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
 export type { RowAction } from "@/components/data/data-row-actions";
@@ -230,15 +230,12 @@ export function DataTable<T>({
           return (
             <TableRow
               key={rowKey(row)}
-              onClick={handleRowClick ? () => handleRowClick(row) : undefined}
               // A clickable row keeps its row role (the table stays a table
               // for screen readers) and opens from the keyboard too.
-              tabIndex={handleRowClick ? 0 : undefined}
-              onKeyDown={
-                handleRowClick
-                  ? onActivateKey(() => handleRowClick(row))
-                  : undefined
-              }
+              {...activatable(
+                handleRowClick ? () => handleRowClick(row) : undefined,
+                { asButton: false },
+              )}
               className={cls || undefined}
             >
               {tanRow.getVisibleCells().map((cell, i) => {

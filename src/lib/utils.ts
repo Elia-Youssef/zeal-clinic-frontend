@@ -17,6 +17,15 @@ export function getErrorMessage(
   return err instanceof Error ? err.message : fallback;
 }
 
+/**
+ * The id of the element that shows a labelled control's current value: the
+ * element carries it, and the control's `aria-describedby` names it, so the
+ * value is read once — the label already names the control itself.
+ */
+export function fieldValueId(id: string | undefined): string | undefined {
+  return id ? `${id}-value` : undefined;
+}
+
 export function formatMoney(
   amount: number | null | undefined,
   symbol = "$",

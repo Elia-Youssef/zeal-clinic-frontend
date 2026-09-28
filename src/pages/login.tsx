@@ -9,12 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/form-field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { ClinicLogo } from "@/components/shared/clinic-logo";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { documentTitle } from "@/lib/stores/title-store";
 import { api } from "@/lib/api";
@@ -83,12 +85,8 @@ export default function Home() {
       <Card className="w-90 max-w-full gap-4 py-4">
         <CardHeader className="flex flex-col items-center text-center">
           <div className="aspect-square size-14 rounded-xl overflow-hidden mb-2">
-            <div
-              role="img"
-              aria-label="Zeal Clinic logo"
-              className="size-full bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(/zeal.png)` }}
-            />
+            {/* Decorative: the clinic's name is right below. */}
+            <ClinicLogo />
           </div>
           <CardTitle className="text-xl">Zeal Clinic</CardTitle>
           <CardDescription>Sign in to your account to continue</CardDescription>
@@ -96,53 +94,47 @@ export default function Home() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="flex flex-col gap-3">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="username"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Username
-              </label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                className="h-9"
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Password
-              </label>
-              <InputGroup className="h-9">
-                <InputGroupInput
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+            <FormField label="Username" size="small">
+              {({ id }) => (
+                <Input
+                  id={id}
+                  type="text"
+                  autoComplete="username"
+                  placeholder="Enter your username"
+                  value={username}
+                  className="h-9"
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    size="icon-xs"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    onClick={() => setShowPassword((v) => !v)}
-                  >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
+              )}
+            </FormField>
+
+            <FormField label="Password" size="small">
+              {({ id }) => (
+                <InputGroup className="h-9">
+                  <InputGroupInput
+                    id={id}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      onClick={() => setShowPassword((v) => !v)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              )}
+            </FormField>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 

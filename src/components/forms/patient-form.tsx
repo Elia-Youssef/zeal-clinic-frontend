@@ -1,8 +1,8 @@
-import { useState, useCallback, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { DateInput } from "@/components/shared/date-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { FormDraftsLayout } from "@/components/shared/form-drafts";
@@ -60,76 +60,94 @@ const emptyForm: PatientFormFields = {
   referralSource: "",
 };
 
-export function PatientForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+/** The editable fields of an existing patient record. */
+function fieldsOfPatient(initial: Patient): PatientFormFields {
+  const cityName = initial.city
+    ? [initial.city.name, initial.city.district, initial.city.governorate]
+        .filter(Boolean)
+        .join(", ")
+    : "";
+  return {
+    firstName: initial.firstName,
+    lastName: initial.lastName,
+    middleName: initial.middleName ?? "",
+    gender: initial.gender,
+    dateOfBirth: initial.dateOfBirth?.slice(0, 10) ?? "",
+    contact: initial.contact,
+    email: initial.email ?? "",
+    emergencyContactName: initial.emergencyContactName ?? "",
+    emergencyContactPhone: initial.emergencyContactPhone ?? "",
+    weight: initial.weight?.toString() ?? "",
+    height: initial.height?.toString() ?? "",
+    bloodType: initial.bloodType ?? "",
+    countryId: initial.countryId ?? "",
+    countryName: initial.country?.name ?? "",
+    cityId: initial.cityId ?? "",
+    cityName,
+    address: initial.address ?? "",
+    notes: initial.notes ?? "",
+    referralId: initial.referralId ?? "",
+    referralSource: initial.referralSource ?? "",
+  };
+}
+
+type PatientFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Patient | null;
+};
+
+export function PatientForm(props: PatientFormProps) {
+  const isEdit = !!props.initial;
+  // New patients get the drafts rail (a wide dialog); edits do not.
+  const draftGroup = isEdit ? undefined : "patient";
+  return (
+    <Modal
+      open={props.open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Patient" : "New Patient"}
+      size={draftGroup ? "wide" : "default"}
+    >
+      <PatientFormBody {...props} draftGroup={draftGroup} />
+    </Modal>
+  );
+}
+
+// Takes `open` as well, which the drafts hook follows.
+function PatientFormBody({
+  open,
+  onClose,
+  onSaved,
+  initial,
+  draftGroup,
+}: PatientFormProps & {
+  /** Drafts namespace; `undefined` turns the drafts off. */
+  draftGroup?: string;
 }) {
-  const fieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [form, setForm] = useState<PatientFormFields>(emptyForm);
-  const [isLebanon, setIsLebanon] = useState(false);
+  const [form, setForm] = useState<PatientFormFields>(() =>
+    initial ? fieldsOfPatient(initial) : emptyForm,
+  );
+  const [isLebanon, setIsLebanon] = useState(
+    () => !!initial?.cityId || initial?.country?.name === "Lebanon",
+  );
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      const hasLebanonCity = !!initial.cityId;
-      const cityName = initial.city
-        ? [initial.city.name, initial.city.district, initial.city.governorate]
-            .filter(Boolean)
-            .join(", ")
-        : "";
-      setForm({
-        firstName: initial.firstName,
-        lastName: initial.lastName,
-        middleName: initial.middleName ?? "",
-        gender: initial.gender,
-        dateOfBirth: initial.dateOfBirth?.slice(0, 10) ?? "",
-        contact: initial.contact,
-        email: initial.email ?? "",
-        emergencyContactName: initial.emergencyContactName ?? "",
-        emergencyContactPhone: initial.emergencyContactPhone ?? "",
-        weight: initial.weight?.toString() ?? "",
-        height: initial.height?.toString() ?? "",
-        bloodType: initial.bloodType ?? "",
-        countryId: initial.countryId ?? "",
-        countryName: initial.country?.name ?? "",
-        cityId: initial.cityId ?? "",
-        cityName,
-        address: initial.address ?? "",
-        notes: initial.notes ?? "",
-        referralId: initial.referralId ?? "",
-        referralSource: initial.referralSource ?? "",
-      });
-      setIsLebanon(hasLebanonCity || initial.country?.name === "Lebanon");
-    } else {
-      setForm(emptyForm);
-      setIsLebanon(false);
-    }
-  });
 
   const update = (field: keyof PatientFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  // Autosave drafts for new patients only (not when editing an existing one).
   const applyDraft = useCallback((d: PatientFormFields) => {
     setForm(d);
     setIsLebanon(d.countryName === "Lebanon" || !!d.cityId);
   }, []);
 
   const drafts = useFormDrafts<PatientFormFields>({
-    group: isEdit ? undefined : "patient",
+    group: draftGroup,
     mode: "auto",
     open,
     snapshot: form,
@@ -225,112 +243,119 @@ export function PatientForm({
 
   const formEl = (
     <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-first-name`} className="text-sm font-medium">First Name *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <FormField label="First Name" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-first-name`}
+              id={id}
               value={form.firstName}
               onChange={(e) => update("firstName", e.target.value)}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-middle-name`} className="text-sm font-medium">Middle Name</label>
+          )}
+        </FormField>
+        <FormField label="Middle Name">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-middle-name`}
+              id={id}
               value={form.middleName}
               onChange={(e) => update("middleName", e.target.value)}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-last-name`} className="text-sm font-medium">Last Name *</label>
+          )}
+        </FormField>
+        <FormField label="Last Name" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-last-name`}
+              id={id}
               value={form.lastName}
               onChange={(e) => update("lastName", e.target.value)}
               required
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-gender`} className="text-sm font-medium">Gender *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Gender" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-gender`}
+              id={id}
               value={form.gender}
               onChange={(v) => update("gender", v)}
               options={genderOptions}
               placeholder="Select gender…"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-date-of-birth`} className="text-sm font-medium">Date of Birth</label>
-            <DateInput
-              id={`${fieldId}-date-of-birth`}
-              value={form.dateOfBirth}
-              onChange={(v) => update("dateOfBirth", v)}
-            />
-            {isUnder18(form.dateOfBirth) && (
-              <p className="text-xs text-warning">
-                Patient is under 18 years old.
-              </p>
-            )}
-          </div>
-        </div>
+          )}
+        </FormField>
+        <FormField label="Date of Birth" group>
+          {({ labelId }) => (
+            <>
+              <DateInput
+                labelId={labelId}
+                value={form.dateOfBirth}
+                onChange={(v) => update("dateOfBirth", v)}
+              />
+              {isUnder18(form.dateOfBirth) && (
+                <p className="text-xs text-warning">
+                  Patient is under 18 years old.
+                </p>
+              )}
+            </>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-contact`} className="text-sm font-medium">Contact *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Contact" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-contact`}
+              id={id}
               value={form.contact}
               onChange={(e) => update("contact", e.target.value)}
               placeholder="Phone number"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-email`} className="text-sm font-medium">Email</label>
+          )}
+        </FormField>
+        <FormField label="Email">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-email`}
+              id={id}
               type="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-emergency-contact-name`} className="text-sm font-medium">
-              Emergency Contact Name
-            </label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Emergency Contact Name">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-emergency-contact-name`}
+              id={id}
               value={form.emergencyContactName}
               onChange={(e) => update("emergencyContactName", e.target.value)}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-emergency-contact-phone`} className="text-sm font-medium">
-              Emergency Contact Phone
-            </label>
+          )}
+        </FormField>
+        <FormField label="Emergency Contact Phone">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-emergency-contact-phone`}
+              id={id}
               value={form.emergencyContactPhone}
               onChange={(e) => update("emergencyContactPhone", e.target.value)}
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-weight`} className="text-sm font-medium">Weight (kg)</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <FormField label="Weight (kg)">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-weight`}
+              id={id}
               type="number"
               step="0.1"
               min="0"
@@ -338,11 +363,12 @@ export function PatientForm({
               onChange={(e) => update("weight", clampNonNegative(e.target.value))}
               placeholder="e.g. 70"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-height`} className="text-sm font-medium">Height (cm)</label>
+          )}
+        </FormField>
+        <FormField label="Height (cm)">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-height`}
+              id={id}
               type="number"
               step="0.1"
               min="0"
@@ -350,24 +376,26 @@ export function PatientForm({
               onChange={(e) => update("height", clampNonNegative(e.target.value))}
               placeholder="e.g. 170"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-blood-type`} className="text-sm font-medium">Blood Type</label>
+          )}
+        </FormField>
+        <FormField label="Blood Type">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-blood-type`}
+              id={id}
               value={form.bloodType}
               onChange={(v) => update("bloodType", v)}
               options={bloodTypeOptions}
               placeholder="Select…"
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-country`} className="text-sm font-medium">Country</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <FormField label="Country">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-country`}
+              id={id}
               value={form.countryId}
               defaultApiOption={
                 form.countryName
@@ -387,13 +415,14 @@ export function PatientForm({
                 }
               }}
             />
-          </div>
-          {isLebanon ? (
-            <>
-              <div className="space-y-1.5">
-                <label htmlFor={`${fieldId}-city`} className="text-sm font-medium">City</label>
+          )}
+        </FormField>
+        {isLebanon ? (
+          <>
+            <FormField label="City">
+              {({ id }) => (
                 <SearchableDropdown
-                  id={`${fieldId}-city`}
+                  id={id}
                   value={form.cityId}
                   defaultApiOption={
                     form.cityName
@@ -405,35 +434,38 @@ export function PatientForm({
                   mapItem={(item) => ({ value: item.id, label: item.name })}
                   onSelectItem={(i) => update("cityName", i.label)}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor={`${fieldId}-details`} className="text-sm font-medium">Details</label>
+              )}
+            </FormField>
+            <FormField label="Details">
+              {({ id }) => (
                 <Input
-                  id={`${fieldId}-details`}
+                  id={id}
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
                   placeholder="Street address"
                 />
-              </div>
-            </>
-          ) : (
-            <div className="space-y-1.5">
-              <label htmlFor={`${fieldId}-details`} className="text-sm font-medium">Details</label>
+              )}
+            </FormField>
+          </>
+        ) : (
+          <FormField label="Details">
+            {({ id }) => (
               <Input
-                id={`${fieldId}-details`}
+                id={id}
                 value={form.address}
                 onChange={(e) => update("address", e.target.value)}
                 placeholder="Street address"
               />
-            </div>
-          )}
-        </div>
+            )}
+          </FormField>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-referred-by`} className="text-sm font-medium">Referred By</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Referred By">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-referred-by`}
+              id={id}
               value={form.referralId}
               apiEndpoint="/patients/dropdown"
               onChange={(v) => update("referralId", v)}
@@ -460,49 +492,43 @@ export function PatientForm({
                   : undefined
               }
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-referral-source`} className="text-sm font-medium">Referral Source</label>
+          )}
+        </FormField>
+        <FormField label="Referral Source">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-referral-source`}
+              id={id}
               value={form.referralSource}
               onChange={(e) => update("referralSource", e.target.value)}
               placeholder="e.g. Social media, Walk-in…"
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+      <FormField label="Notes">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-notes`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
             placeholder="Optional notes…"
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Patient" : "New Patient"}
-      size={drafts.enabled ? "wide" : "default"}
-    >
-      <FormDraftsLayout drafts={drafts}>{formEl}</FormDraftsLayout>
-    </Modal>
-  );
+  return <FormDraftsLayout drafts={drafts}>{formEl}</FormDraftsLayout>;
 }

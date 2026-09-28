@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useId } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Printer, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { PageHeader } from "@/components/shared/page-header";
 import { DetailField } from "@/components/shared/detail-field";
@@ -19,10 +20,11 @@ import { beirutDayKey } from "@/lib/tz";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useApiQuery } from "@/hooks/use-api-query";
 import type { Invoice, InvoiceItem } from "@/lib/types";
 
 export default function InvoiceDetailPage() {
-  const fieldId = useId();
   usePageTitle("Invoice");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -30,8 +32,15 @@ export default function InvoiceDetailPage() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: invoice,
+    loading,
+    reload,
+  } = useApiQuery(
+    () => api.get<Invoice>(`/invoices/${id}`),
+    [id],
+    () => addAlert("error", "Failed to load invoice."),
+  );
 
   const [editOpen, setEditOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -41,6 +50,9 @@ export default function InvoiceDetailPage() {
   const [editItem, setEditItem] = useState<InvoiceItem | null>(null);
   const [itemAmount, setItemAmount] = useState("");
   const [itemSubmitting, setItemSubmitting] = useState(false);
+
+  // A loaded invoice seeds the notes box.
+  useAdjustOnChange([invoice], () => setNotes(invoice?.notes ?? ""));
 
   const handlePrintPdf = async () => {
     setPdfLoading(true);
@@ -52,23 +64,6 @@ export default function InvoiceDetailPage() {
       setPdfLoading(false);
     }
   };
-
-  const load = useCallback(
-    () =>
-      api
-        .get<Invoice>(`/invoices/${id}`)
-        .then((inv) => {
-          setInvoice(inv);
-          setNotes(inv.notes ?? "");
-        })
-        .catch(() => addAlert("error", "Failed to load invoice."))
-        .finally(() => setLoading(false)),
-    [id, addAlert],
-  );
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const handleDelete = async () => {
     if (!invoice) return;
@@ -112,7 +107,7 @@ export default function InvoiceDetailPage() {
       });
       addAlert("success", "Item updated.");
       setEditItem(null);
-      load();
+      reload({ quiet: true });
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     } finally {
@@ -130,7 +125,7 @@ export default function InvoiceDetailPage() {
       await api.put(`/${prefix}/${id}`, { notes });
       addAlert("success", "Invoice updated.");
       setEditOpen(false);
-      load();
+      reload({ quiet: true });
     } catch (err) {
       addAlert("error", getErrorMessage(err));
     } finally {
@@ -323,16 +318,17 @@ export default function InvoiceDetailPage() {
         title="Edit Item Amount"
       >
         <form onSubmit={handleItemUpdate} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount</label>
-            <MoneyInput
-              id={`${fieldId}-amount`}
-              min="0"
-              value={itemAmount}
-              onChange={(e) => setItemAmount(clampNonNegative(e.target.value))}
-              autoFocus
-            />
-          </div>
+          <FormField label="Amount">
+            {({ id }) => (
+              <MoneyInput
+                id={id}
+                min="0"
+                value={itemAmount}
+                onChange={(e) => setItemAmount(clampNonNegative(e.target.value))}
+                autoFocus
+              />
+            )}
+          </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
@@ -354,10 +350,11 @@ export default function InvoiceDetailPage() {
         title="Edit Invoice"
       >
         <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
-            <Input id={`${fieldId}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
+          <FormField label="Notes">
+            {({ id }) => (
+              <Input id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            )}
+          </FormField>
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"

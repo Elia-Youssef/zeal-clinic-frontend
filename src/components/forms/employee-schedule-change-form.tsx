@@ -1,11 +1,11 @@
-import { useCallback, useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { format as fnsFormat } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import type {
   EmployeeScheduleChangeStatus,
   EmployeeScheduleChangeType,
 } from "@/lib/types";
+import { useOpenCount } from "@/hooks/use-open-count";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
 
@@ -52,17 +53,49 @@ function dayCount(start: string, end: string) {
   return Math.max(1, Math.round(ms / 86_400_000) + 1);
 }
 
-export function EmployeeScheduleChangeForm({
-  open,
-  onClose,
-  onSaved,
-  employeeId,
-  initial,
-  defaultType,
-  defaultDate,
-  defaultStartTime,
-  defaultEndTime,
-}: {
+type SeededFields = {
+  type: EmployeeScheduleChangeType;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  notes: string;
+  status: EmployeeScheduleChangeStatus;
+};
+
+/** The fields an existing change opens with, or a new request's defaults. */
+function seededFields(
+  initial: EmployeeScheduleChange | null | undefined,
+  defaults: {
+    type?: EmployeeScheduleChangeType;
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+  },
+): SeededFields {
+  if (initial) {
+    return {
+      type: initial.type ?? "timeoff",
+      startDate: initial.startDate?.slice(0, 10) ?? "",
+      endDate: initial.endDate?.slice(0, 10) ?? "",
+      startTime: initial.startTime?.slice(0, 5) ?? "",
+      endTime: initial.endTime?.slice(0, 5) ?? "",
+      notes: initial.notes ?? "",
+      status: initial.status ?? "pending",
+    };
+  }
+  return {
+    type: defaults.type ?? "timeoff",
+    startDate: defaults.date ?? "",
+    endDate: defaults.date ?? "",
+    startTime: defaults.startTime ?? "",
+    endTime: defaults.endTime ?? "",
+    notes: "",
+    status: "pending",
+  };
+}
+
+type EmployeeScheduleChangeFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -72,8 +105,28 @@ export function EmployeeScheduleChangeForm({
   defaultDate?: string;
   defaultStartTime?: string;
   defaultEndTime?: string;
-}) {
-  const fieldId = useId();
+};
+
+export function EmployeeScheduleChangeForm(
+  props: EmployeeScheduleChangeFormProps,
+) {
+  // The title follows the body's editing state, so the body renders the
+  // dialog itself; keyed by the open count, it starts over on every open.
+  const openCount = useOpenCount(props.open);
+  return <EmployeeScheduleChangeFormBody key={openCount} {...props} />;
+}
+
+function EmployeeScheduleChangeFormBody({
+  open,
+  onClose,
+  onSaved,
+  employeeId,
+  initial,
+  defaultType,
+  defaultDate,
+  defaultStartTime,
+  defaultEndTime,
+}: EmployeeScheduleChangeFormProps) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
@@ -82,42 +135,25 @@ export function EmployeeScheduleChangeForm({
   const canManage = can("hr:write");
   const canDelete = can("hr:delete");
 
-  const [type, setType] = useState<EmployeeScheduleChangeType>("timeoff");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState<EmployeeScheduleChangeStatus>("pending");
+  const seed = seededFields(initial, {
+    type: defaultType,
+    date: defaultDate,
+    startTime: defaultStartTime,
+    endTime: defaultEndTime,
+  });
+
+  const [type, setType] = useState<EmployeeScheduleChangeType>(seed.type);
+  const [startDate, setStartDate] = useState(seed.startDate);
+  const [endDate, setEndDate] = useState(seed.endDate);
+  const [startTime, setStartTime] = useState(seed.startTime);
+  const [endTime, setEndTime] = useState(seed.endTime);
+  const [notes, setNotes] = useState(seed.notes);
+  const [status, setStatus] = useState<EmployeeScheduleChangeStatus>(
+    seed.status,
+  );
   const [submitting, setSubmitting] = useState(false);
   // Existing changes open read-only; new requests open straight into the form.
-  const [editing, setEditing] = useState(false);
-
-  const seedFields = useCallback(() => {
-    if (initial) {
-      setType(initial.type ?? "timeoff");
-      setStartDate(initial.startDate?.slice(0, 10) ?? "");
-      setEndDate(initial.endDate?.slice(0, 10) ?? "");
-      setStartTime(initial.startTime?.slice(0, 5) ?? "");
-      setEndTime(initial.endTime?.slice(0, 5) ?? "");
-      setNotes(initial.notes ?? "");
-      setStatus(initial.status ?? "pending");
-    } else {
-      setType(defaultType ?? "timeoff");
-      setStartDate(defaultDate ?? "");
-      setEndDate(defaultDate ?? "");
-      setStartTime(defaultStartTime ?? "");
-      setEndTime(defaultEndTime ?? "");
-      setNotes("");
-      setStatus("pending");
-    }
-  }, [initial, defaultType, defaultDate, defaultStartTime, defaultEndTime]);
-
-  useAdjustOnChange([open, initial, seedFields], () => {
-    if (!open) return;
-    seedFields();
-    setEditing(!initial);
-  });
+  const [editing, setEditing] = useState(!initial);
 
   const isOvertime = type === "overtime";
   const bothTimesSet = !!startTime && !!endTime;
@@ -230,7 +266,13 @@ export function EmployeeScheduleChangeForm({
   };
 
   const cancelEdit = () => {
-    seedFields();
+    setType(seed.type);
+    setStartDate(seed.startDate);
+    setEndDate(seed.endDate);
+    setStartTime(seed.startTime);
+    setEndTime(seed.endTime);
+    setNotes(seed.notes);
+    setStatus(seed.status);
     setEditing(false);
   };
 
@@ -327,94 +369,95 @@ export function EmployeeScheduleChangeForm({
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
-          <SearchableDropdown
-            id={`${fieldId}-type`}
-            value={type}
-            onChange={(v) => setType(v as EmployeeScheduleChangeType)}
-            options={typeOptions}
-            placeholder="Select type…"
-            required
-          />
+        <FormField label="Type" required>
+          {({ id }) => (
+            <SearchableDropdown
+              id={id}
+              value={type}
+              onChange={(v) => setType(v as EmployeeScheduleChangeType)}
+              options={typeOptions}
+              placeholder="Select type…"
+              required
+            />
+          )}
+        </FormField>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormField label="Start Date" required>
+            {({ id }) => (
+              <DatePicker
+                id={id}
+                value={startDate}
+                onChange={setStartDate}
+                required
+                max={endDate}
+              />
+            )}
+          </FormField>
+          <FormField label="End Date" required>
+            {({ id }) => (
+              <DatePicker
+                id={id}
+                value={endDate}
+                onChange={setEndDate}
+                required
+                min={startDate}
+              />
+            )}
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
-            <DatePicker
-              id={`${fieldId}-start-date`}
-              value={startDate}
-              onChange={setStartDate}
-              required
-              max={endDate}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
-            <DatePicker
-              id={`${fieldId}-end-date`}
-              value={endDate}
-              onChange={setEndDate}
-              required
-              min={startDate}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-start-time`} className="text-sm font-medium">
-              Start Time{isOvertime ? " *" : ""}
-            </label>
-            <div className="relative">
-              <Input
-                id={`${fieldId}-start-time`}
-                type="time"
-                value={startTime}
-                max={endTime || undefined}
-                onChange={(e) => setStartTime(e.target.value)}
-                required={isOvertime}
-                className={startTime ? "pr-8" : undefined}
-              />
-              {startTime && !isOvertime && (
-                <button
-                  type="button"
-                  aria-label="Clear start time"
-                  onClick={() => setStartTime("")}
-                  className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-time`} className="text-sm font-medium">
-              End Time{isOvertime ? " *" : ""}
-            </label>
-            <div className="relative">
-              <Input
-                id={`${fieldId}-end-time`}
-                type="time"
-                value={endTime}
-                min={startTime || undefined}
-                onChange={(e) => setEndTime(e.target.value)}
-                required={isOvertime}
-                className={endTime ? "pr-8" : undefined}
-              />
-              {endTime && !isOvertime && (
-                <button
-                  type="button"
-                  aria-label="Clear end time"
-                  onClick={() => setEndTime("")}
-                  className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+          <FormField label="Start Time" required={isOvertime}>
+            {({ id }) => (
+              <div className="relative">
+                <Input
+                  id={id}
+                  type="time"
+                  value={startTime}
+                  max={endTime || undefined}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required={isOvertime}
+                  className={startTime ? "pr-8" : undefined}
+                />
+                {startTime && !isOvertime && (
+                  <button
+                    type="button"
+                    aria-label="Clear start time"
+                    onClick={() => setStartTime("")}
+                    className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+          </FormField>
+          <FormField label="End Time" required={isOvertime}>
+            {({ id }) => (
+              <div className="relative">
+                <Input
+                  id={id}
+                  type="time"
+                  value={endTime}
+                  min={startTime || undefined}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required={isOvertime}
+                  className={endTime ? "pr-8" : undefined}
+                />
+                {endTime && !isOvertime && (
+                  <button
+                    type="button"
+                    aria-label="Clear end time"
+                    onClick={() => setEndTime("")}
+                    className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+          </FormField>
         </div>
         <p className="text-xs text-muted-foreground">
           {isOvertime
@@ -423,17 +466,18 @@ export function EmployeeScheduleChangeForm({
           {!isEdit && " Requests start as pending until approved."}
         </p>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
-          <textarea
-            id={`${fieldId}-notes`}
-            className={textareaClass}
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional"
-          />
-        </div>
+        <FormField label="Notes">
+          {({ id }) => (
+            <textarea
+              id={id}
+              className={textareaClass}
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional"
+            />
+          )}
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           {isEdit && canDelete && (

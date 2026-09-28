@@ -55,6 +55,7 @@ function StaffDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
+  const canWriteUsers = can("users:write");
 
   const user = useUsersStore((s) => s.current);
   const loading = useUsersStore((s) => s.detailLoading);
@@ -98,7 +99,7 @@ function StaffDetailContent() {
       <PageHeader
         backHref="/settings/staff"
         title={user.displayName}
-        onEdit={can("users:write") ? () => setEditOpen(true) : undefined}
+        onEdit={canWriteUsers ? () => setEditOpen(true) : undefined}
       />
 
       <Card>
@@ -110,30 +111,28 @@ function StaffDetailContent() {
           <DetailField label="Display Name">{user.displayName}</DetailField>
           <DetailField label="Role">{user.role}</DetailField>
           <DetailField label="Status">
-            <Badge
-              variant={user.isActive ? "default" : "outline"}
-              className={can("users:write") ? "cursor-pointer" : undefined}
-              onClick={can("users:write") ? handleToggleActive : undefined}
-              // A button when it toggles the status, so the keyboard reaches it.
-              render={can("users:write") ? <button type="button" /> : undefined}
-              // Its name says what pressing it does, after the status it shows.
-              aria-label={
-                can("users:write")
-                  ? user.isActive
+            {canWriteUsers ? (
+              // A button, so the keyboard reaches it; its name says what
+              // pressing it does, after the status it shows.
+              <Badge
+                variant={user.isActive ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={handleToggleActive}
+                render={<button type="button" />}
+                aria-label={
+                  user.isActive
                     ? "Active, deactivate account"
                     : "Inactive, activate account"
-                  : undefined
-              }
-              title={
-                can("users:write")
-                  ? user.isActive
-                    ? "Deactivate"
-                    : "Activate"
-                  : undefined
-              }
-            >
-              {user.isActive ? "Active" : "Inactive"}
-            </Badge>
+                }
+                title={user.isActive ? "Deactivate" : "Activate"}
+              >
+                {user.isActive ? "Active" : "Inactive"}
+              </Badge>
+            ) : (
+              <Badge variant={user.isActive ? "default" : "outline"}>
+                {user.isActive ? "Active" : "Inactive"}
+              </Badge>
+            )}
           </DetailField>
           <DetailField label="Created">
             {beirutDayKey(user.createdAt) || "---"}

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,8 @@ import { getErrorMessage } from "@/lib/utils";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ALL_SCOPES, scopeMatrix } from "@/lib/scopes";
 import type { Role } from "@/lib/types";
 
@@ -40,34 +41,20 @@ export default function RoleDetailPage() {
   const canWrite = can("roles:write");
   const matrix = useMemo(() => scopeMatrix(ALL_SCOPES), []);
 
-  const [role, setRole] = useState<Role | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: role,
+    loading,
+    reload,
+  } = useApiQuery(
+    () => api.get<Role>(`/roles/${name}`),
+    [name],
+    (err) => addAlert("error", getErrorMessage(err)),
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(
-    () =>
-      api
-        .get<Role>(`/roles/${name}`)
-        .then((r) => {
-          setRole(r);
-          setSelected(new Set(r.scopes));
-        })
-        .catch((err) => addAlert("error", getErrorMessage(err)))
-        .finally(() => setLoading(false)),
-    [name, addAlert],
-  );
-  const reload = () => {
-    setLoading(true);
-    void load();
-  };
-
-  // Another role's page is loading from the render that shows it.
-  useAdjustOnChange([name], () => setLoading(true));
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // A loaded role seeds the selection (also what Reset returns to).
+  useAdjustOnChange([role], () => setSelected(new Set(role?.scopes ?? [])));
 
   const toggleScope = (scope: string) => {
     setSelected((prev) => {

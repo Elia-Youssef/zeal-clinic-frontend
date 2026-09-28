@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { AppointmentForm } from "@/components/forms/appointment-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { appointmentStatusTint } from "@/lib/constants";
 
 function ProcedureDetailContent() {
@@ -33,8 +34,15 @@ function ProcedureDetailContent() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [procedure, setProcedure] = useState<Procedure | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: procedure,
+    loading,
+    reload,
+  } = useApiQuery(
+    () => api.get<Procedure>(`/procedures/${id}`),
+    [id],
+    () => addAlert("error", "Failed to load procedure."),
+  );
   const [pricingKey, setPricingKey] = useState(0);
   const [conflictsKey, setConflictsKey] = useState(0);
 
@@ -46,22 +54,8 @@ function ProcedureDetailContent() {
     null,
   );
 
-  const load = useCallback(
-    () =>
-      api
-        .get<Procedure>(`/procedures/${id}`)
-        .then((proc) => setProcedure(proc))
-        .catch(() => addAlert("error", "Failed to load procedure."))
-        .finally(() => setLoading(false)),
-    [id, addAlert],
-  );
-
   const bumpPricing = () => setPricingKey((k) => k + 1);
   const bumpConflicts = () => setConflictsKey((k) => k + 1);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const handleDelete = async () => {
     if (!procedure) return;
@@ -317,7 +311,7 @@ function ProcedureDetailContent() {
         onClose={() => setEditOpen(false)}
         onSaved={() => {
           bumpPricing();
-          load();
+          reload({ quiet: true });
         }}
         initial={procedure}
       />

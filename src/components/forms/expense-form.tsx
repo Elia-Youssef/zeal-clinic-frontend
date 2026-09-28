@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -19,35 +19,38 @@ const emptyForm: Fields = {
   notes: "",
 };
 
-export function ExpenseForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type ExpenseFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (expense: Expense) => void;
   initial?: Expense;
-}) {
-  const fieldId = useId();
+};
+
+export function ExpenseForm({ open, ...props }: ExpenseFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Expense" : "New Expense"}
+    >
+      <ExpenseFormBody {...props} />
+    </Modal>
+  );
+}
+
+function ExpenseFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<ExpenseFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [form, setForm] = useState<Fields>(emptyForm);
+  const [form, setForm] = useState<Fields>(() =>
+    initial ? { name: initial.name, notes: initial.notes ?? "" } : emptyForm,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!initial;
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      setForm({
-        name: initial.name,
-        notes: initial.notes ?? "",
-      });
-    } else {
-      setForm(emptyForm);
-    }
-  });
 
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,42 +81,38 @@ export function ExpenseForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Expense" : "New Expense"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             required
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+      <FormField label="Notes">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-notes`}
+            id={id}
             className={textareaClass}
             rows={3}
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

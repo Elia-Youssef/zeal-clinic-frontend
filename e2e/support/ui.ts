@@ -2,9 +2,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { pickerDayKey } from "./time";
 
 // Page-object helpers. Form labels are linked to their controls, so inputs and dropdown or date
-// triggers are found by their label (getByLabel), limited to the kind of control each helper is for;
-// field() still gives a field's wrapper, for the inputs made of several boxes and for whatever sits
-// next to the control.
+// triggers are found by their label (getByLabel), limited to the kind of control each helper is for,
+// and a date input made of several boxes by the group its label names (dateGroup); field() still
+// gives a field's wrapper, for the other inputs made of several controls and for whatever sits next
+// to the control.
 
 type Scope = Page | Locator;
 
@@ -79,27 +80,30 @@ export async function pickDateIn(triggerButton: Locator, day: string): Promise<v
   await pickInCalendar(openPopover(page), day);
 }
 
-/** Moves a calendar to the month of `day` and clicks the day. */
+/** Moves a calendar to the month of `day`, however many months away, and clicks the day. */
 export async function pickInCalendar(calendar: Locator, day: string): Promise<void> {
-  const target = calendar.locator(`button[data-day="${pickerDayKey(day)}"]`);
   const [year, month] = day.split("-").map(Number);
-  for (let i = 0; i < 36 && (await target.count()) === 0; i++) {
-    // The month grid is labelled with the month it shows, e.g. "September 2026".
-    const caption = (await calendar.getByRole("grid").first().getAttribute("aria-label")) ?? "";
-    const shown = new Date(`${caption.trim()} 1`);
-    const later = year * 12 + month > shown.getFullYear() * 12 + shown.getMonth() + 1;
-    await calendar.getByRole("button", { name: later ? /next month/i : /previous month/i }).click();
-  }
-  await target.first().click();
+  // The month grid is labelled with the month it shows, e.g. "September 2026".
+  const caption = (await calendar.getByRole("grid").first().getAttribute("aria-label")) ?? "";
+  const shown = new Date(`${caption.trim()} 1`);
+  const months = year * 12 + month - (shown.getFullYear() * 12 + shown.getMonth() + 1);
+  const step = calendar.getByRole("button", { name: months > 0 ? /next month/i : /previous month/i });
+  for (let i = 0; i < Math.abs(months); i++) await step.click();
+  await calendar.locator(`button[data-day="${pickerDayKey(day)}"]`).first().click();
+}
+
+/** A date-of-birth style input: the group of day, month and year boxes that its field label names. */
+export function dateGroup(scope: Scope, label: string): Locator {
+  return scope.getByRole("group", { name: labelText(label) });
 }
 
 /** Fills the day, month and year boxes of a date-of-birth style input (yyyy-MM-dd). */
 export async function typeDate(scope: Scope, label: string, day: string): Promise<void> {
   const [y, m, d] = day.split("-");
-  const box = field(scope, label);
-  await box.getByPlaceholder("DD", { exact: true }).fill(d);
-  await box.getByPlaceholder("MM", { exact: true }).fill(m);
-  await box.getByPlaceholder("YYYY", { exact: true }).fill(y);
+  const group = dateGroup(scope, label);
+  await group.getByRole("textbox", { name: "Day", exact: true }).fill(d);
+  await group.getByRole("textbox", { name: "Month", exact: true }).fill(m);
+  await group.getByRole("textbox", { name: "Year", exact: true }).fill(y);
 }
 
 /** A modal dialog by its title. */

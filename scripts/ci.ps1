@@ -10,8 +10,7 @@
       install    npm ci --prefer-offline --no-audit --no-fund
       typecheck  tsc --noEmit for tsconfig.app.json, tsconfig.node.json and tsconfig.test.json
       lint       eslint . --max-warnings from scripts/baseline/eslint.json; fails if the warning count
-                 grows past it, prints a tighten hint if it drops. Also runs a report-only strict preview
-                 with the seven relaxed rules restored to their recommended levels. Reports go to -ArtifactsDir
+                 grows past it, prints a tighten hint if it drops. Report goes to -ArtifactsDir
       ui-unit    vitest run, once with TZ=Asia/Beirut and once with TZ=Pacific/Kiritimati; JUnit and JSON
                  results, a v8 coverage summary and ui-unit-summary.txt go to -ArtifactsDir
       build      npm run build (a size list of dist/ goes to -ArtifactsDir)
@@ -148,83 +147,6 @@ function Invoke-TypecheckStage {
     return $(if ($fail) { 1 } else { 0 })
 }
 
-function Invoke-LintStrictPreview {
-    # Report-only: the seven rules eslint.config.js turns off (lines 25-31), restored to the level
-    # their own recommended or vite preset uses. A temporary config next to eslint.config.js, deleted
-    # right after; eslint.config.js itself is never touched.
-    $configPath = Join-Path $RepoRoot '.eslint-strict-preview.config.mjs'
-    $previewJson = Join-Path $ArtifactsDir 'eslint-strict-preview.json'
-    $configText = @'
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
-
-// prefer-const has no recommended or vite preset in this rule set, so it is set to
-// error here, matching common practice; the other six inherit their preset level.
-export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'test-results', 'playwright-report', 'blob-report']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    linterOptions: {
-      reportUnusedDisableDirectives: 'off',
-    },
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      globals: globals.browser,
-    },
-    rules: {
-      'prefer-const': 'error',
-    },
-  },
-  {
-    files: ['tests/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', '*.config.{js,ts}'],
-    languageOptions: {
-      globals: globals.node,
-    },
-  },
-])
-'@
-    $ruleNames = '@typescript-eslint/no-unused-vars', '@typescript-eslint/no-explicit-any', 'react-hooks/exhaustive-deps',
-    'react-hooks/set-state-in-effect', 'react-refresh/only-export-components', 'no-useless-assignment', 'prefer-const'
-    try {
-        [System.IO.File]::WriteAllText($configPath, $configText)
-        Write-Host "> $Npx --no -- eslint . --config $configPath --format json --output-file $previewJson"
-        $global:LASTEXITCODE = 99
-        & $Npx --no -- eslint . --config $configPath --format json --output-file $previewJson | Out-Host
-        $previewCode = $LASTEXITCODE
-        if (-not (Test-Path -LiteralPath $previewJson)) {
-            $line = "strict preview: no report (exit $previewCode)"
-            return @{ Text = $line; Lines = @($line) }
-        }
-        $previewResults = @(Get-Content -LiteralPath $previewJson -Raw | ConvertFrom-Json)
-        $pErrors = 0; $pWarnings = 0
-        $byRule = @{}
-        foreach ($name in $ruleNames) { $byRule[$name] = [ordered]@{ errors = 0; warnings = 0 } }
-        foreach ($r in $previewResults) {
-            $pErrors += $r.errorCount; $pWarnings += $r.warningCount
-            foreach ($m in $r.messages) {
-                $rule = if ($m.PSObject.Properties['ruleId']) { $m.ruleId } else { $null }
-                if ($rule -and $byRule.Contains($rule)) {
-                    if ($m.severity -eq 2) { $byRule[$rule].errors++ } else { $byRule[$rule].warnings++ }
-                }
-            }
-        }
-        $ruleLines = foreach ($name in $ruleNames) { "$name  errors=$($byRule[$name].errors) warnings=$($byRule[$name].warnings)" }
-        $text = "strict preview (report-only, 7 relaxed rules): $pErrors errors, $pWarnings warnings"
-        return @{ Text = $text; Lines = (@($text) + $ruleLines) }
-    } finally {
-        Remove-Item -LiteralPath $configPath -Force -ErrorAction SilentlyContinue
-    }
-}
-
 function Invoke-LintStage {
     Set-StrictMode -Off   # ESLint's JSON report omits some fields per message
     Assert-NodeModules
@@ -262,10 +184,8 @@ function Invoke-LintStage {
     $summary = "eslint: $errors errors, $warnings warnings ($ratchet), $fatal fatal in $($results.Count) files$(if ($byRule) { "; by rule: $byRule" })"
     $fail = ($code -ne 0) -or ($errors -gt 0) -or ($fatal -gt 0) -or ($warnings -gt $maxWarnings)
 
-    $preview = Invoke-LintStrictPreview
-    $txt = @($summary) + $lines + @('') + $preview.Lines
-    [System.IO.File]::WriteAllLines((Join-Path $ArtifactsDir 'lint-summary.txt'), [string[]]$txt)
-    Write-Host "Summary: $summary; $($preview.Text)"
+    [System.IO.File]::WriteAllLines((Join-Path $ArtifactsDir 'lint-summary.txt'), [string[]](@($summary) + $lines))
+    Write-Host "Summary: $summary"
     return $(if ($fail) { 1 } else { 0 })
 }
 

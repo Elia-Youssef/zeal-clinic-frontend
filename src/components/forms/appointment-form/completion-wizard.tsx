@@ -97,7 +97,6 @@ export function CompletionWizard({
       {page === "payment" && (
         <div className={cn(shownStage !== "payment" && "hidden")}>
           <ClientPaymentFormBody
-            open={open}
             defaultPatientId={initialData.patientId}
             defaultPatientLabel={initialData.patientLabel}
             defaultAmount={createdInvoice?.finalAmount}

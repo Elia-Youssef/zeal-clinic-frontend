@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
@@ -12,37 +12,47 @@ import type { Product } from "@/lib/types";
 import { CategoryForm } from "./category-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-export function ProductForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type ProductFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Product;
-}) {
-  const fieldId = useId();
+};
+
+export function ProductForm({ open, ...props }: ProductFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Product" : "New Product"}
+    >
+      <ProductFormBody {...props} />
+    </Modal>
+  );
+}
+
+function ProductFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<ProductFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [minThreshold, setMinThreshold] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
+  const [quantity, setQuantity] = useState(
+    initial?.quantity?.toString() ?? "",
+  );
+  const [minThreshold, setMinThreshold] = useState(
+    initial?.minThreshold?.toString() ?? "",
+  );
+  const [unitPrice, setUnitPrice] = useState(
+    initial?.unitPrice?.toString() ?? "",
+  );
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setName(initial?.name ?? "");
-    setCategoryId(initial?.categoryId ?? "");
-    setQuantity(initial?.quantity?.toString() ?? "");
-    setMinThreshold(initial?.minThreshold?.toString() ?? "");
-    setUnitPrice(initial?.unitPrice?.toString() ?? "");
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,26 +85,22 @@ export function ProductForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Product" : "New Product"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-category`} className="text-sm font-medium">Category</label>
+        )}
+      </FormField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Category">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-category`}
+              id={id}
               value={categoryId}
               onChange={setCategoryId}
               apiEndpoint="/product-categories/dropdown"
@@ -116,49 +122,52 @@ export function ProductForm({
                   : undefined
               }
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-unit-price`} className="text-sm font-medium">Unit Price *</label>
+          )}
+        </FormField>
+        <FormField label="Unit Price" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-unit-price`}
+              id={id}
               min="0"
               value={unitPrice}
               onChange={(e) => setUnitPrice(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-quantity`} className="text-sm font-medium">Quantity</label>
+          )}
+        </FormField>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Quantity">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-quantity`}
+              id={id}
               type="number"
               min="0"
               value={quantity}
               onChange={(e) => setQuantity(clampNonNegative(e.target.value))}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-min-threshold`} className="text-sm font-medium">Min Threshold</label>
+          )}
+        </FormField>
+        <FormField label="Min Threshold">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-min-threshold`}
+              id={id}
               type="number"
               min="0"
               value={minThreshold}
               onChange={(e) => setMinThreshold(clampNonNegative(e.target.value))}
             />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          )}
+        </FormField>
+      </div>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

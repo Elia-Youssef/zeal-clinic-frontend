@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Loading } from "@/components/shared/loading";
@@ -23,6 +23,7 @@ import { ProductForm } from "@/components/forms/product-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useApiQuery } from "@/hooks/use-api-query";
 
 function ProductDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
@@ -31,8 +32,15 @@ function ProductDetailContent() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: product,
+    loading,
+    reload,
+  } = useApiQuery(
+    () => api.get<Product>(`/products/${id}`),
+    [id],
+    () => addAlert("error", "Failed to load product."),
+  );
   const [pricingKey, setPricingKey] = useState(0);
   const [conflictsKey, setConflictsKey] = useState(0);
 
@@ -44,20 +52,6 @@ function ProductDetailContent() {
   const [conflictFormOpen, setConflictFormOpen] = useState(false);
   const [editingConflict, setEditingConflict] =
     useState<ProductAllergyConflict | null>(null);
-
-  const load = useCallback(
-    () =>
-      api
-        .get<Product>(`/products/${id}`)
-        .then((prod) => setProduct(prod))
-        .catch(() => addAlert("error", "Failed to load product."))
-        .finally(() => setLoading(false)),
-    [id, addAlert],
-  );
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const handleDelete = async () => {
     if (!product) return;
@@ -293,7 +287,7 @@ function ProductDetailContent() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         onSaved={() => {
-          load();
+          reload({ quiet: true });
           bumpPricing();
         }}
         initial={product}

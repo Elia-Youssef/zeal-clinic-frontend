@@ -1,10 +1,10 @@
 import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -31,38 +31,41 @@ const blankItem = (): ItemDraft => ({
   notes: "",
 });
 
-export function SupplierInvoiceForm({
-  open,
-  onClose,
-  onSaved,
-  defaultSupplierId,
-  defaultSupplierLabel,
-}: {
+type SupplierInvoiceFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   defaultSupplierId?: string;
   defaultSupplierLabel?: string;
-}) {
-  const fieldId = useId();
+};
+
+export function SupplierInvoiceForm({
+  open,
+  ...props
+}: SupplierInvoiceFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="New Supplier Invoice">
+      <SupplierInvoiceFormBody {...props} />
+    </Modal>
+  );
+}
+
+function SupplierInvoiceFormBody({
+  onClose,
+  onSaved,
+  defaultSupplierId,
+  defaultSupplierLabel,
+}: Omit<SupplierInvoiceFormProps, "open">) {
+  const itemsLabelId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(defaultSupplierId ?? "");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([blankItem()]);
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, defaultSupplierId], () => {
-    if (!open) return;
-    setInvoiceNumber("");
-    setInvoiceNumberAuto(true);
-    setSupplierId(defaultSupplierId ?? "");
-    setNotes("");
-    setItems([blankItem()]);
-  });
 
   const updateItem = (idx: number, patch: Partial<ItemDraft>) => {
     setItems((prev) =>
@@ -122,31 +125,27 @@ export function SupplierInvoiceForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="New Supplier Invoice">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="supplierInvoiceNumber"
-              className="text-sm font-medium"
-            >
-              Invoice Number *
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                id="supplierInvoiceNumberAuto"
-                checked={invoiceNumberAuto}
-                onCheckedChange={(value) => {
-                  const next = Boolean(value);
-                  setInvoiceNumberAuto(next);
-                  if (next) setInvoiceNumber("");
-                }}
-              />
-              <span>Auto</span>
-            </label>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField
+        label="Invoice Number"
+        required
+        actions={
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={invoiceNumberAuto}
+              onCheckedChange={(value) => {
+                const next = Boolean(value);
+                setInvoiceNumberAuto(next);
+                if (next) setInvoiceNumber("");
+              }}
+            />
+            <span>Auto</span>
+          </label>
+        }
+      >
+        {({ id }) => (
           <Input
-            id="supplierInvoiceNumber"
+            id={id}
             type="number"
             min="1"
             step="1"
@@ -157,13 +156,14 @@ export function SupplierInvoiceForm({
             disabled={invoiceNumberAuto}
             placeholder={invoiceNumberAuto ? "Auto-generated" : ""}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-supplier`} className="text-sm font-medium">Supplier *</label>
+      <div className="grid grid-cols-1 gap-3">
+        <FormField label="Supplier" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-supplier`}
+              id={id}
               value={supplierId}
               onChange={setSupplierId}
               defaultApiOption={
@@ -194,45 +194,50 @@ export function SupplierInvoiceForm({
                   : undefined
               }
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+      <FormField label="Notes">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-notes`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
+        )}
+      </FormField>
+
+      <div className="space-y-2" role="group" aria-labelledby={itemsLabelId}>
+        <div className="flex items-center justify-between">
+          <label id={itemsLabelId} className="text-sm font-medium">Items *</label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setItems((prev) => [...prev, blankItem()])}
+          >
+            <Plus className="size-3.5 mr-1" /> Add Item
+          </Button>
         </div>
 
-        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-items`}>
-          <div className="flex items-center justify-between">
-            <label id={`${fieldId}-items`} className="text-sm font-medium">Items *</label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setItems((prev) => [...prev, blankItem()])}
-            >
-              <Plus className="size-3.5 mr-1" /> Add Item
-            </Button>
-          </div>
-
-          {items.map((item, idx) => (
-            <div
-              key={idx}
-              className="rounded-md border border-border p-3 space-y-2"
-            >
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                <div className="space-y-1">
-                  <label htmlFor={`${fieldId}-item-${idx}-product`} className="text-xs text-muted-foreground">
-                    Product *
-                  </label>
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className="rounded-md border border-border p-3 space-y-2"
+          >
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+              <FormField
+                label="Product"
+                required
+                size="muted"
+                className="space-y-1"
+              >
+                {({ id }) => (
                   <SearchableDropdown
-                    id={`${fieldId}-item-${idx}-product`}
+                    id={id}
                     value={item.itemId}
                     onChange={(v) => updateItem(idx, { itemId: v })}
                     apiEndpoint="/products/dropdown"
@@ -259,23 +264,29 @@ export function SupplierInvoiceForm({
                         : undefined
                     }
                   />
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => removeItem(idx)}
-                  disabled={items.length === 1}
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="size-3.5 text-destructive" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <label htmlFor={`${fieldId}-item-${idx}-qty`} className="text-xs text-muted-foreground">Qty *</label>
+                )}
+              </FormField>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => removeItem(idx)}
+                disabled={items.length === 1}
+                aria-label="Remove item"
+              >
+                <Trash2 className="size-3.5 text-destructive" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <FormField
+                label="Qty"
+                required
+                size="muted"
+                className="space-y-1"
+              >
+                {({ id }) => (
                   <Input
-                    id={`${fieldId}-item-${idx}-qty`}
+                    id={id}
                     type="number"
                     min="1"
                     value={item.quantity}
@@ -285,52 +296,54 @@ export function SupplierInvoiceForm({
                       })
                     }
                   />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor={`${fieldId}-item-${idx}-amount`} className="text-xs text-muted-foreground">
-                    Amount
-                  </label>
-                  <MoneyInput
-                    id={`${fieldId}-item-${idx}-amount`}
-                    min="0"
-                    value={item.amount}
-                    onChange={(e) =>
-                      updateItem(idx, {
-                        amount: clampNonNegative(e.target.value),
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Total: ${itemTotal(item).toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor={`${fieldId}-item-${idx}-notes`} className="text-xs text-muted-foreground">Notes</label>
+                )}
+              </FormField>
+              <FormField label="Amount" size="muted" className="space-y-1">
+                {({ id }) => (
+                  <>
+                    <MoneyInput
+                      id={id}
+                      min="0"
+                      value={item.amount}
+                      onChange={(e) =>
+                        updateItem(idx, {
+                          amount: clampNonNegative(e.target.value),
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Total: ${itemTotal(item).toFixed(2)}
+                    </p>
+                  </>
+                )}
+              </FormField>
+              <FormField label="Notes" size="muted" className="space-y-1">
+                {({ id }) => (
                   <Input
-                    id={`${fieldId}-item-${idx}-notes`}
+                    id={id}
                     value={item.notes}
                     onChange={(e) => updateItem(idx, { notes: e.target.value })}
                   />
-                </div>
-              </div>
+                )}
+              </FormField>
             </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm font-medium">
-            Total: ${total.toFixed(2)}
-          </span>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting || !canSubmit}>
-              {submitting ? "Creating…" : "Create Invoice"}
-            </Button>
           </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-sm font-medium">
+          Total: ${total.toFixed(2)}
+        </span>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={submitting || !canSubmit}>
+            {submitting ? "Creating…" : "Create Invoice"}
+          </Button>
         </div>
-      </form>
-    </Modal>
+      </div>
+    </form>
   );
 }

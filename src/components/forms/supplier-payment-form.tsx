@@ -1,7 +1,7 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -12,36 +12,39 @@ import { transactionMethodOptions } from "@/lib/constants";
 import { SupplierForm } from "./supplier-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-export function SupplierPaymentForm({
-  open,
-  onClose,
-  onSaved,
-  defaultSupplierId,
-  defaultSupplierLabel,
-}: {
+type SupplierPaymentFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   defaultSupplierId?: string;
   defaultSupplierLabel?: string;
-}) {
-  const fieldId = useId();
+};
+
+export function SupplierPaymentForm({
+  open,
+  ...props
+}: SupplierPaymentFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="New Supplier Payment">
+      <SupplierPaymentFormBody {...props} />
+    </Modal>
+  );
+}
+
+function SupplierPaymentFormBody({
+  onClose,
+  onSaved,
+  defaultSupplierId,
+  defaultSupplierLabel,
+}: Omit<SupplierPaymentFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(defaultSupplierId ?? "");
   const [amount, setAmount] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, defaultSupplierId], () => {
-    if (!open) return;
-    setSupplierId(defaultSupplierId ?? "");
-    setAmount("");
-    setTransactionMethod("cash");
-    setDescription("");
-  });
 
   const canSubmit = !!supplierId && Number(amount) > 0;
 
@@ -67,12 +70,11 @@ export function SupplierPaymentForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="New Supplier Payment">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-supplier`} className="text-sm font-medium">Supplier *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Supplier" required>
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-supplier`}
+            id={id}
             value={supplierId}
             onChange={setSupplierId}
             defaultApiOption={
@@ -103,52 +105,55 @@ export function SupplierPaymentForm({
                 : undefined
             }
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Amount" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-amount`}
+              id={id}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-method`} className="text-sm font-medium">Method</label>
+          )}
+        </FormField>
+        <FormField label="Method">
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-method`}
+              id={id}
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={transactionMethodOptions}
               placeholder="Select method…"
               defaultFirst
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
+      <FormField label="Description">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording…" : "Record Payment"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Recording…" : "Record Payment"}
+        </Button>
+      </div>
+    </form>
   );
 }

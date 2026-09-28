@@ -70,7 +70,11 @@ test("the day calendar: Enter on an empty hour starts an appointment there, Ente
   const appointmentCard = page.locator('[data-slot="hover-card-trigger"]').filter({ hasText: patient.fullName });
   await expect(appointmentCard).toContainText("2:00 PM - 3:00 PM");
 
-  await page.getByRole("button", { name: `New appointment in ${room.name} at 10 AM`, exact: true }).focus();
+  // An empty hour is a Tab stop: the 10 AM cell follows the 9 AM one.
+  const hourCell = (hour: string) => page.getByRole("button", { name: `New appointment in ${room.name} at ${hour}`, exact: true });
+  await hourCell("9 AM").focus();
+  await page.keyboard.press("Tab");
+  await expect(hourCell("10 AM")).toBeFocused();
   await page.keyboard.press("Enter");
   let form = dialog(page, "New Appointment");
   await expect(form).toBeVisible();
@@ -80,12 +84,45 @@ test("the day calendar: Enter on an empty hour starts an appointment there, Ente
   await page.keyboard.press("Escape");
   await expect(form).toBeHidden();
 
-  await appointmentCard.focus();
+  // The card is reached with Tab too: it follows its room's last hour cell.
+  await hourCell("7 PM").focus();
+  await page.keyboard.press("Tab");
+  await expect(appointmentCard).toBeFocused();
   await page.keyboard.press("Enter");
   form = dialog(page, "Edit Appointment");
   await expect(form).toBeVisible();
   await expect(input(form, "Start Time")).toHaveValue("14:00");
   await expect(input(form, "End Time")).toHaveValue("15:00");
+});
+
+test("the employee schedule's hour cells are one Tab stop, with arrows between them", async ({ page, scenario }) => {
+  const employee = await scenario.employee();
+  await page.goto(`/team/${employee.id}`);
+  const schedule = card(page, "Schedule");
+
+  // The whole grid costs one Tab stop, right after the week controls; a cell
+  // names its day in words, not as a raw date.
+  await schedule.getByRole("button", { name: "Go to this week" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Sunday \d+ [A-Z][a-z]+, 8 AM$/);
+
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 8 AM$/);
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 9 AM$/);
+
+  // One Tab leaves the grid (no other cell is a stop), and Shift+Tab comes
+  // back to the cell last used.
+  await page.keyboard.press("Tab");
+  await expect(page.locator(":focus[data-roving-row]")).toHaveCount(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", /^Monday \d+ [A-Z][a-z]+, 9 AM$/);
+
+  // Enter opens the focused cell's menu, the way a click does.
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Add shift" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
 });
 
 test("the browser tab is titled after the page and its tab; the sign-in page after itself", async ({ page, openPage }) => {
@@ -100,26 +137,34 @@ test("the browser tab is titled after the page and its tab; the sign-in page aft
 });
 
 test("Enter on an unread notification marks it read and leaves the focus on it", async ({ openPage, scenario }) => {
-  // An account of its own, so its bell only counts what the test sends it.
+  // An account of its own, so the one test notification in its list is this test's. Every active
+  // account also receives the low-stock and appointment notices that other specs cause meanwhile,
+  // so the test follows its own notification rather than the bell's total or the list's order.
   const user = await scenario.user("admin");
   const session = await scenario.signIn(user.username, user.password);
   const page = await openPage(session);
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dashboard");
-  await apiRequest(scenario.baseURL, session.token, "POST", "/notifications/test");
-  await expect(bell(page)).toHaveText("1");
+  const sent = await apiRequest<{ id: string }>(scenario.baseURL, session.token, "POST", "/notifications/test");
 
   await bell(page).focus();
   await page.keyboard.press("Enter");
   const panel = page.locator('[data-slot="popover-content"][data-open]');
-  // The item is the focusable block around the notification's title.
-  const item = panel.getByText("Test notification", { exact: true }).locator("xpath=ancestor::div[@tabindex][1]");
-  await expect(item).toBeVisible();
-  await item.focus();
-  await page.keyboard.press("Enter");
-  await expect(bell(page)).toHaveText("");
-  expect(await apiRequest<number>(scenario.baseURL, session.token, "GET", "/notifications/unread-count")).toBe(0);
+  // The item's body is a button named by the notification, plus "Unread" while unread.
+  const body = { name: /^Test notification/ };
+  const row = panel.getByRole("listitem").filter({ has: page.getByRole("button", body) });
+  const item = row.getByRole("button", body);
+  await expect(item).toHaveAccessibleName(/unread/i);
+  // Reached with the keyboard: it is the Tab stop right before its own delete button.
+  await row.getByRole("button", { name: "Delete notification" }).focus();
+  await page.keyboard.press("Shift+Tab");
   await expect(item).toBeFocused();
+  await page.keyboard.press("Enter");
+  // The read item keeps its button (and so the focus); only the name loses "Unread".
+  await expect(item).not.toHaveAccessibleName(/unread/i);
+  await expect(item).toBeFocused();
+  const stored = await apiRequest<{ items: { id: string; isRead: boolean }[] }>(scenario.baseURL, session.token, "GET", "/notifications");
+  expect(stored.items.find((n) => n.id === sent.id)?.isRead).toBe(true);
   // The focus shows as a ring inside the item.
   await expect(item).toHaveCSS("box-shadow", /inset/);
 });

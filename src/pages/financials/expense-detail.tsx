@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +17,7 @@ import { BalanceAdjustmentForm } from "@/components/forms/balance-adjustment-for
 import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
@@ -32,37 +32,20 @@ function ExpenseDetailContent() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [expense, setExpense] = useState<Expense | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: expense,
+    loading,
+    reload,
+  } = useApiQuery(
+    () => api.get<Expense>(`/expenses/${id}`),
+    [id],
+    () => addAlert("error", "Failed to load expense."),
+  );
   const [editOpen, setEditOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [paymentsKey, setPaymentsKey] = useState(0);
-
-  const load = useCallback(
-    () =>
-      api
-        .get<Expense>(`/expenses/${id}`)
-        .then((loaded) => setExpense(loaded))
-        .catch(() => {
-          addAlert("error", "Failed to load expense.");
-          setExpense(null);
-        })
-        .finally(() => setLoading(false)),
-    [id, addAlert],
-  );
-  const reload = () => {
-    setLoading(true);
-    void load();
-  };
-
-  // Another expense's page is loading from the render that shows it.
-  useAdjustOnChange([id], () => setLoading(true));
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const bumpPayments = () => setPaymentsKey((k) => k + 1);
 
@@ -250,7 +233,7 @@ function ExpenseDetailContent() {
       <ExpenseForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={reload}
+        onSaved={() => reload()}
         initial={expense}
       />
       <ExpensePaymentForm

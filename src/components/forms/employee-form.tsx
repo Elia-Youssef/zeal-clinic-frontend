@@ -1,9 +1,9 @@
 import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api, toISODate } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -38,45 +38,55 @@ const emptyForm: EmployeeFormFields = {
   userRole: "staff",
 };
 
-export function EmployeeForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+/** The editable fields of an existing employee (account fields start blank). */
+function fieldsOfEmployee(initial: Employee): EmployeeFormFields {
+  return {
+    firstName: initial.firstName,
+    lastName: initial.lastName,
+    role: initial.role,
+    contact: initial.contact,
+    email: initial.email ?? "",
+    dateOfBirth: initial.dateOfBirth?.slice(0, 10) ?? "",
+    employmentType: initial.employmentType,
+    username: "",
+    password: "",
+    userRole: "staff",
+  };
+}
+
+type EmployeeFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Employee | null;
-}) {
-  const fieldId = useId();
+};
+
+export function EmployeeForm({ open, ...props }: EmployeeFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Employee" : "New Employee"}
+    >
+      <EmployeeFormBody {...props} />
+    </Modal>
+  );
+}
+
+function EmployeeFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<EmployeeFormProps, "open">) {
+  const createUserFieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [form, setForm] = useState<EmployeeFormFields>(emptyForm);
+  const [form, setForm] = useState<EmployeeFormFields>(() =>
+    initial ? fieldsOfEmployee(initial) : emptyForm,
+  );
   const [createUser, setCreateUser] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      setForm({
-        firstName: initial.firstName,
-        lastName: initial.lastName,
-        role: initial.role,
-        contact: initial.contact,
-        email: initial.email ?? "",
-        dateOfBirth: initial.dateOfBirth?.slice(0, 10) ?? "",
-        employmentType: initial.employmentType,
-        username: "",
-        password: "",
-        userRole: "staff",
-      });
-      setCreateUser(false);
-    } else {
-      setForm(emptyForm);
-      setCreateUser(false);
-    }
-  });
 
   const update = (field: keyof EmployeeFormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -123,153 +133,159 @@ export function EmployeeForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Employee" : "New Employee"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-first-name`} className="text-sm font-medium">First Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="First Name" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-first-name`}
+              id={id}
               value={form.firstName}
               onChange={(e) => update("firstName", e.target.value)}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-last-name`} className="text-sm font-medium">Last Name *</label>
+          )}
+        </FormField>
+        <FormField label="Last Name" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-last-name`}
+              id={id}
               value={form.lastName}
               onChange={(e) => update("lastName", e.target.value)}
               required
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-role`} className="text-sm font-medium">Role *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Role" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-role`}
+              id={id}
               value={form.role}
               onChange={(e) => update("role", e.target.value)}
               placeholder="e.g. Doctor, Nurse, Secretary"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-employment-type`} className="text-sm font-medium">Employment Type *</label>
+          )}
+        </FormField>
+        <FormField label="Employment Type" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-employment-type`}
+              id={id}
               value={form.employmentType}
               onChange={(v) => update("employmentType", v)}
               options={employmentTypeOptions}
               placeholder="Select type…"
               required
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-contact`} className="text-sm font-medium">Contact *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Contact" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-contact`}
+              id={id}
               value={form.contact}
               onChange={(e) => update("contact", e.target.value)}
               placeholder="Phone number"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-email`} className="text-sm font-medium">Email</label>
+          )}
+        </FormField>
+        <FormField label="Email">
+          {({ id }) => (
             <Input
-              id={`${fieldId}-email`}
+              id={id}
               type="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
             />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-date-of-birth`} className="text-sm font-medium">Date of Birth</label>
-          <DateInput
-            id={`${fieldId}-date-of-birth`}
-            value={form.dateOfBirth}
-            onChange={(v) => update("dateOfBirth", v)}
-          />
-          {isUnder18(form.dateOfBirth) && (
-            <p className="text-xs text-warning">
-              Employee is under 18 years old.
-            </p>
           )}
-        </div>
+        </FormField>
+      </div>
 
-        {!isEdit && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="employeeCreateUser"
-                checked={createUser}
-                onCheckedChange={(value) => setCreateUser(value)}
-              />
-              <label
-                htmlFor="employeeCreateUser"
-                className="text-sm font-medium"
-              >
-                Create Staff Account
-              </label>
-            </div>
+      <FormField label="Date of Birth" group>
+        {({ labelId }) => (
+          <>
+            <DateInput
+              labelId={labelId}
+              value={form.dateOfBirth}
+              onChange={(v) => update("dateOfBirth", v)}
+            />
+            {isUnder18(form.dateOfBirth) && (
+              <p className="text-xs text-warning">
+                Employee is under 18 years old.
+              </p>
+            )}
+          </>
+        )}
+      </FormField>
 
-            {createUser && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label htmlFor={`${fieldId}-username`} className="text-sm font-medium">Username *</label>
+      {!isEdit && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={createUserFieldId}
+              checked={createUser}
+              onCheckedChange={(value) => setCreateUser(value)}
+            />
+            <label
+              htmlFor={createUserFieldId}
+              className="text-sm font-medium"
+            >
+              Create Staff Account
+            </label>
+          </div>
+
+          {createUser && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <FormField label="Username" required>
+                {({ id }) => (
                   <Input
-                    id={`${fieldId}-username`}
+                    id={id}
                     value={form.username}
                     onChange={(e) => update("username", e.target.value)}
                     required
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor={`${fieldId}-password`} className="text-sm font-medium">Password</label>
+                )}
+              </FormField>
+              <FormField label="Password">
+                {({ id }) => (
                   <Input
-                    id={`${fieldId}-password`}
+                    id={id}
                     type="password"
                     value={form.password}
                     onChange={(e) => update("password", e.target.value)}
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor={`${fieldId}-staff-role`} className="text-sm font-medium">Staff Role</label>
+                )}
+              </FormField>
+              <FormField label="Staff Role">
+                {({ id }) => (
                   <SearchableDropdown
-                    id={`${fieldId}-staff-role`}
+                    id={id}
                     value={form.userRole}
                     onChange={(v) => update("userRole", v)}
                     options={userRoleOptions}
                     placeholder="Select role…"
                   />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
+                )}
+              </FormField>
+            </div>
+          )}
         </div>
-      </form>
-    </Modal>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

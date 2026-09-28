@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Loading } from "@/components/shared/loading";
 import {
@@ -14,51 +14,58 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { beirutNow } from "@/lib/tz";
 import type { SalaryPreparation } from "@/lib/types";
+import { useOpenCount } from "@/hooks/use-open-count";
 
-export function SalaryPreparationForm({
-  open,
-  onClose,
-  onPrepared,
-}: {
+// Defaults to the previous calendar month, anchored on Beirut so the month
+// doesn't flip for a clinic user opening the form from a different zone.
+function previousMonthBounds(): { start: string; end: string } {
+  const today = beirutNow();
+  const firstOfThisMonth = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    1,
+  );
+  const firstOfPrevMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1,
+  );
+  const lastOfPrevMonth = new Date(firstOfThisMonth.getTime() - 86400000);
+  const fmt = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  return { start: fmt(firstOfPrevMonth), end: fmt(lastOfPrevMonth) };
+}
+
+type SalaryPreparationFormProps = {
   open: boolean;
   onClose: () => void;
   onPrepared?: (preps: SalaryPreparation[]) => void;
-}) {
-  const fieldId = useId();
+};
+
+export function SalaryPreparationForm(props: SalaryPreparationFormProps) {
+  // The description follows the body's result, so the body renders the dialog
+  // itself; keyed by the open count, it starts over on every open.
+  const openCount = useOpenCount(props.open);
+  return <SalaryPreparationFormBody key={openCount} {...props} />;
+}
+
+function SalaryPreparationFormBody({
+  open,
+  onClose,
+  onPrepared,
+}: SalaryPreparationFormProps) {
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [periodStart, setPeriodStart] = useState("");
-  const [periodEnd, setPeriodEnd] = useState("");
+  const [periodStart, setPeriodStart] = useState(
+    () => previousMonthBounds().start,
+  );
+  const [periodEnd, setPeriodEnd] = useState(() => previousMonthBounds().end);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SalaryPreparation[] | null>(null);
-
-  useAdjustOnChange([open], () => {
-    if (!open) return;
-    // Default to previous calendar month, anchored on Beirut so the month
-    // doesn't flip for a clinic user opening the form from a different zone.
-    const today = beirutNow();
-    const firstOfThisMonth = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1,
-    );
-    const firstOfPrevMonth = new Date(
-      today.getFullYear(),
-      today.getMonth() - 1,
-      1,
-    );
-    const lastOfPrevMonth = new Date(firstOfThisMonth.getTime() - 86400000);
-    const fmt = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    };
-    setPeriodStart(fmt(firstOfPrevMonth));
-    setPeriodEnd(fmt(lastOfPrevMonth));
-    setNotes("");
-    setResult(null);
-  });
 
   const canSubmit = !!periodStart && !!periodEnd && !result;
 
@@ -150,39 +157,42 @@ export function SalaryPreparationForm({
       {!result ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor={`${fieldId}-period-start`} className="text-sm font-medium">Period Start *</label>
-              <DatePicker
-                id={`${fieldId}-period-start`}
-                value={periodStart}
-                onChange={setPeriodStart}
-                required
-                max={periodEnd}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor={`${fieldId}-period-end`} className="text-sm font-medium">Period End *</label>
-              <DatePicker
-                id={`${fieldId}-period-end`}
-                value={periodEnd}
-                onChange={setPeriodEnd}
-                required
-                min={periodStart}
-              />
-            </div>
+            <FormField label="Period Start" required>
+              {({ id }) => (
+                <DatePicker
+                  id={id}
+                  value={periodStart}
+                  onChange={setPeriodStart}
+                  required
+                  max={periodEnd}
+                />
+              )}
+            </FormField>
+            <FormField label="Period End" required>
+              {({ id }) => (
+                <DatePicker
+                  id={id}
+                  value={periodEnd}
+                  onChange={setPeriodEnd}
+                  required
+                  min={periodStart}
+                />
+              )}
+            </FormField>
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
-            <textarea
-              id={`${fieldId}-notes`}
-              className={textareaClass}
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
+          <FormField label="Notes">
+            {({ id }) => (
+              <textarea
+                id={id}
+                className={textareaClass}
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional"
+              />
+            )}
+          </FormField>
 
           {submitting && (
             <div className="rounded-md border border-border bg-muted/30 p-3">

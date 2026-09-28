@@ -1,38 +1,39 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { textareaClass } from "@/lib/form-styles";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 
-export function SalaryForm({
-  open,
-  onClose,
-  onSaved,
-  employeeId,
-}: {
+type SalaryFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   employeeId: string;
-}) {
-  const fieldId = useId();
+};
+
+export function SalaryForm({ open, ...props }: SalaryFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="Add Salary">
+      <SalaryFormBody {...props} />
+    </Modal>
+  );
+}
+
+function SalaryFormBody({
+  onClose,
+  onSaved,
+  employeeId,
+}: Omit<SalaryFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const [amount, setAmount] = useState("");
   const [effectiveDate, setEffectiveDate] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open], () => {
-    if (!open) return;
-    setAmount("");
-    setEffectiveDate("");
-    setNotes("");
-  });
 
   const canSubmit = Number(amount) > 0;
 
@@ -57,48 +58,49 @@ export function SalaryForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Salary">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Amount" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-amount`}
+              id={id}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-effective-date`} className="text-sm font-medium">Effective Date</label>
+          )}
+        </FormField>
+        <FormField label="Effective Date">
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-effective-date`}
+              id={id}
               value={effectiveDate}
               onChange={setEffectiveDate}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+          )}
+        </FormField>
+        <FormField label="Notes">
+          {({ id }) => (
             <textarea
-              id={`${fieldId}-notes`}
+              id={id}
               className={textareaClass}
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Adding…" : "Add Salary"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Adding…" : "Add Salary"}
+        </Button>
+      </div>
+    </form>
   );
 }

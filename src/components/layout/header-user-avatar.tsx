@@ -27,6 +27,23 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/** The dot's look and its words, one entry per connection state. */
+const CONNECTION_STATES = {
+  offline: { dot: "bg-muted-foreground/50", label: "Live updates offline" },
+  unknown: { dot: "bg-muted-foreground/50", label: "Cloud sync status unknown" },
+  connected: { dot: "bg-positive", label: "Cloud sync connected" },
+  disconnected: { dot: "bg-warning", label: "Cloud sync disconnected" },
+} as const;
+
+function connectionStateOf(
+  isConnected: boolean,
+  cloudConnected: boolean | null,
+): keyof typeof CONNECTION_STATES {
+  if (!isConnected) return "offline";
+  if (cloudConnected === null) return "unknown";
+  return cloudConnected ? "connected" : "disconnected";
+}
+
 export function HeaderUserAvatar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -38,20 +55,8 @@ export function HeaderUserAvatar() {
   const scale = useUIStore((s) => s.scale);
   const setScale = useUIStore((s) => s.setScale);
   const [pendingScale, setPendingScale] = useState(scale);
-  const connectionClass =
-    !isConnected || cloudConnected === null
-      ? "bg-muted-foreground/50"
-      : cloudConnected
-        ? "bg-positive"
-        : "bg-warning";
   // The dot's colour in words, for the tooltip and for screen readers.
-  const connectionLabel = !isConnected
-    ? "Live updates offline"
-    : cloudConnected === null
-      ? "Cloud sync status unknown"
-      : cloudConnected
-        ? "Cloud sync connected"
-        : "Cloud sync disconnected";
+  const connection = CONNECTION_STATES[connectionStateOf(isConnected, cloudConnected)];
   const connectionId = useId();
 
   // The slider follows the saved scale until the user moves it.
@@ -77,7 +82,7 @@ export function HeaderUserAvatar() {
             className="relative inline-flex outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
             aria-label="Staff menu"
             aria-describedby={connectionId}
-            title={connectionLabel}
+            title={connection.label}
           >
             <Avatar size="sm">
               <AvatarFallback>{getInitials(user)}</AvatarFallback>
@@ -85,11 +90,11 @@ export function HeaderUserAvatar() {
             <span
               className={cn(
                 "absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-background",
-                connectionClass,
+                connection.dot,
               )}
             />
             <span id={connectionId} className="sr-only">
-              {connectionLabel}
+              {connection.label}
             </span>
           </button>
         }

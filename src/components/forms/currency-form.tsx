@@ -1,40 +1,47 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import type { Currency } from "@/lib/types";
 
-export function CurrencyForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type CurrencyFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   initial?: Currency;
-}) {
-  const fieldId = useId();
+};
+
+export function CurrencyForm({ open, ...props }: CurrencyFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Currency" : "New Currency"}
+    >
+      <CurrencyFormBody {...props} />
+    </Modal>
+  );
+}
+
+function CurrencyFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<CurrencyFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [symbol, setSymbol] = useState("");
-  const [exchangeRate, setExchangeRate] = useState("");
+  const [code, setCode] = useState(initial?.code ?? "");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [symbol, setSymbol] = useState(initial?.symbol ?? "");
+  const [exchangeRate, setExchangeRate] = useState(
+    initial?.exchangeRate?.toString() ?? "",
+  );
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setCode(initial?.code ?? "");
-    setName(initial?.name ?? "");
-    setSymbol(initial?.symbol ?? "");
-    setExchangeRate(initial?.exchangeRate?.toString() ?? "");
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,48 +64,46 @@ export function CurrencyForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Currency" : "New Currency"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-code`} className="text-sm font-medium">Code *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-3">
+        <FormField label="Code" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-code`}
+              id={id}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="USD"
               required
               disabled={isEdit}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+          )}
+        </FormField>
+        <FormField label="Name" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-name`}
+              id={id}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="US Dollar"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-symbol`} className="text-sm font-medium">Symbol *</label>
+          )}
+        </FormField>
+        <FormField label="Symbol" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-symbol`}
+              id={id}
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
               placeholder="$"
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-exchange-rate`} className="text-sm font-medium">Exchange Rate *</label>
+          )}
+        </FormField>
+        <FormField label="Exchange Rate" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-exchange-rate`}
+              id={id}
               type="number"
               step="any"
               value={exchangeRate}
@@ -106,17 +111,17 @@ export function CurrencyForm({
               placeholder="1.00"
               required
             />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          )}
+        </FormField>
+      </div>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

@@ -67,6 +67,22 @@ describe("BASE_URL", () => {
     const fresh = await import("@/lib/api");
     expect(fresh.BASE_URL).toBe(`${window.location.origin}/api`);
   });
+
+  it.each([
+    ["", "http://localhost:55555"],
+    ["  ", "http://localhost:55555"],
+    ["http://clinic.lan:8080", "http://clinic.lan:8080"],
+    ["http://clinic.lan:8080/", "http://clinic.lan:8080"],
+    ["http://clinic.lan:8080///", "http://clinic.lan:8080"],
+    ["http://clinic.lan:8080/api", "http://clinic.lan:8080"],
+    ["http://clinic.lan:8080/api/", "http://clinic.lan:8080"],
+    ["  http://clinic.lan:8080/api/  ", "http://clinic.lan:8080"],
+  ])("cleans up a configured origin %j", async (configured, expected) => {
+    vi.stubEnv("VITE_API_BASE_URL", configured);
+    vi.resetModules();
+    const fresh = await import("@/lib/api");
+    expect(fresh.BASE_URL).toBe(`${expected}/api`);
+  });
 });
 
 describe("requests", () => {

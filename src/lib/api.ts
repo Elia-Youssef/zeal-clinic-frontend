@@ -1,6 +1,6 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { clearFormDrafts } from "@/lib/stores/form-drafts-store";
+import { clearStoredSession } from "@/lib/session-expiry";
 import { wallClockToUtc } from "@/lib/tz";
 
 /** Per-call options. `silent` suppresses the default 403 permission alert for
@@ -29,22 +29,12 @@ function getToken(): string {
   return sessionStorage.getItem("token") ?? "";
 }
 
-function clearAuthSession(): void {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("auth_user");
-  sessionStorage.removeItem("auth_role");
-  sessionStorage.removeItem("auth_scopes");
-  sessionStorage.removeItem("auth_user_id");
-  sessionStorage.removeItem("auth_employee_id");
-  sessionStorage.removeItem("auth_expires_at");
-  clearFormDrafts();
-}
-
-/** Ends the session the way a 401 does: the overlay says why, the session keys
- *  and the drafts go, and the browser returns to the sign-in page. */
+/** Ends the session the way a 401 does: the overlay says why, the stored
+ *  session (see lib/session-expiry.ts) goes, and the browser returns to the
+ *  sign-in page. */
 export function expireSession(): void {
   useLoadingStore.getState().show("Session expired");
-  clearAuthSession();
+  clearStoredSession();
   window.location.href = "/";
 }
 

@@ -1,48 +1,48 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { DatePicker } from "@/components/ui/date-picker";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { Holiday } from "@/lib/types";
 
-export function HolidayForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type HolidayFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   initial?: Holiday | null;
-}) {
-  const fieldId = useId();
+};
+
+export function HolidayForm({ open, ...props }: HolidayFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Holiday" : "Add Holiday"}
+    >
+      <HolidayFormBody {...props} />
+    </Modal>
+  );
+}
+
+function HolidayFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<HolidayFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [startDate, setStartDate] = useState(
+    initial?.startDate?.slice(0, 10) ?? "",
+  );
+  const [endDate, setEndDate] = useState(initial?.endDate?.slice(0, 10) ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      setName(initial.name);
-      setStartDate(initial.startDate?.slice(0, 10) ?? "");
-      setEndDate(initial.endDate?.slice(0, 10) ?? "");
-      setNotes(initial.notes ?? "");
-    } else {
-      setName("");
-      setStartDate("");
-      setEndDate("");
-      setNotes("");
-    }
-  });
 
   // Default to a single-day holiday.
   const handleStartChange = (next: string) => {
@@ -80,69 +80,67 @@ export function HolidayForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Holiday" : "Add Holiday"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Independence Day"
             required
           />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
+        )}
+      </FormField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Start Date" required>
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-start-date`}
+              id={id}
               value={startDate}
               onChange={handleStartChange}
               required
               max={endDate}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
+          )}
+        </FormField>
+        <FormField label="End Date" required>
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-end-date`}
+              id={id}
               value={endDate}
               onChange={setEndDate}
               required
               min={startDate}
             />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+          )}
+        </FormField>
+      </div>
+      <FormField label="Notes">
+        {({ id }) => (
           <Input
-            id={`${fieldId}-notes`}
+            id={id}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"
           />
-        </div>
+        )}
+      </FormField>
 
-        <p className="text-xs text-muted-foreground">
-          Holidays close the clinic — every employee's projected schedule
-          across the date range will show as off. Use the same date in both
-          fields for a single-day holiday.
-        </p>
+      <p className="text-xs text-muted-foreground">
+        Holidays close the clinic — every employee's projected schedule
+        across the date range will show as off. Use the same date in both
+        fields for a single-day holiday.
+      </p>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Add Holiday"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Add Holiday"}
+        </Button>
+      </div>
+    </form>
   );
 }

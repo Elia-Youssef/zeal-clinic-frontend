@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, useId } from "react";
+import { useState, useEffect } from "react";
 import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useApiQuery } from "@/hooks/use-api-query";
 import {
   DataTable,
   type Column,
@@ -10,6 +11,7 @@ import { DataPagination } from "@/components/data/data-pagination";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loading } from "@/components/shared/loading";
+import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -34,6 +36,12 @@ function isPaginated<T>(res: unknown): res is Paginated<T> {
   );
 }
 
+/** One page of a list, in the shape both the paginated and plain answers give. */
+interface ListPage<T> {
+  items: T[];
+  total: number;
+}
+
 function useListData<T>({
   endpoint,
   offset,
@@ -53,55 +61,33 @@ function useListData<T>({
   sort: SortState | null;
   refreshKey: number;
 }) {
-  const [data, setData] = useState<T[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const params = new URLSearchParams();
+  params.set("offset", String(offset));
+  params.set("limit", String(limit));
+  if (filter) params.set("filter", filter);
+  if (from && to) {
+    const range = dateRangeToUtc(from, to);
+    params.set("from", range.from);
+    params.set("to", range.to);
+  }
+  if (sort) {
+    params.set("sort", sort.id);
+    params.set("order", sort.dir);
+  }
+  const sep = endpoint.includes("?") ? "&" : "?";
 
-  const fetchData = useCallback(
+  // A refreshKey change reloads the same query.
+  const { data: page, loading } = useApiQuery<ListPage<T>>(
     () =>
-      Promise.resolve()
-        .then(() => {
-          const params = new URLSearchParams();
-          params.set("offset", String(offset));
-          params.set("limit", String(limit));
-          if (filter) params.set("filter", filter);
-          if (from && to) {
-            const range = dateRangeToUtc(from, to);
-            params.set("from", range.from);
-            params.set("to", range.to);
-          }
-          if (sort) {
-            params.set("sort", sort.id);
-            params.set("order", sort.dir);
-          }
-          const sep = endpoint.includes("?") ? "&" : "?";
-          return api.get<Paginated<T> | T[]>(`${endpoint}${sep}${params}`);
-        })
-        .then((res) => {
-          if (isPaginated<T>(res)) {
-            setData(res.items);
-            setTotal(res.total);
-          } else {
-            setData(res);
-            setTotal(res.length);
-          }
-        })
-        .catch(() => {
-          setData([]);
-          setTotal(0);
-        })
-        .finally(() => setLoading(false)),
-    [endpoint, offset, limit, filter, from, to, sort],
+      api.get<Paginated<T> | T[]>(`${endpoint}${sep}${params}`).then((res) =>
+        isPaginated<T>(res)
+          ? { items: res.items, total: res.total }
+          : { items: res, total: res.length },
+      ),
+    [endpoint, offset, limit, filter, from, to, sort, refreshKey],
   );
 
-  // A new query (or a refresh) is loading from the render that starts it.
-  useAdjustOnChange([fetchData, refreshKey], () => setLoading(true));
-
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData, refreshKey]);
-
-  return { data, total, loading };
+  return { data: page?.items ?? [], total: page?.total ?? 0, loading };
 }
 
 export function DataList<T>({
@@ -285,7 +271,6 @@ function DateFilterButton({
   to: string;
   onApply: (from: string, to: string) => void;
 }) {
-  const fieldId = useId();
   const [open, setOpen] = useState(false);
   const [draftFrom, setDraftFrom] = useState(from);
   const [draftTo, setDraftTo] = useState(to);
@@ -329,16 +314,16 @@ function DateFilterButton({
         )}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-from`} className="text-xs font-medium text-muted-foreground">
-            From
-          </label>
-          <DatePicker id={`${fieldId}-from`} value={draftFrom} onChange={setDraftFrom} max={draftTo} />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-to`} className="text-xs font-medium text-muted-foreground">To</label>
-          <DatePicker id={`${fieldId}-to`} value={draftTo} onChange={setDraftTo} min={draftFrom} />
-        </div>
+        <FormField label="From" size="small">
+          {({ id }) => (
+            <DatePicker id={id} value={draftFrom} onChange={setDraftFrom} max={draftTo} />
+          )}
+        </FormField>
+        <FormField label="To" size="small">
+          {({ id }) => (
+            <DatePicker id={id} value={draftTo} onChange={setDraftTo} min={draftFrom} />
+          )}
+        </FormField>
         <div className="flex items-center justify-end gap-2 pt-1">
           <Button variant="ghost" size="sm" onClick={clear} disabled={!active}>
             Clear

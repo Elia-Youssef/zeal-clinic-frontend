@@ -8,6 +8,7 @@ import {
   cardAddButton,
   choose,
   confirm,
+  dateGroup,
   detail,
   dialog,
   expectToast,
@@ -111,7 +112,7 @@ test("edits the record: date of birth, country and city, then clears the date of
 
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   form = dialog(page, "Edit Patient");
-  await field(form, "Date of Birth").getByRole("button", { name: "Clear date" }).click();
+  await dateGroup(form, "Date of Birth").getByRole("button", { name: "Clear date" }).click();
   await form.getByRole("button", { name: "Update", exact: true }).click();
   await expectToast(page, "Patient updated.");
   await expect(detail(page, "Date of Birth")).toContainText("---");
@@ -124,10 +125,10 @@ test("a future date of birth is refused in the form", async ({ page, scenario })
   const form = dialog(page, "Edit Patient");
   const nextYear = String(Number(clinicDay().slice(0, 4)) + 1);
   await typeDate(form, "Date of Birth", `${nextYear}-01-15`);
-  await expect(field(form, "Date of Birth").locator("[aria-invalid=true]")).toHaveCount(1);
-  expect(await field(form, "Date of Birth").getByPlaceholder("YYYY").evaluate((el: HTMLInputElement) => el.validationMessage)).toBe(
-    "Date cannot be in the future.",
-  );
+  const dateOfBirth = dateGroup(form, "Date of Birth");
+  await expect(dateOfBirth).toHaveAttribute("aria-invalid", "true");
+  const year = dateOfBirth.getByRole("textbox", { name: "Year", exact: true });
+  expect(await year.evaluate((el: HTMLInputElement) => el.validationMessage)).toBe("Date cannot be in the future.");
 });
 
 test("deleting is blocked while a prescription depends on the patient", async ({ page, guards, scenario }) => {
@@ -255,6 +256,39 @@ test("payment, refund, adjustment and write-off from the record", async ({ page,
   await expectToast(page, "Payment deleted.");
   await expect(rows(payments, "Deposit")).toHaveCount(0);
   await expect(balanceLine(page)).toHaveText("Balance: $15.00");
+});
+
+test("a cancelled new-patient draft is offered when the form opens again and dropped once the patient is created", async ({ page, scenario }) => {
+  const firstName = scenario.name("").trim();
+  await page.goto("/patients/list");
+  let form = await openNewPatient(page);
+  await input(form, "Contact").fill(scenario.phone());
+  await input(form, "Weight (kg)").fill("70");
+  await input(form, "Height (cm)").fill("172");
+  // The draft is labelled with the name, typed last, so its first save under that label holds every field.
+  await input(form, "First Name").fill(firstName);
+  await input(form, "Last Name").fill("Draft");
+  await expect.poll(async () => (await browserState(page)).drafts ?? "").toContain(`${firstName} Draft`);
+  await form.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(form).toBeHidden();
+
+  // Same page, no reload: the form opens empty and offers the draft.
+  form = await openNewPatient(page);
+  await expect(input(form, "First Name")).toHaveValue("");
+  await expect(input(form, "Last Name")).toHaveValue("");
+  const draft = form.getByRole("button", { name: new RegExp(`^${firstName} Draft`) });
+  await draft.click();
+  await expect(input(form, "First Name")).toHaveValue(firstName);
+  await expect(input(form, "Last Name")).toHaveValue("Draft");
+  await expect(input(form, "Weight (kg)")).toHaveValue("70");
+  await form.getByRole("button", { name: "Create", exact: true }).click();
+  await expectToast(page, "Patient created.");
+  await expect(form).toBeHidden();
+  await expect.poll(async () => (await browserState(page)).drafts ?? "").not.toContain(firstName);
+
+  form = await openNewPatient(page);
+  await expect(input(form, "First Name")).toHaveValue("");
+  await expect(draft).toHaveCount(0);
 });
 
 test.describe("drafts", () => {

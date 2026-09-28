@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
-import { addDays, clinicDay, formatDay, weekday } from "../support/time";
+import { addDays, clinicDay, formatDay, scheduleCardMonday } from "../support/time";
 import {
   card,
   cardAddButton,
@@ -57,7 +57,7 @@ test("a weekday schedule saved from a date keeps the earlier version", async ({ 
   const employee = await scenario.employee();
   const today = clinicDay();
   // The Monday two weeks back, and one three weeks ahead.
-  const pastMonday = addDays(today, -((weekday(today) + 6) % 7) - 14);
+  const pastMonday = addDays(scheduleCardMonday(today), -14);
   const laterMonday = addDays(pastMonday, 35);
   await scenario.scheduleDay(employee.id, 1, pastMonday, [{ startTime: "09:00", endTime: "17:00" }]);
 
@@ -120,7 +120,7 @@ test("staff request time off and overtime for themselves; an admin accepts one a
   await expectToast(page, "Overtime rejected.");
   await expect(page.getByTitle(`rejected overtime — ${overtimeNote}`)).toBeVisible();
 
-  const week = await scenario.get<ScheduleWeek>(`/employees/${employee.id}/schedule?date=${clinicDay()}`);
+  const week = await scenario.get<ScheduleWeek>(`/employees/${employee.id}/schedule?date=${scheduleCardMonday(clinicDay())}`);
   const statuses = Object.fromEntries(week.scheduleChanges.map((c) => [c.notes, c.status]));
   expect(statuses).toMatchObject({ [offNote]: "accepted", [overtimeNote]: "rejected" });
 });

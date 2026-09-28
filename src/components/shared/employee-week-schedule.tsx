@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   CalendarClock,
   CalendarIcon,
@@ -16,6 +9,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useRovingFocus, type RovingCellProps } from "@/lib/keyboard";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { cn, formatTimeRange } from "@/lib/utils";
 import { api, type Paginated } from "@/lib/api";
 import {
@@ -261,7 +256,6 @@ export function EmployeeWeekSchedule({
 
   const [weekStart, setWeekStart] = useState(() => startOfWeek(beirutNow()));
   const [view, setView] = useState<ScheduleView>("Calendar");
-  const [data, setData] = useState<ScheduleState>(emptySchedule);
   const [genForm, setGenForm] = useState<GenForm>(closedGen);
   const [changeForm, setChangeForm] = useState<ChangeForm>(closedChange);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -270,56 +264,50 @@ export function EmployeeWeekSchedule({
     data?: Partial<AppointmentFormData>;
     scheduleDate?: string;
   }>({ open: false });
-  const [apptFormKey, setApptFormKey] = useState(0);
 
-  // Drop out-of-order responses.
-  const reloadGen = useRef(0);
+  // The hour cells are one Tab stop, the arrow keys moving between them.
+  const { gridProps: rovingGrid, cellProps: rovingCell } = useRovingFocus();
 
-  const reload = useCallback(() => {
-    const gen = ++reloadGen.current;
-    const dateParam = toIsoDate(weekStart);
-    return Promise.all([
-      api.get<EmployeeScheduleResponse>(
-        `/employees/${employeeId}/schedule?date=${dateParam}`,
-      ),
-      canReadAppointments
-        ? api
-            .get<Paginated<Appointment> | Appointment[]>(
-              `/employees/${employeeId}/appointments?date=${dateParam}`,
-            )
-            .catch(() => [] as Appointment[])
-        : Promise.resolve<Appointment[]>([]),
-    ])
-      .then(([res, apptsRes]) => {
-        if (gen !== reloadGen.current) return;
-        const appointments = Array.isArray(apptsRes)
-          ? apptsRes
-          : (apptsRes.items ?? []);
-        setData({
-          days: res.days ?? [],
-          templates: res.templates ?? [],
-          scheduleChanges: res.scheduleChanges ?? [],
-          holidays: res.holidays ?? [],
-          monthStart: res.monthStart ?? "",
-          monthHours: res.monthHours ?? [],
-          // Match the calendar: replaced and cancelled appointments no longer
-          // hold their slot and should not occupy time on the active schedule.
-          appointments: appointments.filter(
-            (appointment) =>
-              appointment.status !== "Rescheduled" &&
-              appointment.status !== "Cancelled",
-          ),
-        });
-      })
-      .catch(() => {
-        if (gen !== reloadGen.current) return;
-        setData(emptySchedule);
-      });
-  }, [employeeId, weekStart, canReadAppointments]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const {
+    data: loadedSchedule,
+    reload,
+  } = useApiQuery<ScheduleState>(
+    async () => {
+      const dateParam = toIsoDate(weekStart);
+      const [res, apptsRes] = await Promise.all([
+        api.get<EmployeeScheduleResponse>(
+          `/employees/${employeeId}/schedule?date=${dateParam}`,
+        ),
+        canReadAppointments
+          ? api
+              .get<Paginated<Appointment> | Appointment[]>(
+                `/employees/${employeeId}/appointments?date=${dateParam}`,
+              )
+              .catch(() => [] as Appointment[])
+          : ([] as Appointment[]),
+      ]);
+      const appointments = Array.isArray(apptsRes)
+        ? apptsRes
+        : (apptsRes.items ?? []);
+      return {
+        days: res.days ?? [],
+        templates: res.templates ?? [],
+        scheduleChanges: res.scheduleChanges ?? [],
+        holidays: res.holidays ?? [],
+        monthStart: res.monthStart ?? "",
+        monthHours: res.monthHours ?? [],
+        // Match the calendar: replaced and cancelled appointments no longer
+        // hold their slot and should not occupy time on the active schedule.
+        appointments: appointments.filter(
+          (appointment) =>
+            appointment.status !== "Rescheduled" &&
+            appointment.status !== "Cancelled",
+        ),
+      };
+    },
+    [employeeId, weekStart, canReadAppointments],
+  );
+  const data = loadedSchedule ?? emptySchedule;
 
   const weekDates = useMemo(() => {
     // weekStart is the Monday; display the surrounding Sun-to-Sat calendar so the
@@ -513,7 +501,6 @@ export function EmployeeWeekSchedule({
       },
       scheduleDate: beirutDayKey(appt.startTime),
     });
-    setApptFormKey((k) => k + 1);
   };
 
   const changeAdd =
@@ -671,13 +658,15 @@ export function EmployeeWeekSchedule({
                 <div
                   className="relative grid"
                   style={{ gridTemplateColumns: GRID_COLS }}
+                  {...rovingGrid}
                 >
                   <TimeColumn />
                   <HourLines />
-                  {weekDates.map((day) => (
+                  {weekDates.map((day, dayIndex) => (
                     <DayColumn
                       key={day.iso}
                       day={day}
+                      hourCell={(row) => rovingCell(row, dayIndex)}
                       isToday={day.iso === todayIso}
                       projected={dayByDate[day.iso]}
                       changes={changesByDate[day.iso] ?? EMPTY_CHANGES}
@@ -701,14 +690,14 @@ export function EmployeeWeekSchedule({
       <EmployeeScheduleForm
         open={genForm.open}
         onClose={() => setGenForm(closedGen)}
-        onSaved={reload}
+        onSaved={() => reload({ quiet: true })}
         employeeId={employeeId}
         target={genForm.open ? genForm.target : null}
       />
       <EmployeeScheduleChangeForm
         open={changeForm.open}
         onClose={() => setChangeForm(closedChange)}
-        onSaved={reload}
+        onSaved={() => reload({ quiet: true })}
         employeeId={employeeId}
         initial={changeEdit?.change ?? null}
         defaultType={changeAdd?.changeType}
@@ -717,11 +706,10 @@ export function EmployeeWeekSchedule({
         defaultEndTime={changeAdd?.end}
       />
       <AppointmentForm
-        key={apptFormKey}
         open={apptForm.open}
         onClose={() => setApptForm({ open: false })}
         initialData={apptForm.data}
-        onSaved={reload}
+        onSaved={() => reload({ quiet: true })}
         readOnly={apptForm.data?.status === "Completed"}
         onOpenInSchedule={
           apptForm.scheduleDate
@@ -834,6 +822,7 @@ function HourLines() {
 
 function DayColumn({
   day,
+  hourCell,
   isToday,
   projected,
   changes,
@@ -846,7 +835,9 @@ function DayColumn({
   onEditChange,
   onAppointmentClick,
 }: {
-  day: { dayOfWeek: number; iso: string };
+  day: { dayOfWeek: number; date: Date; iso: string };
+  /** The roving-focus props of the column's hour cell in `row`. */
+  hourCell: (row: number) => RovingCellProps;
   isToday: boolean;
   projected?: EmployeeScheduleDay;
   changes: EmployeeScheduleChange[];
@@ -901,7 +892,7 @@ function DayColumn({
         isToday && "bg-primary/5",
       )}
     >
-      {HOURS.map((hour) => {
+      {HOURS.map((hour, row) => {
         const inShift = hourInShift(hour);
         const cellClass = cn(
           "border-b border-border",
@@ -921,7 +912,8 @@ function DayColumn({
           <DropdownMenu key={hour}>
             <DropdownMenuTrigger
               nativeButton={false}
-              aria-label={`${fmtDayOfWeek(day.dayOfWeek)} ${day.iso}, ${formatHour(hour)}`}
+              {...hourCell(row)}
+              aria-label={`${fmtDayOfWeek(day.dayOfWeek)} ${fnsFormat(day.date, "d MMMM")}, ${formatHour(hour)}`}
               render={
                 <div
                   className={cn(

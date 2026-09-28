@@ -1,9 +1,9 @@
 import { useState, useMemo, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   SearchableDropdown,
@@ -41,34 +41,70 @@ const emptyForm: FormFields = {
   endDate: "",
 };
 
-export function PrescriptionForm({
-  open,
-  onClose,
-  onSaved,
-  patientId,
-  initial,
-}: {
+type PrescriptionFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   patientId: string;
   initial?: Prescription | null;
-}) {
-  const fieldId = useId();
+};
+
+export function PrescriptionForm({ open, ...props }: PrescriptionFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Prescription" : "New Prescription"}
+    >
+      <PrescriptionFormBody {...props} />
+    </Modal>
+  );
+}
+
+function PrescriptionFormBody({
+  onClose,
+  onSaved,
+  patientId,
+  initial,
+}: Omit<PrescriptionFormProps, "open">) {
+  const medicinesLabelId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const selfEmployeeId = useAuthStore((s) => s.employeeId);
   const selfName = useAuthStore((s) => s.user);
-  const [form, setForm] = useState<FormFields>(emptyForm);
-  const [medicines, setMedicines] = useState<MedicineDraft[]>([blankMedicine()]);
-  const [submitting, setSubmitting] = useState(false);
-
-  const isEdit = !!initial;
 
   // Without employees:read the /employees/dropdown endpoint 403s (which hard-
   // redirects). Fall back to a static list seeded with the current user's own
   // employee, plus the existing prescriber when editing.
   const canReadEmployees = can("employees:read");
+
+  const [form, setForm] = useState<FormFields>(() =>
+    initial
+      ? {
+          prescribedById: initial.prescribedById ?? "",
+          startDate: initial.startDate?.slice(0, 10) ?? "",
+          endDate: initial.endDate?.slice(0, 10) ?? "",
+        }
+      : {
+          ...emptyForm,
+          // No employee picker available: default to the current user.
+          prescribedById: canReadEmployees ? "" : selfEmployeeId,
+        },
+  );
+  const [medicines, setMedicines] = useState<MedicineDraft[]>(() =>
+    initial?.medicines?.length
+      ? initial.medicines.map((m) => ({
+          medicineId: m.medicineId,
+          instructions: m.instructions ?? "",
+          medicineName: m.medicineName,
+        }))
+      : [blankMedicine()],
+  );
+  const [submitting, setSubmitting] = useState(false);
+
+  const isEdit = !!initial;
+
   const selfOptions = useMemo<DropdownOption[]>(() => {
     const opts: DropdownOption[] = [];
     if (selfEmployeeId) opts.push({ value: selfEmployeeId, label: selfName });
@@ -84,32 +120,6 @@ export function PrescriptionForm({
     }
     return opts;
   }, [selfEmployeeId, selfName, initial]);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setForm(
-      initial
-        ? {
-            prescribedById: initial.prescribedById ?? "",
-            startDate: initial.startDate?.slice(0, 10) ?? "",
-            endDate: initial.endDate?.slice(0, 10) ?? "",
-          }
-        : {
-            ...emptyForm,
-            // No employee picker available: default to the current user.
-            prescribedById: canReadEmployees ? "" : selfEmployeeId,
-          },
-    );
-    setMedicines(
-      initial?.medicines?.length
-        ? initial.medicines.map((m) => ({
-            medicineId: m.medicineId,
-            instructions: m.instructions ?? "",
-            medicineName: m.medicineName,
-          }))
-        : [blankMedicine()],
-    );
-  });
 
   const update = (field: keyof FormFields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -161,16 +171,11 @@ export function PrescriptionForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Prescription" : "New Prescription"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-prescribed-by`} className="text-sm font-medium">Prescribed By *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Prescribed By" required>
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-prescribed-by`}
+            id={id}
             value={form.prescribedById}
             onChange={(v) => update("prescribedById", v)}
             apiEndpoint={canReadEmployees ? "/employees/dropdown" : undefined}
@@ -213,68 +218,71 @@ export function PrescriptionForm({
                 : undefined
             }
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Start Date" required>
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-start-date`}
+              id={id}
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
               required
               max={form.endDate}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date</label>
+          )}
+        </FormField>
+        <FormField label="End Date">
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-end-date`}
+              id={id}
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
               min={form.startDate}
             />
-          </div>
+          )}
+        </FormField>
+      </div>
+
+      <div className="space-y-2" role="group" aria-labelledby={medicinesLabelId}>
+        <div className="flex items-center justify-between">
+          <label id={medicinesLabelId} className="text-sm font-medium">Medicines</label>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setMedicines((prev) => [...prev, blankMedicine()])}
+          >
+            <Plus className="size-3.5 mr-1" /> Add Medicine
+          </Button>
         </div>
 
-        <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-medicines`}>
-          <div className="flex items-center justify-between">
-            <label id={`${fieldId}-medicines`} className="text-sm font-medium">Medicines</label>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setMedicines((prev) => [...prev, blankMedicine()])}
-            >
-              <Plus className="size-3.5 mr-1" /> Add Medicine
-            </Button>
-          </div>
+        {medicines.map((med, idx) => (
+          <div
+            key={idx}
+            className="rounded-lg border border-border p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Medicine #{idx + 1}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => removeMedicine(idx)}
+                disabled={medicines.length === 1}
+                aria-label="Remove medicine"
+              >
+                <Trash2 className="size-3.5 text-destructive" />
+              </Button>
+            </div>
 
-          {medicines.map((med, idx) => (
-            <div
-              key={idx}
-              className="rounded-lg border border-border p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Medicine #{idx + 1}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => removeMedicine(idx)}
-                  disabled={medicines.length === 1}
-                  aria-label="Remove medicine"
-                >
-                  <Trash2 className="size-3.5 text-destructive" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5 min-w-0">
-                  <label htmlFor={`${fieldId}-medicine-${idx}-medicine`} className="text-sm font-medium">Medicine *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormField label="Medicine" required className="min-w-0">
+                {({ id }) => (
                   <SearchableDropdown
-                    id={`${fieldId}-medicine-${idx}-medicine`}
+                    id={id}
                     value={med.medicineId}
                     onChange={(v) => updateMedicine(idx, { medicineId: v })}
                     apiEndpoint="/medicines/dropdown"
@@ -303,32 +311,33 @@ export function PrescriptionForm({
                         : undefined
                     }
                   />
-                </div>
-                <div className="space-y-1.5 min-w-0">
-                  <label htmlFor={`${fieldId}-medicine-${idx}-instructions`} className="text-sm font-medium">Instructions</label>
+                )}
+              </FormField>
+              <FormField label="Instructions" className="min-w-0">
+                {({ id }) => (
                   <Input
-                    id={`${fieldId}-medicine-${idx}-instructions`}
+                    id={id}
                     placeholder="e.g. Twice daily after meals"
                     value={med.instructions}
                     onChange={(e) =>
                       updateMedicine(idx, { instructions: e.target.value })
                     }
                   />
-                </div>
-              </div>
+                )}
+              </FormField>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

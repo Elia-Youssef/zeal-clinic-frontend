@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, fieldValueId } from "@/lib/utils";
 import { api } from "@/lib/api";
 import {
   Popover,
@@ -167,14 +167,14 @@ export function SearchableDropdown({
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger
           id={id}
-          aria-describedby={id ? `${id}-value` : undefined}
+          aria-describedby={fieldValueId(id)}
           disabled={disabled}
           className={cn(
             "flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 md:text-sm dark:bg-input/30",
             !value && "text-muted-foreground",
           )}
         >
-          <span id={id ? `${id}-value` : undefined} className="truncate">
+          <span id={fieldValueId(id)} className="truncate">
             {selectedLabel || placeholder}
           </span>
           {clearable && value && !disabled ? (

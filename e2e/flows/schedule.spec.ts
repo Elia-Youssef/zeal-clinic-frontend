@@ -4,7 +4,7 @@ import { expect, test } from "../support/fixtures";
 import { capturePdf, expectPdf } from "../support/pdf";
 import type { Scenario } from "../support/scenario";
 import { addDays, clinicDay, clinicTime, formatDay } from "../support/time";
-import { choose, chooseIn, dialog, expectToast, field, input, pickDate, rows } from "../support/ui";
+import { choose, chooseIn, dialog, expectToast, field, input, pickDate, rows, trigger } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -136,8 +136,17 @@ test("moving into a booked slot is refused; creating one answers with a server e
 
   guards.expectError("409 PUT /api/appointments/:id");
   await openDay(page, day);
-  await gridCard(page, other.fullName).click();
   const form = dialog(page, "Edit Appointment");
+  // Opened one after the other, each appointment shows its own values.
+  await gridCard(page, patient.fullName).click();
+  await expect(trigger(form, "Patient")).toContainText(patient.fullName);
+  await expect(input(form, "Start Time")).toHaveValue("11:00");
+  await form.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(form).toBeHidden();
+  await gridCard(page, other.fullName).click();
+  await expect(trigger(form, "Patient")).toContainText(other.fullName);
+  await expect(input(form, "Start Time")).toHaveValue("13:00");
+
   await input(form, "Start Time").fill("11:30");
   await input(form, "End Time").fill("12:30");
   await form.getByRole("button", { name: "Update", exact: true }).click();

@@ -1,4 +1,5 @@
 import { useLoadingStore } from "@/lib/stores/loading-store";
+import { ClinicLogo } from "@/components/shared/clinic-logo";
 
 export function LoadingOverlay() {
   const visible = useLoadingStore((s) => s.blocking || s.count > 0);
@@ -56,11 +57,7 @@ export function LoadingOverlay() {
             />
             <div className="relative size-15 overflow-hidden rounded-xl ring-1 ring-border/60 shadow-lg shadow-[oklch(0.72_0.13_45/0.25)]">
               {/* Decorative: the status message below is what gets announced. */}
-              <div
-                aria-hidden
-                className="size-full bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: "url(/zeal.png)" }}
-              />
+              <ClinicLogo />
             </div>
           </div>
         </div>

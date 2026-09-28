@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -10,31 +10,33 @@ import { getErrorMessage } from "@/lib/utils";
 import { PatientForm } from "./patient-form";
 import { usePermissions } from "@/hooks/use-permissions";
 
-export function GiftRedeemForm({
-  open,
-  onClose,
-  onRedeemed,
-  prefilledCode,
-  codeLocked,
-}: {
+type GiftRedeemFormProps = {
   open: boolean;
   onClose: () => void;
   onRedeemed: () => void;
   prefilledCode?: string;
   codeLocked?: boolean;
-}) {
-  const fieldId = useId();
+};
+
+export function GiftRedeemForm({ open, ...props }: GiftRedeemFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="Redeem Gift Card">
+      <GiftRedeemFormBody {...props} />
+    </Modal>
+  );
+}
+
+function GiftRedeemFormBody({
+  onClose,
+  onRedeemed,
+  prefilledCode,
+  codeLocked,
+}: Omit<GiftRedeemFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(prefilledCode ?? "");
   const [patientId, setPatientId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, prefilledCode], () => {
-    if (!open) return;
-    setCode(prefilledCode ?? "");
-    setPatientId("");
-  });
 
   const canSubmit = code.trim() && patientId;
 
@@ -57,12 +59,11 @@ export function GiftRedeemForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Redeem Gift Card">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-code`} className="text-sm font-medium">Code *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Code" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-code`}
+            id={id}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="GIFT-XXXX"
@@ -70,11 +71,12 @@ export function GiftRedeemForm({
             readOnly={codeLocked}
             required
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient *</label>
+        )}
+      </FormField>
+      <FormField label="Patient" required>
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-patient`}
+            id={id}
             value={patientId}
             onChange={setPatientId}
             apiEndpoint="/patients/dropdown"
@@ -105,16 +107,16 @@ export function GiftRedeemForm({
                 : undefined
             }
           />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Redeeming…" : "Redeem"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+        )}
+      </FormField>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Redeeming…" : "Redeem"}
+        </Button>
+      </div>
+    </form>
   );
 }

@@ -1,9 +1,9 @@
-import { useState, KeyboardEvent, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState, KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { textareaClass } from "@/lib/form-styles";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -31,6 +31,17 @@ const splitCsv = (value: string | null | undefined): string[] =>
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+/** The editable fields of an existing supplier. */
+function fieldsOfSupplier(initial: Supplier): SupplierFormFields {
+  return {
+    name: initial.name,
+    contacts: splitCsv(initial.contact),
+    emails: splitCsv(initial.email),
+    address: initial.address ?? "",
+    notes: initial.notes ?? "",
+  };
+}
 
 function TagsInput({
   id,
@@ -107,38 +118,38 @@ function TagsInput({
   );
 }
 
-export function SupplierForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type SupplierFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Supplier | null;
-}) {
-  const fieldId = useId();
+};
+
+export function SupplierForm({ open, ...props }: SupplierFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Supplier" : "New Supplier"}
+    >
+      <SupplierFormBody {...props} />
+    </Modal>
+  );
+}
+
+function SupplierFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<SupplierFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
 
-  const [form, setForm] = useState<SupplierFormFields>(emptyForm);
+  const [form, setForm] = useState<SupplierFormFields>(() =>
+    initial ? fieldsOfSupplier(initial) : emptyForm,
+  );
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      setForm({
-        name: initial.name,
-        contacts: splitCsv(initial.contact),
-        emails: splitCsv(initial.email),
-        address: initial.address ?? "",
-        notes: initial.notes ?? "",
-      });
-    } else {
-      setForm(emptyForm);
-    }
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,76 +185,75 @@ export function SupplierForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Supplier" : "New Supplier"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={form.name}
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             placeholder="Supplier name"
             required
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-contacts`} className="text-sm font-medium">Contacts</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Contacts">
+          {({ id }) => (
             <TagsInput
-              id={`${fieldId}-contacts`}
+              id={id}
               value={form.contacts}
               onChange={(contacts) => setForm((p) => ({ ...p, contacts }))}
               placeholder="Phone number, press Enter"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-emails`} className="text-sm font-medium">Emails</label>
+          )}
+        </FormField>
+        <FormField label="Emails">
+          {({ id }) => (
             <TagsInput
-              id={`${fieldId}-emails`}
+              id={id}
               type="email"
               value={form.emails}
               onChange={(emails) => setForm((p) => ({ ...p, emails }))}
               placeholder="email@example.com, press Enter"
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-address`} className="text-sm font-medium">Address</label>
+      <FormField label="Address">
+        {({ id }) => (
           <Input
-            id={`${fieldId}-address`}
+            id={id}
             value={form.address}
             onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
             placeholder="Address"
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+      <FormField label="Notes">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-notes`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             placeholder="Optional notes…"
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
+import { FormField } from "@/components/shared/form-field";
 import { api, toISODateTime } from "@/lib/api";
 import { textareaClass } from "@/lib/form-styles";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -138,7 +139,6 @@ export function MainPage({
   canCreateRoom: boolean;
   canCreateProcedure: boolean;
 }) {
-  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const confirm = useConfirm();
   const [originalSnapshot] = useState(() => mergeInitial(initialData));
@@ -374,77 +374,79 @@ export function MainPage({
 
   return (
     <form onSubmit={submitSave} className="space-y-4">
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient</label>
-        <SearchableDropdown
-          id={`${fieldId}-patient`}
-          value={form.patientId}
-          onChange={(value) => update("patientId", value)}
-          disabled={isEdit}
-          defaultApiOption={
-            form.patientLabel
-              ? { value: form.patientId, label: form.patientLabel }
-              : undefined
-          }
-          apiEndpoint="/patients/dropdown"
-          mapItem={(p: { id: string; name: string }) => ({
-            value: p.id,
-            label: p.name,
-          })}
-          placeholder="Select patient…"
-          required
-          renderAddForm={
-            canCreatePatient
-              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
-                  <PatientForm
-                    open={addOpen}
-                    onClose={closeAdd}
-                    onSaved={(created) => {
-                      if (created) {
-                        onCreated(
-                          String(created.id),
-                          `${created.firstName} ${created.lastName}`,
-                        );
-                      }
-                    }}
-                  />
-                )
-              : undefined
-          }
-        />
-      </div>
+      <FormField label="Patient">
+        {({ id }) => (
+          <SearchableDropdown
+            id={id}
+            value={form.patientId}
+            onChange={(value) => update("patientId", value)}
+            disabled={isEdit}
+            defaultApiOption={
+              form.patientLabel
+                ? { value: form.patientId, label: form.patientLabel }
+                : undefined
+            }
+            apiEndpoint="/patients/dropdown"
+            mapItem={(p: { id: string; name: string }) => ({
+              value: p.id,
+              label: p.name,
+            })}
+            placeholder="Select patient…"
+            required
+            renderAddForm={
+              canCreatePatient
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <PatientForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName} ${created.lastName}`,
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
+          />
+        )}
+      </FormField>
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-room`} className="text-sm font-medium">Room</label>
-        <SearchableDropdown
-          id={`${fieldId}-room`}
-          value={form.roomId}
-          onChange={(value) => update("roomId", value)}
-          apiEndpoint="/rooms/dropdown"
-          mapItem={(r: { id: string; name: string }) => ({
-            value: r.id,
-            label: r.name,
-          })}
-          placeholder="Select room…"
-          apiOptionsLimit={100}
-          required
-          renderAddForm={
-            canCreateRoom
-              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
-                  <RoomForm
-                    open={addOpen}
-                    onClose={closeAdd}
-                    onSaved={(created) => {
-                      if (created) {
-                        onCreated(String(created.id), String(created.name));
-                      }
-                    }}
-                  />
-                )
-              : undefined
-          }
-        />
-      </div>
+      <FormField label="Room">
+        {({ id }) => (
+          <SearchableDropdown
+            id={id}
+            value={form.roomId}
+            onChange={(value) => update("roomId", value)}
+            apiEndpoint="/rooms/dropdown"
+            mapItem={(r: { id: string; name: string }) => ({
+              value: r.id,
+              label: r.name,
+            })}
+            placeholder="Select room…"
+            apiOptionsLimit={100}
+            required
+            renderAddForm={
+              canCreateRoom
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <RoomForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(String(created.id), String(created.name));
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
+          />
+        )}
+      </FormField>
 
       <ProceduresField
         procedures={form.procedures}
@@ -459,52 +461,56 @@ export function MainPage({
           spansMultipleDays ? "sm:grid-cols-4" : "sm:grid-cols-3"
         }`}
       >
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-date`} className="text-sm font-medium">Date *</label>
-          <DatePicker
-            id={`${fieldId}-date`}
-            value={form.date}
-            onChange={updateStartDate}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-start-time`} className="text-sm font-medium">Start Time *</label>
-          <Input
-            id={`${fieldId}-start-time`}
-            type="time"
-            value={form.startTime}
-            step={300}
-            onChange={(v) => update("startTime", v.target.value)}
-            required
-          />
-        </div>
-        {spansMultipleDays && (
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date *</label>
+        <FormField label="Date" required>
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-end-date`}
-              value={form.endDate}
-              onChange={(value) => update("endDate", value)}
-              min={form.date || undefined}
-              max={
-                form.date ? addCalendarDays(form.date, 1) : undefined
-              }
+              id={id}
+              value={form.date}
+              onChange={updateStartDate}
               required
             />
-          </div>
+          )}
+        </FormField>
+        <FormField label="Start Time" required>
+          {({ id }) => (
+            <Input
+              id={id}
+              type="time"
+              value={form.startTime}
+              step={300}
+              onChange={(v) => update("startTime", v.target.value)}
+              required
+            />
+          )}
+        </FormField>
+        {spansMultipleDays && (
+          <FormField label="End Date" required>
+            {({ id }) => (
+              <DatePicker
+                id={id}
+                value={form.endDate}
+                onChange={(value) => update("endDate", value)}
+                min={form.date || undefined}
+                max={
+                  form.date ? addCalendarDays(form.date, 1) : undefined
+                }
+                required
+              />
+            )}
+          </FormField>
         )}
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-end-time`} className="text-sm font-medium">End Time *</label>
-          <Input
-            id={`${fieldId}-end-time`}
-            type="time"
-            value={form.endTime}
-            step={300}
-            onChange={(v) => updateEndTime(v.target.value)}
-            required
-          />
-        </div>
+        <FormField label="End Time" required>
+          {({ id }) => (
+            <Input
+              id={id}
+              type="time"
+              value={form.endTime}
+              step={300}
+              onChange={(v) => updateEndTime(v.target.value)}
+              required
+            />
+          )}
+        </FormField>
       </div>
       {timeValidationError && (
         <p className="text-xs text-destructive">{timeValidationError}</p>
@@ -516,17 +522,18 @@ export function MainPage({
         </p>
       )}
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
-        <textarea
-          id={`${fieldId}-notes`}
-          className={textareaClass}
-          rows={3}
-          value={form.notes}
-          onChange={(e) => update("notes", e.target.value)}
-          placeholder="Optional notes…"
-        />
-      </div>
+      <FormField label="Notes">
+        {({ id }) => (
+          <textarea
+            id={id}
+            className={textareaClass}
+            rows={3}
+            value={form.notes}
+            onChange={(e) => update("notes", e.target.value)}
+            placeholder="Optional notes…"
+          />
+        )}
+      </FormField>
 
       <div className="flex justify-end gap-2 pt-2">
         {isEdit && canDelete && (
@@ -670,23 +677,23 @@ function ReschedulePhase({
   onBack: () => void;
   onConfirm: () => void;
 }) {
-  const fieldId = useId();
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Provide a reason for rescheduling this appointment.
       </p>
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-reschedule-reason`} className="text-sm font-medium">Reschedule Reason</label>
-        <textarea
-          id={`${fieldId}-reschedule-reason`}
-          className={textareaClass}
-          rows={3}
-          value={reason}
-          onChange={(e) => onReasonChange(e.target.value)}
-          placeholder="Reason for rescheduling…"
-        />
-      </div>
+      <FormField label="Reschedule Reason">
+        {({ id }) => (
+          <textarea
+            id={id}
+            className={textareaClass}
+            rows={3}
+            value={reason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            placeholder="Reason for rescheduling…"
+          />
+        )}
+      </FormField>
       <div className="flex justify-end gap-2 pt-2">
         <Button
           type="button"

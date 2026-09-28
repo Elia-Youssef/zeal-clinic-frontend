@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { textareaClass } from "@/lib/form-styles";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
@@ -10,31 +10,37 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import type { ProductCategory } from "@/lib/types";
 
-export function CategoryForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type CategoryFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: ProductCategory;
-}) {
-  const fieldId = useId();
+};
+
+export function CategoryForm({ open, ...props }: CategoryFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Category" : "New Category"}
+    >
+      <CategoryFormBody {...props} />
+    </Modal>
+  );
+}
+
+function CategoryFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<CategoryFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
-  const [parentId, setParentId] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [desc, setDesc] = useState(initial?.description ?? "");
+  const [parentId, setParentId] = useState(initial?.parentId ?? "");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setName(initial?.name ?? "");
-    setDesc(initial?.description ?? "");
-    setParentId(initial?.parentId ?? "");
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,25 +72,21 @@ export function CategoryForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Category" : "New Category"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-parent-category`} className="text-sm font-medium">Parent Category</label>
+        )}
+      </FormField>
+      <FormField label="Parent Category">
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-parent-category`}
+            id={id}
             value={parentId}
             onChange={setParentId}
             apiEndpoint="/product-categories/dropdown"
@@ -102,26 +104,27 @@ export function CategoryForm({
               />
             )}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
+        )}
+      </FormField>
+      <FormField label="Description">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
           />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+        )}
+      </FormField>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

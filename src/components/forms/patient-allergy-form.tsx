@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -10,31 +10,41 @@ import { getErrorMessage } from "@/lib/utils";
 import { AllergyForm } from "@/components/forms/allergy-form";
 import type { PatientAllergy } from "@/lib/types";
 
-export function PatientAllergyForm({
-  open,
-  onClose,
-  onSaved,
-  patientId,
-  initial,
-}: {
+type PatientAllergyFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   patientId: string;
   initial?: PatientAllergy | null;
-}) {
-  const fieldId = useId();
+};
+
+export function PatientAllergyForm({
+  open,
+  ...props
+}: PatientAllergyFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Allergy" : "Add Allergy"}
+    >
+      <PatientAllergyFormBody {...props} />
+    </Modal>
+  );
+}
+
+function PatientAllergyFormBody({
+  onClose,
+  onSaved,
+  patientId,
+  initial,
+}: Omit<PatientAllergyFormProps, "open">) {
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [allergyId, setAllergyId] = useState("");
-  const [notes, setNotes] = useState("");
+  const [allergyId, setAllergyId] = useState(initial?.allergyId ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setAllergyId(initial?.allergyId ?? "");
-    setNotes(initial?.notes ?? "");
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,19 +75,14 @@ export function PatientAllergyForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Allergy" : "Add Allergy"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-allergy`} className="text-sm font-medium">Allergy *</label>
-          {isEdit ? (
-            <Input id={`${fieldId}-allergy`} value={initial?.allergyName ?? "---"} disabled />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Allergy" required>
+        {({ id }) =>
+          isEdit ? (
+            <Input id={id} value={initial?.allergyName ?? "---"} disabled />
           ) : (
             <SearchableDropdown
-              id={`${fieldId}-allergy`}
+              id={id}
               value={allergyId}
               onChange={setAllergyId}
               apiEndpoint="/allergies/dropdown"
@@ -98,26 +103,27 @@ export function PatientAllergyForm({
                 />
               )}
             />
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
+          )
+        }
+      </FormField>
+      <FormField label="Notes">
+        {({ id }) => (
           <Input
-            id={`${fieldId}-notes`}
+            id={id}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"
           />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || (!isEdit && !allergyId)}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Add"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+        )}
+      </FormField>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || (!isEdit && !allergyId)}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Add"}
+        </Button>
+      </div>
+    </form>
   );
 }

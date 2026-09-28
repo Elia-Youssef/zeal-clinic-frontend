@@ -245,20 +245,10 @@ describe("hydrate", () => {
     expect(useAuthStore.getState().hydrate()).toBe(true);
   });
 
-  it("drops a session whose expiry is a past date string", () => {
+  it("keeps a session whose stored expiry is not Unix seconds", () => {
+    // Nothing writes that format; anything unreadable counts as no expiry.
     vi.setSystemTime("2026-06-15T12:00:00Z");
     storeSession({ ...STORED_SESSION, auth_expires_at: "2026-06-15T11:59:59Z" });
-    localStorage.setItem("form-drafts", '{"state":{"drafts":{}},"version":0}');
-
-    expect(useAuthStore.getState().hydrate()).toBe(false);
-    expect(sessionKeys()).toEqual([]);
-    expect(localStorage.getItem("form-drafts")).toBeNull();
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
-  });
-
-  it("keeps a session whose expiry is a future date string", () => {
-    vi.setSystemTime("2026-06-15T12:00:00Z");
-    storeSession({ ...STORED_SESSION, auth_expires_at: "2026-06-15T12:00:01Z" });
     expect(useAuthStore.getState().hydrate()).toBe(true);
   });
 

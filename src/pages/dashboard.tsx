@@ -1,4 +1,4 @@
-import { useMemo, useState, useId, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { SlidersHorizontal, Printer } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { DatePicker } from "@/components/ui/date-picker";
+import { FormField } from "@/components/shared/form-field";
 import type { Column } from "@/components/data/data-table";
 import { AnalyticsListCard } from "@/components/analytics/analytics-list-card";
 import {
@@ -453,22 +454,20 @@ function DateField({
   min?: string;
   max?: string;
 }) {
-  const fieldId = useId();
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={`${fieldId}-date`} className="text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
-      <DatePicker
-        id={`${fieldId}-date`}
-        value={value}
-        onChange={onChange}
-        min={min}
-        max={max}
-        className="w-40"
-        required
-      />
-    </div>
+    <FormField label={label} size="small">
+      {({ id }) => (
+        <DatePicker
+          id={id}
+          value={value}
+          onChange={onChange}
+          min={min}
+          max={max}
+          className="w-40"
+          required
+        />
+      )}
+    </FormField>
   );
 }
 

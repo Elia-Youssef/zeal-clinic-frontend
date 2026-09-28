@@ -4,3 +4,9 @@
 [data-sonner-toaster] {
   visibility: hidden !important;
 }
+
+/* The server dates invoices and prices on the day of the run. Those dates are masked, but with
+   proportional digits their width, and so the columns next to them, would still follow the day. */
+* {
+  font-variant-numeric: tabular-nums !important;
+}

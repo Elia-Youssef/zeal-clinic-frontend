@@ -1,7 +1,7 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -31,7 +31,6 @@ export function ClientPaymentForm({
   return (
     <Modal open={open} onClose={onClose} title="New Client Payment">
       <ClientPaymentFormBody
-        open={open}
         defaultPatientId={defaultPatientId}
         defaultPatientLabel={defaultPatientLabel}
         defaultAmount={defaultAmount}
@@ -46,7 +45,6 @@ export function ClientPaymentForm({
 }
 
 export function ClientPaymentFormBody({
-  open,
   defaultPatientId,
   defaultPatientLabel,
   defaultAmount,
@@ -55,7 +53,6 @@ export function ClientPaymentFormBody({
   onSubmitted,
   onCancel,
 }: {
-  open: boolean;
   defaultPatientId?: string;
   defaultPatientLabel?: string;
   defaultAmount?: number;
@@ -64,25 +61,16 @@ export function ClientPaymentFormBody({
   onSubmitted: (payment: Transaction) => void;
   onCancel: () => void;
 }) {
-  const fieldId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
 
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(defaultPatientId ?? "");
   const [amount, setAmount] = useState(
     defaultAmount != null ? String(defaultAmount) : "",
   );
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, defaultPatientId, defaultAmount], () => {
-    if (!open) return;
-    setPatientId(defaultPatientId ?? "");
-    setAmount(defaultAmount != null ? String(defaultAmount) : "");
-    setTransactionMethod("cash");
-    setDescription("");
-  });
 
   const canSubmit = patientId && Number(amount) > 0;
 
@@ -107,81 +95,85 @@ export function ClientPaymentFormBody({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient *</label>
-        <SearchableDropdown
-          id={`${fieldId}-patient`}
-          value={patientId}
-          onChange={setPatientId}
-          defaultApiOption={
-            defaultPatientId && defaultPatientLabel
-              ? { value: defaultPatientId, label: defaultPatientLabel }
-              : undefined
-          }
-          apiEndpoint="/patients/dropdown"
-          mapItem={(p: { id: string; name: string }) => ({
-            value: p.id,
-            label: p.name,
-          })}
-          placeholder="Select patient…"
-          required
-          renderAddForm={
-            can("patients:write")
-              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
-                  <PatientForm
-                    open={addOpen}
-                    onClose={closeAdd}
-                    onSaved={(created) => {
-                      if (created) {
-                        onCreated(
-                          String(created.id),
-                          `${created.firstName ?? ""} ${
-                            created.lastName ?? ""
-                          }`.trim(),
-                        );
-                      }
-                    }}
-                  />
-                )
-              : undefined
-          }
-        />
-      </div>
+      <FormField label="Patient" required>
+        {({ id }) => (
+          <SearchableDropdown
+            id={id}
+            value={patientId}
+            onChange={setPatientId}
+            defaultApiOption={
+              defaultPatientId && defaultPatientLabel
+                ? { value: defaultPatientId, label: defaultPatientLabel }
+                : undefined
+            }
+            apiEndpoint="/patients/dropdown"
+            mapItem={(p: { id: string; name: string }) => ({
+              value: p.id,
+              label: p.name,
+            })}
+            placeholder="Select patient…"
+            required
+            renderAddForm={
+              can("patients:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <PatientForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (created) {
+                          onCreated(
+                            String(created.id),
+                            `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim(),
+                          );
+                        }
+                      }}
+                    />
+                  )
+                : undefined
+            }
+          />
+        )}
+      </FormField>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
-          <MoneyInput
-            id={`${fieldId}-amount`}
-            min="0"
-            value={amount}
-            onChange={(e) => setAmount(clampNonNegative(e.target.value))}
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-transaction-method`} className="text-sm font-medium">Transaction Method</label>
-          <SearchableDropdown
-            id={`${fieldId}-transaction-method`}
-            value={transactionMethod}
-            onChange={setTransactionMethod}
-            options={transactionMethodOptions}
-            placeholder="Select type…"
-            defaultFirst
-          />
-        </div>
+        <FormField label="Amount" required>
+          {({ id }) => (
+            <MoneyInput
+              id={id}
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(clampNonNegative(e.target.value))}
+              required
+            />
+          )}
+        </FormField>
+        <FormField label="Transaction Method">
+          {({ id }) => (
+            <SearchableDropdown
+              id={id}
+              value={transactionMethod}
+              onChange={setTransactionMethod}
+              options={transactionMethodOptions}
+              placeholder="Select type…"
+              defaultFirst
+            />
+          )}
+        </FormField>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
-        <textarea
-          id={`${fieldId}-description`}
-          className={textareaClass}
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
+      <FormField label="Description">
+        {({ id }) => (
+          <textarea
+            id={id}
+            className={textareaClass}
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        )}
+      </FormField>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>

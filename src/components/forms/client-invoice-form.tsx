@@ -1,10 +1,10 @@
 import { useCallback, useState, useEffect, useMemo, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Plus, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { FormDraftsLayout } from "@/components/shared/form-drafts";
@@ -150,7 +150,7 @@ export function ClientInvoiceFormBody({
   onSubmitted: (invoice: Invoice) => void;
   onCancel: () => void;
 }) {
-  const fieldId = useId();
+  const itemsLabelId = useId();
   const addAlert = useAlertStore((s) => s.addAlert);
   const { can } = usePermissions();
   const defaultItemType: ItemDraft["itemType"] = can("products:read")
@@ -163,27 +163,6 @@ export function ClientInvoiceFormBody({
     if (option.value === "procedure") return can("procedures:read");
     return true;
   });
-
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(true);
-  const [patientId, setPatientId] = useState("");
-  // Tracked alongside patientId so a draft can show the patient name as its title.
-  const [patientName, setPatientName] = useState(defaultPatientLabel ?? "");
-  const [discountId, setDiscountId] = useState("");
-  const [discountValue, setDiscountValue] = useState(0);
-  const [discountValueType, setDiscountValueType] = useState<
-    "percentage" | "fixed" | ""
-  >("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ItemDraft[]>([blankItem(defaultItemType)]);
-  const [offerOptions, setOfferOptions] = useState<
-    {
-      value: string;
-      label: string;
-      meta: { value: number; valueType: "percentage" | "fixed" };
-    }[]
-  >([]);
-  const [submitting, setSubmitting] = useState(false);
 
   const makeBlank = useCallback(
     (): InvoiceDraftData => ({
@@ -207,6 +186,31 @@ export function ClientInvoiceFormBody({
     [defaultItemType, defaultPatientId, defaultPatientLabel, defaultProcedures],
   );
 
+  // Opens blank; the drafts hook below may then load a draft over it.
+  const [blank] = useState(makeBlank);
+  const [invoiceNumber, setInvoiceNumber] = useState(blank.invoiceNumber);
+  const [invoiceNumberAuto, setInvoiceNumberAuto] = useState(
+    blank.invoiceNumberAuto,
+  );
+  const [patientId, setPatientId] = useState(blank.patientId);
+  // Tracked alongside patientId so a draft can show the patient name as its title.
+  const [patientName, setPatientName] = useState(blank.patientName);
+  const [discountId, setDiscountId] = useState(blank.discountId);
+  const [discountValue, setDiscountValue] = useState(blank.discountValue);
+  const [discountValueType, setDiscountValueType] = useState(
+    blank.discountValueType,
+  );
+  const [notes, setNotes] = useState(blank.notes);
+  const [items, setItems] = useState(blank.items);
+  const [offerOptions, setOfferOptions] = useState<
+    {
+      value: string;
+      label: string;
+      meta: { value: number; valueType: "percentage" | "fixed" };
+    }[]
+  >([]);
+  const [submitting, setSubmitting] = useState(false);
+
   const applySnapshot = useCallback(
     (d: InvoiceDraftData) => {
       setInvoiceNumber(d.invoiceNumber);
@@ -221,12 +225,6 @@ export function ClientInvoiceFormBody({
     },
     [defaultItemType],
   );
-
-  // Reset to blank on open; the drafts hook may then auto-load a draft (below).
-  useAdjustOnChange([open, applySnapshot, makeBlank], () => {
-    if (!open) return;
-    applySnapshot(makeBlank());
-  });
 
   const snapshot = useMemo<InvoiceDraftData>(
     () => ({
@@ -471,14 +469,12 @@ export function ClientInvoiceFormBody({
 
   const formEl = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label htmlFor="clientInvoiceNumber" className="text-sm font-medium">
-            Invoice Number *
-          </label>
+      <FormField
+        label="Invoice Number"
+        required
+        actions={
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
-              id="clientInvoiceNumberAuto"
               checked={invoiceNumberAuto}
               onCheckedChange={(value) => {
                 const next = Boolean(value);
@@ -488,78 +484,83 @@ export function ClientInvoiceFormBody({
             />
             <span>Auto</span>
           </label>
-        </div>
-        <Input
-          id="clientInvoiceNumber"
-          type="number"
-          min="1"
-          step="1"
-          value={invoiceNumber}
-          onChange={(e) => setInvoiceNumber(clampNonNegative(e.target.value))}
-          disabled={invoiceNumberAuto}
-          placeholder={invoiceNumberAuto ? "Auto-generated" : ""}
-        />
-      </div>
+        }
+      >
+        {({ id }) => (
+          <Input
+            id={id}
+            type="number"
+            min="1"
+            step="1"
+            value={invoiceNumber}
+            onChange={(e) => setInvoiceNumber(clampNonNegative(e.target.value))}
+            disabled={invoiceNumberAuto}
+            placeholder={invoiceNumberAuto ? "Auto-generated" : ""}
+          />
+        )}
+      </FormField>
 
       <div className="grid grid-cols-1 gap-3">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-patient`} className="text-sm font-medium">Patient</label>
-          <SearchableDropdown
-            id={`${fieldId}-patient`}
-            value={patientId}
-            onChange={(v) => {
-              setPatientId(v);
-              if (!v) setPatientName("");
-            }}
-            onSelectItem={(opt) => {
-              setPatientId(opt.value);
-              setPatientName(opt.label);
-            }}
-            defaultApiOption={patientDropdownOption}
-            apiEndpoint="/patients/dropdown"
-            mapItem={(p: { id: string; name: string }) => ({
-              value: p.id,
-              label: p.name,
-            })}
-            placeholder="Select patient…"
-            required
-            renderAddForm={
-              can("patients:write")
-                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
-                    <PatientForm
-                      open={addOpen}
-                      onClose={closeAdd}
-                      onSaved={(created) => {
-                        if (created) {
-                          const name = `${created.firstName ?? ""} ${
-                            created.lastName ?? ""
-                          }`.trim();
-                          setPatientName(name);
-                          onCreated(String(created.id), name);
-                        }
-                      }}
-                    />
-                  )
-                : undefined
-            }
+        <FormField label="Patient">
+          {({ id }) => (
+            <SearchableDropdown
+              id={id}
+              value={patientId}
+              onChange={(v) => {
+                setPatientId(v);
+                if (!v) setPatientName("");
+              }}
+              onSelectItem={(opt) => {
+                setPatientId(opt.value);
+                setPatientName(opt.label);
+              }}
+              defaultApiOption={patientDropdownOption}
+              apiEndpoint="/patients/dropdown"
+              mapItem={(p: { id: string; name: string }) => ({
+                value: p.id,
+                label: p.name,
+              })}
+              placeholder="Select patient…"
+              required
+              renderAddForm={
+                can("patients:write")
+                  ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                      <PatientForm
+                        open={addOpen}
+                        onClose={closeAdd}
+                        onSaved={(created) => {
+                          if (created) {
+                            const name = `${created.firstName ?? ""} ${
+                              created.lastName ?? ""
+                            }`.trim();
+                            setPatientName(name);
+                            onCreated(String(created.id), name);
+                          }
+                        }}
+                      />
+                    )
+                  : undefined
+              }
+            />
+          )}
+        </FormField>
+      </div>
+
+      <FormField label="Notes">
+        {({ id }) => (
+          <textarea
+            id={id}
+            className={textareaClass}
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
           />
-        </div>
-      </div>
+        )}
+      </FormField>
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-notes`} className="text-sm font-medium">Notes</label>
-        <textarea
-          id={`${fieldId}-notes`}
-          className={textareaClass}
-          rows={2}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-2" role="group" aria-labelledby={`${fieldId}-items`}>
+      <div className="space-y-2" role="group" aria-labelledby={itemsLabelId}>
         <div className="flex items-center justify-between">
-          <label id={`${fieldId}-items`} className="text-sm font-medium">Items</label>
+          <label id={itemsLabelId} className="text-sm font-medium">Items</label>
           <Button
             type="button"
             size="sm"
@@ -607,225 +608,230 @@ export function ClientInvoiceFormBody({
                     : "grid-cols-1 sm:grid-cols-[160px_1fr]",
                 )}
               >
-                <div className="space-y-1.5 min-w-0">
-                  <label htmlFor={`${fieldId}-item-${idx}-type`} className="text-sm font-medium">Type</label>
-                  <SearchableDropdown
-                    id={`${fieldId}-item-${idx}-type`}
-                    value={item.itemType}
-                    onChange={(v) =>
-                      updateItem(idx, {
-                        ...blankItem(v as ItemDraft["itemType"]),
-                      })
-                    }
-                    options={visibleItemTypeOptions}
-                    placeholder="Type…"
-                  />
-                </div>
+                <FormField label="Type" className="min-w-0">
+                  {({ id }) => (
+                    <SearchableDropdown
+                      id={id}
+                      value={item.itemType}
+                      onChange={(v) =>
+                        updateItem(idx, {
+                          ...blankItem(v as ItemDraft["itemType"]),
+                        })
+                      }
+                      options={visibleItemTypeOptions}
+                      placeholder="Type…"
+                    />
+                  )}
+                </FormField>
                 {!isOther && (
-                  <div className="space-y-1.5 min-w-0">
-                    <label htmlFor={`${fieldId}-item-${idx}-name`} className="text-sm font-medium">{itemLabel} *</label>
-                    {item.itemType === "product" ? (
-                      <SearchableDropdown
-                        id={`${fieldId}-item-${idx}-name`}
-                        value={item.itemId}
-                        onChange={(v) => {
-                          if (!v) handleItemSelected(idx, "");
-                        }}
-                        onSelectItem={(opt) =>
-                          handleItemSelected(idx, opt.value, opt.label)
-                        }
-                        defaultApiOption={
-                          item.itemId && item.itemLabel
-                            ? { value: item.itemId, label: item.itemLabel }
-                            : undefined
-                        }
-                        apiEndpoint="/products/dropdown"
-                        mapItem={(p: { id: string; name: string }) => ({
-                          value: p.id,
-                          label: p.name,
-                        })}
-                        placeholder="Select product…"
-                        renderAddForm={
-                          can("products:write")
-                            ? ({ open, onClose, onCreated }) => (
-                                <ProductForm
-                                  open={open}
-                                  onClose={onClose}
-                                  onSaved={(created) => {
-                                    if (created)
-                                      onCreated(
-                                        String(created.id),
-                                        String(created.name),
-                                      );
-                                  }}
-                                />
-                              )
-                            : undefined
-                        }
-                      />
-                    ) : item.itemType === "procedure" ? (
-                      <SearchableDropdown
-                        id={`${fieldId}-item-${idx}-name`}
-                        value={item.itemId}
-                        onChange={(v) => {
-                          if (!v) handleItemSelected(idx, "");
-                        }}
-                        onSelectItem={(opt) =>
-                          handleItemSelected(idx, opt.value, opt.label)
-                        }
-                        defaultApiOption={
-                          item.itemId && item.itemLabel
-                            ? { value: item.itemId, label: item.itemLabel }
-                            : undefined
-                        }
-                        apiEndpoint="/procedures/dropdown"
-                        mapItem={(p: { id: string; name: string }) => ({
-                          value: p.id,
-                          label: p.name,
-                        })}
-                        placeholder="Select procedure…"
-                        renderAddForm={
-                          can("procedures:write")
-                            ? ({ open, onClose, onCreated }) => (
-                                <ProcedureForm
-                                  open={open}
-                                  onClose={onClose}
-                                  onSaved={(created) => {
-                                    if (created)
-                                      onCreated(
-                                        String(created.id),
-                                        String(created.name),
-                                      );
-                                  }}
-                                />
-                              )
-                            : undefined
-                        }
-                      />
-                    ) : (
-                      <Input
-                        id={`${fieldId}-item-${idx}-name`}
-                        placeholder="e.g. Holiday Gift"
-                        value={item.giftName}
-                        onChange={(e) =>
-                          updateItem(idx, { giftName: e.target.value })
-                        }
-                      />
-                    )}
-                  </div>
+                  <FormField label={itemLabel} required className="min-w-0">
+                    {({ id }) =>
+                      item.itemType === "product" ? (
+                        <SearchableDropdown
+                          id={id}
+                          value={item.itemId}
+                          onChange={(v) => {
+                            if (!v) handleItemSelected(idx, "");
+                          }}
+                          onSelectItem={(opt) =>
+                            handleItemSelected(idx, opt.value, opt.label)
+                          }
+                          defaultApiOption={
+                            item.itemId && item.itemLabel
+                              ? { value: item.itemId, label: item.itemLabel }
+                              : undefined
+                          }
+                          apiEndpoint="/products/dropdown"
+                          mapItem={(p: { id: string; name: string }) => ({
+                            value: p.id,
+                            label: p.name,
+                          })}
+                          placeholder="Select product…"
+                          renderAddForm={
+                            can("products:write")
+                              ? ({ open, onClose, onCreated }) => (
+                                  <ProductForm
+                                    open={open}
+                                    onClose={onClose}
+                                    onSaved={(created) => {
+                                      if (created)
+                                        onCreated(
+                                          String(created.id),
+                                          String(created.name),
+                                        );
+                                    }}
+                                  />
+                                )
+                              : undefined
+                          }
+                        />
+                      ) : item.itemType === "procedure" ? (
+                        <SearchableDropdown
+                          id={id}
+                          value={item.itemId}
+                          onChange={(v) => {
+                            if (!v) handleItemSelected(idx, "");
+                          }}
+                          onSelectItem={(opt) =>
+                            handleItemSelected(idx, opt.value, opt.label)
+                          }
+                          defaultApiOption={
+                            item.itemId && item.itemLabel
+                              ? { value: item.itemId, label: item.itemLabel }
+                              : undefined
+                          }
+                          apiEndpoint="/procedures/dropdown"
+                          mapItem={(p: { id: string; name: string }) => ({
+                            value: p.id,
+                            label: p.name,
+                          })}
+                          placeholder="Select procedure…"
+                          renderAddForm={
+                            can("procedures:write")
+                              ? ({ open, onClose, onCreated }) => (
+                                  <ProcedureForm
+                                    open={open}
+                                    onClose={onClose}
+                                    onSaved={(created) => {
+                                      if (created)
+                                        onCreated(
+                                          String(created.id),
+                                          String(created.name),
+                                        );
+                                    }}
+                                  />
+                                )
+                              : undefined
+                          }
+                        />
+                      ) : (
+                        <Input
+                          id={id}
+                          placeholder="e.g. Holiday Gift"
+                          value={item.giftName}
+                          onChange={(e) =>
+                            updateItem(idx, { giftName: e.target.value })
+                          }
+                        />
+                      )
+                    }
+                  </FormField>
                 )}
               </div>
 
               {isGift && (
                 <>
-                  <div className="space-y-1.5">
-                    <label id={`${fieldId}-item-${idx}-gift-type`} className="text-sm font-medium">Gift Type *</label>
-                    <div
-                      role="group"
-                      aria-labelledby={`${fieldId}-item-${idx}-gift-type`}
-                      className="flex w-fit rounded-lg border border-border p-0.5"
-                    >
-                      <button
-                        type="button"
-                        aria-pressed={item.giftMode === "code"}
-                        onClick={() =>
-                          updateItem(idx, {
-                            giftMode: "code",
-                            giftPatientId: "",
-                          })
-                        }
-                        className={cn(
-                          "rounded-md px-3 py-1 transition-colors",
-                          item.giftMode === "code"
-                            ? "bg-accent font-medium"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
+                  <FormField label="Gift Type" required group>
+                    {({ labelId }) => (
+                      <div
+                        role="group"
+                        aria-labelledby={labelId}
+                        className="flex w-fit rounded-lg border border-border p-0.5"
                       >
-                        Code
-                      </button>
-                      <button
-                        type="button"
-                        aria-pressed={item.giftMode === "patient"}
-                        onClick={() =>
-                          updateItem(idx, {
-                            giftMode: "patient",
-                            giftCode: "",
-                          })
-                        }
-                        className={cn(
-                          "rounded-md px-3 py-1 transition-colors",
-                          item.giftMode === "patient"
-                            ? "bg-accent font-medium"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        Apply to recipient
-                      </button>
-                    </div>
-                  </div>
-                  {item.giftMode === "code" ? (
-                    <div className="space-y-1.5">
-                      <label htmlFor={`${fieldId}-item-${idx}-code`} className="text-sm font-medium">Code *</label>
-                      <div className="flex gap-2">
-                        <Input
-                          id={`${fieldId}-item-${idx}-code`}
-                          value={item.giftCode}
-                          onChange={(e) =>
+                        <button
+                          type="button"
+                          aria-pressed={item.giftMode === "code"}
+                          onClick={() =>
                             updateItem(idx, {
-                              giftCode: e.target.value.toUpperCase(),
+                              giftMode: "code",
+                              giftPatientId: "",
                             })
                           }
-                          placeholder="GIFT-XXXX"
-                          className="flex-1 font-mono"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          title="Generate random code"
-                          onClick={() =>
-                            updateItem(idx, { giftCode: randomVoucherCode() })
-                          }
+                          className={cn(
+                            "rounded-md px-3 py-1 transition-colors",
+                            item.giftMode === "code"
+                              ? "bg-accent font-medium"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
                         >
-                          <Shuffle className="size-4" />
-                        </Button>
+                          Code
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={item.giftMode === "patient"}
+                          onClick={() =>
+                            updateItem(idx, {
+                              giftMode: "patient",
+                              giftCode: "",
+                            })
+                          }
+                          className={cn(
+                            "rounded-md px-3 py-1 transition-colors",
+                            item.giftMode === "patient"
+                              ? "bg-accent font-medium"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          Apply to recipient
+                        </button>
                       </div>
-                    </div>
+                    )}
+                  </FormField>
+                  {item.giftMode === "code" ? (
+                    <FormField label="Code" required>
+                      {({ id }) => (
+                        <div className="flex gap-2">
+                          <Input
+                            id={id}
+                            value={item.giftCode}
+                            onChange={(e) =>
+                              updateItem(idx, {
+                                giftCode: e.target.value.toUpperCase(),
+                              })
+                            }
+                            placeholder="GIFT-XXXX"
+                            className="flex-1 font-mono"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Generate random code"
+                            onClick={() =>
+                              updateItem(idx, { giftCode: randomVoucherCode() })
+                            }
+                          >
+                            <Shuffle className="size-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </FormField>
                   ) : (
-                    <div className="space-y-1.5">
-                      <label htmlFor={`${fieldId}-item-${idx}-recipient`} className="text-sm font-medium">Recipient *</label>
-                      <SearchableDropdown
-                        id={`${fieldId}-item-${idx}-recipient`}
-                        value={item.giftPatientId}
-                        onChange={(v) => updateItem(idx, { giftPatientId: v })}
-                        apiEndpoint="/patients/dropdown"
-                        mapItem={(p: { id: string; name: string }) => ({
-                          value: p.id,
-                          label: p.name,
-                        })}
-                        placeholder="Select recipient patient…"
-                        renderAddForm={
-                          can("patients:write")
-                            ? ({ open, onClose, onCreated }) => (
-                                <PatientForm
-                                  open={open}
-                                  onClose={onClose}
-                                  onSaved={(created) => {
-                                    if (created) {
-                                      onCreated(
-                                        String(created.id),
-                                        `${created.firstName ?? ""} ${
-                                          created.lastName ?? ""
-                                        }`.trim(),
-                                      );
-                                    }
-                                  }}
-                                />
-                              )
-                            : undefined
-                        }
-                      />
-                    </div>
+                    <FormField label="Recipient" required>
+                      {({ id }) => (
+                        <SearchableDropdown
+                          id={id}
+                          value={item.giftPatientId}
+                          onChange={(v) => updateItem(idx, { giftPatientId: v })}
+                          apiEndpoint="/patients/dropdown"
+                          mapItem={(p: { id: string; name: string }) => ({
+                            value: p.id,
+                            label: p.name,
+                          })}
+                          placeholder="Select recipient patient…"
+                          renderAddForm={
+                            can("patients:write")
+                              ? ({ open, onClose, onCreated }) => (
+                                  <PatientForm
+                                    open={open}
+                                    onClose={onClose}
+                                    onSaved={(created) => {
+                                      if (created) {
+                                        onCreated(
+                                          String(created.id),
+                                          `${created.firstName ?? ""} ${
+                                            created.lastName ?? ""
+                                          }`.trim(),
+                                        );
+                                      }
+                                    }}
+                                  />
+                                )
+                              : undefined
+                          }
+                        />
+                      )}
+                    </FormField>
                   )}
                 </>
               )}
@@ -839,118 +845,122 @@ export function ClientInvoiceFormBody({
                 )}
               >
                 {!isGift && !isOther && item.itemType !== "procedure" && (
-                  <div className="space-y-1.5">
-                    <label htmlFor={`${fieldId}-item-${idx}-qty`} className="text-sm font-medium">Qty *</label>
-                    <Input
-                      id={`${fieldId}-item-${idx}-qty`}
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(idx, {
-                          quantity: clampNonNegative(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
+                  <FormField label="Qty" required>
+                    {({ id }) => (
+                      <Input
+                        id={id}
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateItem(idx, {
+                            quantity: clampNonNegative(e.target.value),
+                          })
+                        }
+                      />
+                    )}
+                  </FormField>
                 )}
-                <div className="space-y-1.5">
-                  <label htmlFor={`${fieldId}-item-${idx}-amount`} className="text-sm font-medium">
-                    {isGift ? "Value *" : "Amount *"}
-                  </label>
-                  <MoneyInput
-                    id={`${fieldId}-item-${idx}-amount`}
-                    min="0"
-                    value={item.amount}
-                    readOnly={
-                      !isGift &&
-                      !isOther &&
-                      item.unitPrice != null &&
-                      item.unitPrice > 0 &&
-                      (item.itemType === "product" ||
-                        item.itemType === "procedure")
-                    }
-                    onChange={(e) =>
-                      updateItem(idx, {
-                        amount: clampNonNegative(e.target.value),
-                      })
-                    }
-                  />
-                  {item.itemType === "product" && item.unitPrice != null && (
-                    <p className="text-xs text-muted-foreground">
-                      Unit: ${item.unitPrice.toFixed(2)}
-                    </p>
+                <FormField label={isGift ? "Value" : "Amount"} required>
+                  {({ id }) => (
+                    <>
+                      <MoneyInput
+                        id={id}
+                        min="0"
+                        value={item.amount}
+                        readOnly={
+                          !isGift &&
+                          !isOther &&
+                          item.unitPrice != null &&
+                          item.unitPrice > 0 &&
+                          (item.itemType === "product" ||
+                            item.itemType === "procedure")
+                        }
+                        onChange={(e) =>
+                          updateItem(idx, {
+                            amount: clampNonNegative(e.target.value),
+                          })
+                        }
+                      />
+                      {item.itemType === "product" && item.unitPrice != null && (
+                        <p className="text-xs text-muted-foreground">
+                          Unit: ${item.unitPrice.toFixed(2)}
+                        </p>
+                      )}
+                    </>
                   )}
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor={`${fieldId}-item-${idx}-notes`} className="text-sm font-medium">Notes</label>
-                  <Input
-                    id={`${fieldId}-item-${idx}-notes`}
-                    placeholder="Optional"
-                    value={item.notes}
-                    onChange={(e) => updateItem(idx, { notes: e.target.value })}
-                  />
-                </div>
+                </FormField>
+                <FormField label="Notes">
+                  {({ id }) => (
+                    <Input
+                      id={id}
+                      placeholder="Optional"
+                      value={item.notes}
+                      onChange={(e) => updateItem(idx, { notes: e.target.value })}
+                    />
+                  )}
+                </FormField>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${fieldId}-invoice-discount`} className="text-sm font-medium">Invoice Discount</label>
-        <SearchableDropdown
-          id={`${fieldId}-invoice-discount`}
-          value={discountId}
-          onChange={(v) => {
-            setDiscountId(v);
-            if (v === "") {
-              setDiscountValue(0);
-              setDiscountValueType("");
+      <FormField label="Invoice Discount">
+        {({ id }) => (
+          <SearchableDropdown
+            id={id}
+            value={discountId}
+            onChange={(v) => {
+              setDiscountId(v);
+              if (v === "") {
+                setDiscountValue(0);
+                setDiscountValueType("");
+              }
+            }}
+            onSelectItem={(opt) => {
+              setDiscountId(opt.value);
+              setDiscountValue((opt.meta?.value as number) ?? 0);
+              setDiscountValueType(
+                (opt.meta?.valueType as "percentage" | "fixed") ?? "",
+              );
+            }}
+            options={offerOptions}
+            placeholder="No discount"
+            clearable
+            renderAddForm={
+              can("discounts:write")
+                ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
+                    <DiscountForm
+                      open={addOpen}
+                      onClose={closeAdd}
+                      onSaved={(created) => {
+                        if (!created) return;
+                        const value = Number(created.value) || 0;
+                        const valueType: "percentage" | "fixed" =
+                          created.valueType === "fixed" ? "fixed" : "percentage";
+                        const label = `${created.name} (${
+                          valueType === "percentage"
+                            ? `${value}%`
+                            : `$${value.toFixed(2)}`
+                        })`;
+                        const option = {
+                          value: String(created.id),
+                          label,
+                          meta: { value, valueType },
+                        };
+                        setOfferOptions((prev) => [option, ...prev]);
+                        setDiscountValue(value);
+                        setDiscountValueType(valueType);
+                        onCreated(option.value, option.label);
+                      }}
+                    />
+                  )
+                : undefined
             }
-          }}
-          onSelectItem={(opt) => {
-            setDiscountId(opt.value);
-            setDiscountValue((opt.meta?.value as number) ?? 0);
-            setDiscountValueType(
-              (opt.meta?.valueType as "percentage" | "fixed") ?? "",
-            );
-          }}
-          options={offerOptions}
-          placeholder="No discount"
-          clearable
-          renderAddForm={
-            can("discounts:write")
-              ? ({ open: addOpen, onClose: closeAdd, onCreated }) => (
-                  <DiscountForm
-                    open={addOpen}
-                    onClose={closeAdd}
-                    onSaved={(created) => {
-                      if (!created) return;
-                      const value = Number(created.value) || 0;
-                      const valueType: "percentage" | "fixed" =
-                        created.valueType === "fixed" ? "fixed" : "percentage";
-                      const label = `${created.name} (${
-                        valueType === "percentage"
-                          ? `${value}%`
-                          : `$${value.toFixed(2)}`
-                      })`;
-                      const option = {
-                        value: String(created.id),
-                        label,
-                        meta: { value, valueType },
-                      };
-                      setOfferOptions((prev) => [option, ...prev]);
-                      setDiscountValue(value);
-                      setDiscountValueType(valueType);
-                      onCreated(option.value, option.label);
-                    }}
-                  />
-                )
-              : undefined
-          }
-        />
-      </div>
+          />
+        )}
+      </FormField>
 
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="text-sm space-y-0.5">

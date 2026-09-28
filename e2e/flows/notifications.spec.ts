@@ -30,7 +30,8 @@ test("live notifications: the bell counts them; mark read, delete, mark all read
   await bell(page).click();
   const panel = page.locator('[data-slot="popover-content"][data-open]');
   await expect(panel).toContainText("Notifications");
-  const items = panel.getByText("Test notification", { exact: true });
+  // Each item's body is a button whose name starts with the notification's title.
+  const items = panel.getByRole("button", { name: /^Test notification/ });
   await expect(items).toHaveCount(3);
 
   await items.first().click();

@@ -5,15 +5,15 @@ import { cn } from "@/lib/utils";
 import { beirutToday } from "@/lib/tz";
 
 export function DateInput({
-  id,
+  labelId,
   value,
   onChange,
   mode = "date",
   required,
   className,
 }: {
-  /** The day box's id, for a <label htmlFor>. */
-  id?: string;
+  /** The id of the field's <label>, which names the group. */
+  labelId?: string;
   value: string;
   onChange: (iso: string) => void;
   mode?: "date" | "datetime";
@@ -224,10 +224,12 @@ export function DateInput({
         invalid && "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
         className,
       )}
+      role="group"
+      aria-labelledby={labelId}
       aria-invalid={invalid}
     >
       <input
-        id={id}
+        aria-label="Day"
         className={cn(inputBase, "w-6")}
         placeholder="DD"
         value={day}
@@ -238,7 +240,6 @@ export function DateInput({
       <span className="text-muted-foreground">/</span>
       <input
         ref={monthRef}
-        // The field's label names the day box; the other two name themselves.
         aria-label="Month"
         className={cn(inputBase, "w-7")}
         placeholder="MM"
@@ -263,6 +264,7 @@ export function DateInput({
           <span className="ml-1.5 text-muted-foreground">|</span>
           <input
             ref={hoursRef}
+            aria-label="Hour"
             className={cn(inputBase, "ml-1.5 w-6")}
             placeholder="HH"
             value={hours}
@@ -273,6 +275,7 @@ export function DateInput({
           <span className="text-muted-foreground">:</span>
           <input
             ref={minutesRef}
+            aria-label="Minute"
             className={cn(inputBase, "w-6")}
             placeholder="mm"
             value={minutes}

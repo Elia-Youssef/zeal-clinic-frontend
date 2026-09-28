@@ -1,5 +1,4 @@
-import { useState, useEffect, useId, type ReactNode } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState, type ReactNode } from "react";
 import { ChevronDown, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -9,6 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs } from "@/components/shared/tabs";
+import { FormField } from "@/components/shared/form-field";
 import { Loading } from "@/components/shared/loading";
 import {
   Table,
@@ -25,9 +25,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, fieldValueId, getErrorMessage } from "@/lib/utils";
 import {
   beirutDaysAgo,
   beirutToday,
@@ -197,14 +198,24 @@ export default function ReportsPage() {
 }
 
 function RevenueReport() {
-  const fieldId = useId();
   const { addAlert } = useAlertStore();
   const [from, setFrom] = useState(beirutDaysAgo(30));
   const [to, setTo] = useState(beirutToday());
   const [level, setLevel] = useState<RevenueLevel>("kind");
-  const [data, setData] = useState<RevenueResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  const { data, loading } = useApiQuery(
+    () => {
+      const params: Record<string, string> = {
+        ...dateRangeToUtc(from, to),
+        level,
+      };
+      return api.get<RevenueResponse>(`/reports/revenue${buildQuery(params)}`);
+    },
+    [from, to, level],
+    (err) =>
+      addAlert("error", getErrorMessage(err, "Failed to load revenue report.")),
+  );
 
   const handlePrintPdf = async () => {
     setPdfLoading(true);
@@ -219,45 +230,17 @@ function RevenueReport() {
     }
   };
 
-  // A changed range or level is loading from the render that shows it.
-  useAdjustOnChange([from, to, level], () => setLoading(true));
-
-  useEffect(() => {
-    let aborted = false;
-    const range = dateRangeToUtc(from, to);
-    const params: Record<string, string> = { ...range, level };
-    api
-      .get<RevenueResponse>(`/reports/revenue${buildQuery(params)}`)
-      .then((res) => {
-        if (!aborted) setData(res);
-      })
-      .catch((err) => {
-        if (!aborted)
-          addAlert(
-            "error",
-            getErrorMessage(err, "Failed to load revenue report."),
-          );
-      })
-      .finally(() => {
-        if (!aborted) setLoading(false);
-      });
-    return () => {
-      aborted = true;
-    };
-  }, [from, to, level, addAlert]);
-
   return (
     <>
       <div className="rounded-lg border bg-muted/30 p-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">
           <DateField label="From" value={from} onChange={setFrom} max={to} />
           <DateField label="To" value={to} onChange={setTo} min={from} />
-          <div className="w-full space-y-1.5 sm:w-56">
-            <label htmlFor={`${fieldId}-group-by`} className="text-xs font-medium text-muted-foreground">
-              Group by
-            </label>
-            <LevelSelect id={`${fieldId}-group-by`} value={level} onChange={setLevel} />
-          </div>
+          <FormField label="Group by" size="small" className="w-full sm:w-56">
+            {({ id }) => (
+              <LevelSelect id={id} value={level} onChange={setLevel} />
+            )}
+          </FormField>
           <div className="w-full sm:ml-auto sm:w-auto">
             <Button
               variant="outline"
@@ -339,9 +322,20 @@ function ExpensesReport() {
   const { addAlert } = useAlertStore();
   const [from, setFrom] = useState(beirutDaysAgo(30));
   const [to, setTo] = useState(beirutToday());
-  const [data, setData] = useState<ExpensesResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  const { data, loading } = useApiQuery(
+    () =>
+      api.get<ExpensesResponse>(
+        `/reports/expenses${buildQuery(dateRangeToUtc(from, to))}`,
+      ),
+    [from, to],
+    (err) =>
+      addAlert(
+        "error",
+        getErrorMessage(err, "Failed to load expenses report."),
+      ),
+  );
 
   const handlePrintPdf = async () => {
     setPdfLoading(true);
@@ -354,32 +348,6 @@ function ExpensesReport() {
       setPdfLoading(false);
     }
   };
-
-  // A changed range is loading from the render that shows it.
-  useAdjustOnChange([from, to], () => setLoading(true));
-
-  useEffect(() => {
-    let aborted = false;
-    const params: Record<string, string> = dateRangeToUtc(from, to);
-    api
-      .get<ExpensesResponse>(`/reports/expenses${buildQuery(params)}`)
-      .then((res) => {
-        if (!aborted) setData(res);
-      })
-      .catch((err) => {
-        if (!aborted)
-          addAlert(
-            "error",
-            getErrorMessage(err, "Failed to load expenses report."),
-          );
-      })
-      .finally(() => {
-        if (!aborted) setLoading(false);
-      });
-    return () => {
-      aborted = true;
-    };
-  }, [from, to, addAlert]);
 
   return (
     <>
@@ -486,10 +454,10 @@ function LevelSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         id={id}
-        aria-describedby={`${id}-value`}
+        aria-describedby={fieldValueId(id)}
         className="flex h-8 w-full items-center justify-between rounded-lg border border-input bg-transparent px-2.5 py-1 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
       >
-        <span id={`${id}-value`} className="truncate">
+        <span id={fieldValueId(id)} className="truncate">
           {selected?.label ?? "Select"}
         </span>
         <ChevronDown className="ml-1 size-3.5 shrink-0 opacity-50" />
@@ -541,22 +509,20 @@ function DateField({
   min?: string;
   max?: string;
 }) {
-  const fieldId = useId();
   return (
-    <div className="w-full space-y-1.5 sm:w-auto">
-      <label htmlFor={`${fieldId}-date`} className="text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
-      <DatePicker
-        id={`${fieldId}-date`}
-        value={value}
-        onChange={onChange}
-        min={min}
-        max={max}
-        className="w-full sm:w-40"
-        required
-      />
-    </div>
+    <FormField label={label} size="small" className="w-full sm:w-auto">
+      {({ id }) => (
+        <DatePicker
+          id={id}
+          value={value}
+          onChange={onChange}
+          min={min}
+          max={max}
+          className="w-full sm:w-40"
+          required
+        />
+      )}
+    </FormField>
   );
 }
 

@@ -1,9 +1,6 @@
 import { useEffect } from "react";
-import {
-  EXPIRES_AT_KEY,
-  parseStoredExpiry,
-  settleExpiredSession,
-} from "@/lib/session-expiry";
+import { settleExpiredSession } from "@/lib/session-expiry-settle";
+import { parseStoredExpiry, readStoredExpiry } from "@/lib/session-expiry";
 
 // setTimeout can't wait longer than this, so longer waits are taken in steps.
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -15,7 +12,7 @@ const MAX_TIMEOUT_MS = 2_147_483_647;
  */
 export function SessionExpiryWatch() {
   useEffect(() => {
-    const expiry = parseStoredExpiry(sessionStorage.getItem(EXPIRES_AT_KEY));
+    const expiry = parseStoredExpiry(readStoredExpiry());
     if (expiry === null) return;
     let handle = 0;
     const wait = () => {

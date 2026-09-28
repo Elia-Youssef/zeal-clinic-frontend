@@ -1,7 +1,7 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -10,31 +10,35 @@ import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage, clampNonNegative, round2 } from "@/lib/utils";
 import { employeePaymentTypeOptions } from "@/lib/constants";
 
-export function EmployeePaymentForm({
-  open,
-  onClose,
-  onSaved,
-  employeeId,
-}: {
+type EmployeePaymentFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   employeeId: string;
-}) {
-  const fieldId = useId();
+};
+
+export function EmployeePaymentForm({
+  open,
+  ...props
+}: EmployeePaymentFormProps) {
+  return (
+    <Modal open={open} onClose={props.onClose} title="Record Employee Payment">
+      <EmployeePaymentFormBody {...props} />
+    </Modal>
+  );
+}
+
+function EmployeePaymentFormBody({
+  onClose,
+  onSaved,
+  employeeId,
+}: Omit<EmployeePaymentFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
 
   const [amount, setAmount] = useState("");
   const [transactionMethod, setTransactionMethod] = useState("cash");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open], () => {
-    if (!open) return;
-    setAmount("");
-    setTransactionMethod("cash");
-    setDescription("");
-  });
 
   const canSubmit = Number(amount) > 0 && !!transactionMethod;
 
@@ -60,52 +64,53 @@ export function EmployeePaymentForm({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Record Employee Payment">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Amount" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-amount`}
+              id={id}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
+          )}
+        </FormField>
+        <FormField label="Type" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-type`}
+              id={id}
               value={transactionMethod}
               onChange={setTransactionMethod}
               options={employeePaymentTypeOptions}
               placeholder="Select type…"
               required
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
+      <FormField label="Description">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Recording…" : "Record Payment"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Recording…" : "Record Payment"}
+        </Button>
+      </div>
+    </form>
   );
 }

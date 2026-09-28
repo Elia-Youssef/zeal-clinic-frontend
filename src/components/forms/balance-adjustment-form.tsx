@@ -1,7 +1,7 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
@@ -47,15 +47,7 @@ const directionOptions = [
   { value: "outgoing", label: "Outgoing" },
 ];
 
-export function BalanceAdjustmentForm({
-  open,
-  onClose,
-  onSaved,
-  entityType,
-  entityId,
-  mode = "adjustment",
-  defaultDirection = "outgoing",
-}: {
+type BalanceAdjustmentFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -63,8 +55,32 @@ export function BalanceAdjustmentForm({
   entityId: string;
   mode?: "adjustment" | "write-off";
   defaultDirection?: "incoming" | "outgoing";
-}) {
-  const fieldId = useId();
+};
+
+export function BalanceAdjustmentForm({
+  open,
+  ...props
+}: BalanceAdjustmentFormProps) {
+  const isWriteOff = props.mode === "write-off";
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isWriteOff ? "New Write-Off" : "New Balance Adjustment"}
+    >
+      <BalanceAdjustmentFormBody {...props} />
+    </Modal>
+  );
+}
+
+function BalanceAdjustmentFormBody({
+  onClose,
+  onSaved,
+  entityType,
+  entityId,
+  mode = "adjustment",
+  defaultDirection = "outgoing",
+}: Omit<BalanceAdjustmentFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
   const isWriteOff = mode === "write-off";
 
@@ -75,14 +91,6 @@ export function BalanceAdjustmentForm({
   );
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, defaultDirection], () => {
-    if (!open) return;
-    setAmount("");
-    setTransactionMethod("cash");
-    setDirection(defaultDirection);
-    setDescription("");
-  });
 
   const canSubmit =
     !!entityId &&
@@ -119,76 +127,74 @@ export function BalanceAdjustmentForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isWriteOff ? "New Write-Off" : "New Balance Adjustment"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div
-          className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}
-        >
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-amount`} className="text-sm font-medium">Amount *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div
+        className={`grid grid-cols-1 ${isWriteOff ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}
+      >
+        <FormField label="Amount" required>
+          {({ id }) => (
             <MoneyInput
-              id={`${fieldId}-amount`}
+              id={id}
               min="0"
               value={amount}
               onChange={(e) => setAmount(clampNonNegative(e.target.value))}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-direction`} className="text-sm font-medium">Direction *</label>
+          )}
+        </FormField>
+        <FormField label="Direction" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-direction`}
+              id={id}
               value={direction}
               onChange={(v) => setDirection(v as "incoming" | "outgoing")}
               options={directionOptions}
               placeholder="Select direction…"
               required
             />
-          </div>
-          {!isWriteOff && (
-            <div className="space-y-1.5">
-              <label htmlFor={`${fieldId}-method`} className="text-sm font-medium">Method</label>
+          )}
+        </FormField>
+        {!isWriteOff && (
+          <FormField label="Method">
+            {({ id }) => (
               <SearchableDropdown
-                id={`${fieldId}-method`}
+                id={id}
                 value={transactionMethod}
                 onChange={setTransactionMethod}
                 options={transactionMethodOptions}
                 placeholder="Select method…"
                 defaultFirst
               />
-            </div>
-          )}
-        </div>
+            )}
+          </FormField>
+        )}
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description *</label>
+      <FormField label="Description" required>
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting
-              ? "Creating…"
-              : isWriteOff
-                ? "Create Write-Off"
-                : "Create Adjustment"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting
+            ? "Creating…"
+            : isWriteOff
+              ? "Create Write-Off"
+              : "Create Adjustment"}
+        </Button>
+      </div>
+    </form>
   );
 }

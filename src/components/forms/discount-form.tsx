@@ -1,8 +1,8 @@
-import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { textareaClass } from "@/lib/form-styles";
 import { api, toISODate } from "@/lib/api";
@@ -32,41 +32,52 @@ const emptyForm: Fields = {
   isActive: "1",
 };
 
-export function DiscountForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+/** The editable fields of an existing discount. */
+function fieldsOfDiscount(initial: Discount): Fields {
+  return {
+    name: initial.name,
+    description: initial.description ?? "",
+    valueType: initial.valueType,
+    value: String(initial.value),
+    startDate: initial.startDate?.slice(0, 10) ?? "",
+    endDate: initial.endDate?.slice(0, 10) ?? "",
+    isActive: String(initial.isActive),
+  };
+}
+
+type DiscountFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Discount;
-}) {
-  const fieldId = useId();
+};
+
+export function DiscountForm({ open, ...props }: DiscountFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Discount" : "New Discount"}
+    >
+      <DiscountFormBody {...props} />
+    </Modal>
+  );
+}
+
+function DiscountFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<DiscountFormProps, "open">) {
   const addAlert = useAlertStore((s) => s.addAlert);
-  const [form, setForm] = useState<Fields>(emptyForm);
+  const [form, setForm] = useState<Fields>(() =>
+    initial ? fieldsOfDiscount(initial) : emptyForm,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!initial;
   const isGift = isEdit && initial.discountType === "gift";
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    if (initial) {
-      setForm({
-        name: initial.name,
-        description: initial.description ?? "",
-        valueType: initial.valueType,
-        value: String(initial.value),
-        startDate: initial.startDate?.slice(0, 10) ?? "",
-        endDate: initial.endDate?.slice(0, 10) ?? "",
-        isActive: String(initial.isActive),
-      });
-    } else {
-      setForm(emptyForm);
-    }
-  });
 
   const update = (field: keyof Fields, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -118,49 +129,47 @@ export function DiscountForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Discount" : "New Discount"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
             required
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-description`} className="text-sm font-medium">Description</label>
+      <FormField label="Description">
+        {({ id }) => (
           <textarea
-            id={`${fieldId}-description`}
+            id={id}
             className={textareaClass}
             rows={2}
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-value-type`} className="text-sm font-medium">Value Type *</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Value Type" required>
+          {({ id }) => (
             <SearchableDropdown
-              id={`${fieldId}-value-type`}
+              id={id}
               value={form.valueType}
               onChange={(v) => update("valueType", v)}
               options={discountValueTypeOptions}
               placeholder="Select…"
               disabled={isGift}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-value`} className="text-sm font-medium">Value *</label>
+          )}
+        </FormField>
+        <FormField label="Value" required>
+          {({ id }) => (
             <Input
-              id={`${fieldId}-value`}
+              id={id}
               type="number"
               step="0.01"
               min="0"
@@ -169,36 +178,39 @@ export function DiscountForm({
               required
               disabled={isGift}
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-start-date`} className="text-sm font-medium">Start Date</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Start Date">
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-start-date`}
+              id={id}
               value={form.startDate}
               onChange={(v) => update("startDate", v)}
               max={form.endDate}
               disabled={isGift}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${fieldId}-end-date`} className="text-sm font-medium">End Date</label>
+          )}
+        </FormField>
+        <FormField label="End Date">
+          {({ id }) => (
             <DatePicker
-              id={`${fieldId}-end-date`}
+              id={id}
               value={form.endDate}
               onChange={(v) => update("endDate", v)}
               min={form.startDate}
               disabled={isGift}
             />
-          </div>
-        </div>
+          )}
+        </FormField>
+      </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-status`} className="text-sm font-medium">Status</label>
+      <FormField label="Status">
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-status`}
+            id={id}
             value={form.isActive}
             onChange={(v) => update("isActive", v)}
             options={[
@@ -208,17 +220,17 @@ export function DiscountForm({
             placeholder="Select…"
             disabled={isGift}
           />
-        </div>
+        )}
+      </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting || !canSubmit}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting || !canSubmit}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

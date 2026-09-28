@@ -101,6 +101,9 @@ export function Modal(props: ModalProps) {
           if (!o) onClose();
         }}
       >
+        {/* The content unmounts once the close animation ends (Base UI's
+            keepMounted default), which the modal forms rely on to start fresh
+            on every open. */}
         <DialogContent
           showCloseButton={!hideClose && !headerAction}
           className={cn(

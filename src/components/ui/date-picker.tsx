@@ -3,7 +3,7 @@ import { CalendarIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+import { cn, fieldValueId } from "@/lib/utils"
 
 function formatDisplay(date: Date | undefined) {
   if (!date) return ""
@@ -61,7 +61,7 @@ export function DatePicker({
   const selected = parseISO(value)
   const showClear = !required && !!value && !disabled
   // The label names the trigger, so its own text is read only through these ids.
-  const valueId = id ? `${id}-value` : undefined
+  const valueId = fieldValueId(id)
   const requiredId = id && required && !value ? `${id}-required` : undefined
   const minDate = parseISO(min ?? "")
   const maxDate = parseISO(max ?? "")
@@ -118,26 +118,18 @@ export function DatePicker({
         </PopoverContent>
       </Popover>
       {showClear && (
-        <span
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-label="Clear date"
           onClick={(e) => {
             e.stopPropagation()
             onChange("")
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault()
-              e.stopPropagation()
-              onChange("")
-            }
-          }}
           onPointerDown={(e) => e.stopPropagation()}
-          className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
+          className="absolute top-1/2 right-2 inline-flex size-4 -translate-y-1/2 items-center justify-center rounded p-0 text-muted-foreground opacity-60 transition-opacity hover:opacity-100"
         >
           <X className="size-3.5" />
-        </span>
+        </button>
       )}
     </div>
   )

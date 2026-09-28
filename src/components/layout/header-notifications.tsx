@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import { Bell, X } from "lucide-react";
 
@@ -13,7 +13,7 @@ import { useNotificationsStore } from "@/lib/stores/notifications-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
 import { getErrorMessage } from "@/lib/utils";
 import { formatInBeirut } from "@/lib/tz";
-import { onActivateKey } from "@/lib/keyboard";
+import type { Notification } from "@/lib/types";
 
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -84,8 +84,7 @@ export function HeaderNotifications() {
     }
   };
 
-  const handleRemove = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleRemove = async (id: string) => {
     try {
       await remove(id);
     } catch (err) {
@@ -146,47 +145,82 @@ export function HeaderNotifications() {
               No notifications
             </p>
           ) : (
-            items.map((notif) => (
-              <div
-                key={notif.id}
-                onClick={() => handleItemClick(notif.id, notif.isRead)}
-                // Every item stays focusable, so marking one read from the
-                // keyboard keeps the focus on it; Enter and Space do what a
-                // click does. It holds the delete button, so it keeps its
-                // plain role.
-                tabIndex={0}
-                onKeyDown={onActivateKey(() =>
-                  handleItemClick(notif.id, notif.isRead),
-                )}
-                className={`group flex cursor-pointer gap-3 border-b pl-4 pr-2 py-3 outline-none hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring border-r-4 ${
-                  !notif.isRead
-                    ? "bg-muted/50 border-r-primary"
-                    : "border-r-transparent"
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{notif.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {notif.description}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground/70">
-                    {timeAgo(notif.createdAt)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 justify-between">
-                  <button
-                    onClick={(e) => handleRemove(e, notif.id)}
-                    className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100 group-focus-visible:opacity-100 focus-visible:opacity-100"
-                    aria-label="Delete notification"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))
+            <ul>
+              {items.map((notif) => (
+                <NotificationItem
+                  key={notif.id}
+                  notification={notif}
+                  onOpen={() => handleItemClick(notif.id, notif.isRead)}
+                  onRemove={() => handleRemove(notif.id)}
+                />
+              ))}
+            </ul>
           )}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/**
+ * One notification in the bell's list. Its body stays a rendered button in
+ * both states, so marking it read from the keyboard keeps the focus on it;
+ * only its name and styling change. The button is named by the title (plus
+ * "Unread" while unread) and described by the text and the time; the delete
+ * button sits beside it.
+ */
+function NotificationItem({
+  notification,
+  onOpen,
+  onRemove,
+}: {
+  notification: Notification;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
+  const id = useId();
+  return (
+    <li
+      className={`group flex gap-3 border-b pl-4 pr-2 py-3 border-r-4 hover:bg-muted/30 ${
+        !notification.isRead
+          ? "bg-muted/50 border-r-primary"
+          : "border-r-transparent"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-labelledby={`${id}-name`}
+        aria-describedby={`${id}-description ${id}-time`}
+        className="flex-1 min-w-0 cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <span id={`${id}-name`} className="block text-sm font-medium">
+          {notification.title}
+          {!notification.isRead && <span className="sr-only">Unread</span>}
+        </span>
+        <span
+          id={`${id}-description`}
+          className="block text-xs text-muted-foreground"
+        >
+          {notification.description}
+        </span>
+        <span
+          id={`${id}-time`}
+          className="mt-1 block text-xs text-muted-foreground/70"
+        >
+          {timeAgo(notification.createdAt)}
+        </span>
+      </button>
+      <div className="flex flex-col items-end gap-1 justify-between">
+        <button
+          type="button"
+          onClick={onRemove}
+          className="cursor-pointer text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+          aria-label="Delete notification"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    </li>
   );
 }

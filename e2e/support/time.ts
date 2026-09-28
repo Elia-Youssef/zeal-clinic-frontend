@@ -39,6 +39,11 @@ export function weekday(day: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+/** The Monday of the week the Schedule card shows on `day`: the card starts weeks on Monday, so a Sunday belongs to the week before. */
+export function scheduleCardMonday(day: string): string {
+  return addDays(day, -((weekday(day) + 6) % 7));
+}
+
 function offsetMs(instant: number): number {
   const w = wallClock(new Date(instant));
   const asUtc = Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second);

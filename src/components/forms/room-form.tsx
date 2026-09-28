@@ -1,9 +1,9 @@
 import { useState, useId } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/shared/modal";
+import { FormField } from "@/components/shared/form-field";
 import { SearchableDropdown } from "@/components/shared/searchable-dropdown";
 import { api } from "@/lib/api";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -11,31 +11,38 @@ import { getErrorMessage } from "@/lib/utils";
 import { roomTypeOptions } from "@/lib/constants";
 import type { Room } from "@/lib/types";
 
-export function RoomForm({
-  open,
-  onClose,
-  onSaved,
-  initial,
-}: {
+type RoomFormProps = {
   open: boolean;
   onClose: () => void;
   onSaved: (created?: Record<string, unknown>) => void;
   initial?: Room;
-}) {
-  const fieldId = useId();
+};
+
+export function RoomForm({ open, ...props }: RoomFormProps) {
+  const isEdit = !!props.initial;
+  return (
+    <Modal
+      open={open}
+      onClose={props.onClose}
+      title={isEdit ? "Edit Room" : "New Room"}
+    >
+      <RoomFormBody {...props} />
+    </Modal>
+  );
+}
+
+function RoomFormBody({
+  onClose,
+  onSaved,
+  initial,
+}: Omit<RoomFormProps, "open">) {
+  const availableFieldId = useId();
   const isEdit = !!initial;
   const addAlert = useAlertStore((s) => s.addAlert);
   const [name, setName] = useState(initial?.name ?? "");
   const [type, setType] = useState<string>(initial?.type ?? "General");
   const [isAvailable, setIsAvailable] = useState(initial?.isAvailable ?? true);
   const [submitting, setSubmitting] = useState(false);
-
-  useAdjustOnChange([open, initial], () => {
-    if (!open) return;
-    setName(initial?.name ?? "");
-    setType(initial?.type ?? "General");
-    setIsAvailable(initial?.isAvailable ?? true);
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,52 +70,48 @@ export function RoomForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={isEdit ? "Edit Room" : "New Room"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-name`} className="text-sm font-medium">Name *</label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Name" required>
+        {({ id }) => (
           <Input
-            id={`${fieldId}-name`}
+            id={id}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${fieldId}-type`} className="text-sm font-medium">Type *</label>
+        )}
+      </FormField>
+      <FormField label="Type" required>
+        {({ id }) => (
           <SearchableDropdown
-            id={`${fieldId}-type`}
+            id={id}
             value={type}
             onChange={setType}
             options={roomTypeOptions}
             placeholder="Select type…"
             required
           />
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="roomAvail"
-            checked={isAvailable}
-            onCheckedChange={(value) => setIsAvailable(value)}
-          />
-          <label htmlFor="roomAvail" className="text-sm font-medium">
-            Available
-          </label>
-        </div>
+        )}
+      </FormField>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={availableFieldId}
+          checked={isAvailable}
+          onCheckedChange={(value) => setIsAvailable(value)}
+        />
+        <label htmlFor={availableFieldId} className="text-sm font-medium">
+          Available
+        </label>
+      </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 }

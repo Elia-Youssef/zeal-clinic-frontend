@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { Modal } from "@/components/shared/modal";
+import { useOpenCount } from "@/hooks/use-open-count";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { Invoice } from "@/lib/types";
 import { CompletionWizard } from "./completion-wizard";
@@ -37,14 +37,7 @@ function titleFor(page: Page, isEdit: boolean): string {
   return isEdit ? "Edit Appointment" : "New Appointment";
 }
 
-export function AppointmentForm({
-  open,
-  onClose,
-  initialData,
-  onSaved,
-  readOnly = false,
-  onOpenInSchedule,
-}: {
+type AppointmentFormProps = {
   open: boolean;
   onClose: () => void;
   initialData?: Partial<AppointmentFormData>;
@@ -53,7 +46,23 @@ export function AppointmentForm({
   readOnly?: boolean;
   /** Shows "Open in Schedule" in read-only mode. */
   onOpenInSchedule?: () => void;
-}) {
+};
+
+export function AppointmentForm(props: AppointmentFormProps) {
+  // The title follows the body's page, so the body renders the dialog itself;
+  // keyed by the open count, it starts over on every open.
+  const openCount = useOpenCount(props.open);
+  return <AppointmentFormBody key={openCount} {...props} />;
+}
+
+function AppointmentFormBody({
+  open,
+  onClose,
+  initialData,
+  onSaved,
+  readOnly = false,
+  onOpenInSchedule,
+}: AppointmentFormProps) {
   const { can } = usePermissions();
   const canWriteAppointments = can("appointments:write");
   const canDeleteAppointments = can("appointments:delete");
@@ -70,14 +79,6 @@ export function AppointmentForm({
   const [completionNotes, setCompletionNotes] = useState<string | null>(null);
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null);
   const [viewingStage, setViewingStage] = useState<WizardStage | null>(null);
-
-  useAdjustOnChange([open, initialPage], () => {
-    if (!open) return;
-    setPage(initialPage);
-    setCompletionNotes(null);
-    setCreatedInvoice(null);
-    setViewingStage(null);
-  });
 
   const handleSaved = () => {
     onSaved?.();

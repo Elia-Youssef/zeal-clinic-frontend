@@ -14,7 +14,7 @@ import {
 import { MultilineText } from "@/components/shared/multiline-text";
 import type { Appointment } from "@/lib/types";
 import { cn, formatTimeRange } from "@/lib/utils";
-import { onActivateKey } from "@/lib/keyboard";
+import { activatable } from "@/lib/keyboard";
 import { usePermissions } from "@/hooks/use-permissions";
 
 type Density = "full" | "compact" | "tiny";
@@ -99,13 +99,7 @@ export function AppointmentCard({
               className,
             )}
             style={style}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick?.(appt);
-            }}
-            role={onClick ? "button" : undefined}
-            tabIndex={onClick ? 0 : undefined}
-            onKeyDown={onClick ? onActivateKey(() => onClick(appt)) : undefined}
+            {...activatable(onClick ? () => onClick(appt) : undefined)}
             onPointerDown={onGrab ? (e) => onGrab(e, "move") : undefined}
           />
         }

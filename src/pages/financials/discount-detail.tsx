@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { GiftRedeemForm } from "@/components/forms/gift-redeem-form";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useApiQuery } from "@/hooks/use-api-query";
 
 function DiscountDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
@@ -25,36 +26,27 @@ function DiscountDetailContent() {
   const { can } = usePermissions();
   const confirm = useConfirm();
 
-  const [discount, setDiscount] = useState<Discount | null>(null);
-  const [recipient, setRecipient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: bundle,
+    loading,
+    reload,
+  } = useApiQuery(
+    async () => {
+      const discount = await api.get<Discount>(`/discounts/${id}`);
+      const recipient = discount.patientId
+        ? await api
+            .get<Patient>(`/patients/${discount.patientId}`)
+            .catch(() => null)
+        : null;
+      return { discount, recipient };
+    },
+    [id],
+    () => addAlert("error", "Failed to load discount."),
+  );
+  const discount = bundle?.discount ?? null;
+  const recipient = bundle?.recipient ?? null;
   const [editOpen, setEditOpen] = useState(false);
   const [redeemOpen, setRedeemOpen] = useState(false);
-
-  const load = useCallback(
-    () =>
-      api
-        .get<Discount>(`/discounts/${id}`)
-        .then(async (d) => {
-          setDiscount(d);
-          if (!d.patientId) {
-            setRecipient(null);
-            return;
-          }
-          try {
-            setRecipient(await api.get<Patient>(`/patients/${d.patientId}`));
-          } catch {
-            setRecipient(null);
-          }
-        })
-        .catch(() => addAlert("error", "Failed to load discount."))
-        .finally(() => setLoading(false)),
-    [id, addAlert],
-  );
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const handleDelete = async () => {
     if (!discount) return;
@@ -252,13 +244,13 @@ function DiscountDetailContent() {
       <DiscountForm
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={load}
+        onSaved={() => reload({ quiet: true })}
         initial={discount}
       />
       <GiftRedeemForm
         open={redeemOpen}
         onClose={() => setRedeemOpen(false)}
-        onRedeemed={load}
+        onRedeemed={() => reload({ quiet: true })}
         prefilledCode={discount.code ?? ""}
         codeLocked
       />

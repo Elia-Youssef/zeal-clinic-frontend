@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
-import { usePageTitle } from "@/hooks/use-page-title";
 import { DataList } from "@/components/data/data-list";
 import { AddButton } from "@/components/shared/add-button";
 import { type Column } from "@/components/data/data-table";
@@ -118,6 +117,5 @@ function TeamContent() {
 }
 
 export default function TeamPage() {
-  usePageTitle("Team");
   return <TeamContent />;
 }

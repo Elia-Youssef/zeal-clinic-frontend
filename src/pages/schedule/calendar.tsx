@@ -48,7 +48,6 @@ function CalendarPageContent() {
     () => parseDateParam(searchParams.get("date")) ?? beirutNow(),
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
   const [formData, setFormData] = useState<
     Partial<AppointmentFormData> | undefined
   >();
@@ -110,13 +109,13 @@ function CalendarPageContent() {
 
   const openForm = useCallback((data: Partial<AppointmentFormData>) => {
     setFormData(data);
-    setFormKey((k) => k + 1);
     setModalOpen(true);
   }, []);
 
+  // The day view only passes this on to its hour cells when the signed-in
+  // user may write appointments.
   const handleCellClick = useCallback(
     (roomId: string, hour: number) => {
-      if (!can("appointments:write")) return;
       const dateStr = toDateStr(currentDate);
       openForm({
         roomId,
@@ -127,7 +126,7 @@ function CalendarPageContent() {
         status: "Scheduled",
       });
     },
-    [can, currentDate, openForm],
+    [currentDate, openForm],
   );
 
   const handleAddClick = useCallback(() => {
@@ -215,7 +214,6 @@ function CalendarPageContent() {
       </Card>
 
       <AppointmentForm
-        key={formKey}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         initialData={formData}

@@ -1,11 +1,11 @@
 import { listItems, throwawayPassword, type Session } from "../support/api";
 import type { Scenario } from "../support/scenario";
-import { addDays, clinicDay, clinicTime, weekday } from "../support/time";
+import { addDays, clinicTime } from "../support/time";
 
 // Fixed, invented data for the visual goldens. Every name carries the word "Visual", so a list searched
 // for it shows only these rows whatever the other specs created, and everything a screen shows reads
-// the same from one run to the next. The appointments and the holiday sit in one week about seven
-// months ahead: past every day the other specs touch and past any "today" mark.
+// the same from one run to the next. The appointments and the holiday sit in one fixed week years
+// ahead: past every day the other specs touch and past any "today" mark.
 //
 // Building is idempotent, rows are looked up by name before they are created: Playwright starts a new
 // worker after a failed test, and the new one has to find what the first one made.
@@ -38,12 +38,9 @@ export type VisualData = VisualWeek & {
   invoiceId: string;
 };
 
-/** The first Wednesday at least 200 days after `today`, with the Monday and the Sunday around it. */
-export function visualWeek(today = clinicDay()): VisualWeek {
-  const anchor = addDays(today, 200);
-  const day = addDays(anchor, (3 - weekday(anchor) + 7) % 7);
-  return { day, weekStart: addDays(day, -2), weekEnd: addDays(day, 4) };
-}
+// A fixed Wednesday, not one counted from today: the screens must not depend on the day they are taken.
+const VISUAL_DAY = "2035-04-18";
+const VISUAL_WEEK: VisualWeek = { day: VISUAL_DAY, weekStart: addDays(VISUAL_DAY, -2), weekEnd: addDays(VISUAL_DAY, 4) };
 
 function search(list: string, filter: string): string {
   return `${list}${list.includes("?") ? "&" : "?"}filter=${encodeURIComponent(filter)}&limit=100`;
@@ -90,7 +87,6 @@ const SHIFT = { startTime: "09:00", endTime: "17:00" };
 const HALF_DAY = { startTime: "09:00", endTime: "13:00" };
 
 async function build(scenario: Scenario): Promise<VisualData> {
-  const week = visualWeek();
   const named = (list: string, name: string, create: () => Promise<Named>) =>
     findOrCreate<Named>(scenario, list, name, byName(name), create);
   const person = (list: string, first: string, last: string, create: () => Promise<Person>) =>
@@ -122,7 +118,7 @@ async function build(scenario: Scenario): Promise<VisualData> {
     password = throwawayPassword();
     await scenario.put(`/users/${account.id}`, { password });
   }
-  for (const dayOfWeek of [1, 2, 3, 4, 5]) await scenario.scheduleDay(admin.id, dayOfWeek, week.weekStart, [HALF_DAY]);
+  for (const dayOfWeek of [1, 2, 3, 4, 5]) await scenario.scheduleDay(admin.id, dayOfWeek, VISUAL_WEEK.weekStart, [HALF_DAY]);
 
   const nurse = await person("/employees", "Visual", "Nurse", () =>
     scenario.post<Person>("/employees", {
@@ -135,7 +131,7 @@ async function build(scenario: Scenario): Promise<VisualData> {
       dateOfBirth: "1991-02-17",
     }),
   );
-  for (const dayOfWeek of [1, 3, 5]) await scenario.scheduleDay(nurse.id, dayOfWeek, week.weekStart, [SHIFT]);
+  for (const dayOfWeek of [1, 3, 5]) await scenario.scheduleDay(nurse.id, dayOfWeek, VISUAL_WEEK.weekStart, [SHIFT]);
 
   // Rooms are listed by name; these sort before the other specs' "E2E …" rooms, so the calendar shows
   // them in its first columns.
@@ -164,7 +160,7 @@ async function build(scenario: Scenario): Promise<VisualData> {
   await named("/medicines", "Visual Ibuprofen", () => scenario.medicine({ name: "Visual Ibuprofen" }));
   await named("/expenses", "Visual Rent", () => scenario.expense({ name: "Visual Rent" }));
   const supplier = await named("/suppliers", "Visual Supplies", () => scenario.supplier({ name: "Visual Supplies" }));
-  await named("/holidays", "Visual Holiday", () => scenario.holiday(addDays(week.day, 2), addDays(week.day, 2), { name: "Visual Holiday" }));
+  await named("/holidays", "Visual Holiday", () => scenario.holiday(addDays(VISUAL_DAY, 2), addDays(VISUAL_DAY, 2), { name: "Visual Holiday" }));
 
   // Invoices are searched by the other party's name. Stock stays well above the threshold, so no
   // low-stock notice reaches anyone.
@@ -178,7 +174,7 @@ async function build(scenario: Scenario): Promise<VisualData> {
     ]),
   );
 
-  const booked = listItems(await scenario.get<{ items: { patientId: string }[] } | { patientId: string }[]>(`/appointments?date=${week.day}`));
+  const booked = listItems(await scenario.get<{ items: { patientId: string }[] } | { patientId: string }[]>(`/appointments?date=${VISUAL_DAY}`));
   for (const [p, r, pr, start, end] of APPOINTMENTS) {
     if (booked.some((a) => a.patientId === patients[p].id)) continue;
     await scenario.appointment({
@@ -186,14 +182,14 @@ async function build(scenario: Scenario): Promise<VisualData> {
       roomId: rooms[r].id,
       procedureIds: [procedures[pr].id],
       assignedToId: nurse.id,
-      startTime: clinicTime(week.day, start),
-      endTime: clinicTime(week.day, end),
+      startTime: clinicTime(VISUAL_DAY, start),
+      endTime: clinicTime(VISUAL_DAY, end),
       notes: "Booked for the visual goldens",
     });
   }
 
   const session = await scenario.signIn(VISUAL_USERNAME, password);
-  return { ...week, session, admin, nurse, rooms, patients, procedures, products, invoiceId: invoice.id };
+  return { ...VISUAL_WEEK, session, admin, nurse, rooms, patients, procedures, products, invoiceId: invoice.id };
 }
 
 let building: Promise<VisualData> | undefined;
