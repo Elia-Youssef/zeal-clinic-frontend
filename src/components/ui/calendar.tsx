@@ -7,6 +7,7 @@ import {
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
+import { CLINIC_WEEK_STARTS_ON } from "@/lib/tz"
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
@@ -15,6 +16,8 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  // The month grid's rows run through the clinic week, like every week shown.
+  weekStartsOn = CLINIC_WEEK_STARTS_ON,
   captionLayout = "label",
   buttonVariant = "ghost",
   locale,
@@ -29,6 +32,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      weekStartsOn={weekStartsOn}
       className={cn(
         "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
