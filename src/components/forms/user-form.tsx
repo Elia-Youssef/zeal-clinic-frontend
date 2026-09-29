@@ -22,7 +22,7 @@ type UserFormFields = {
 const emptyForm: UserFormFields = {
   username: "",
   displayName: "",
-  role: "user",
+  role: "staff",
   password: "",
   isActive: true,
 };

@@ -1,6 +1,6 @@
 import { apiRequest } from "../support/api";
 import { expect, test } from "../support/fixtures";
-import { card, choose, detail, expectToast, input, openDialog, rows, searchList } from "../support/ui";
+import { card, choose, detail, expectToast, input, openDialog, rows, searchList, trigger } from "../support/ui";
 
 test.use({ role: "admin" });
 
@@ -57,16 +57,19 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   await expect(detail(page, "Status")).toContainText("Active");
 });
 
-test("the new-staff form starts on a role it doesn't offer, so skipping the role is refused", async ({ page, guards, scenario }) => {
-  guards.expectError("400 POST /api/users");
+test("the new-staff form starts on the staff role, so an account made without picking one is a staff account", async ({ page, scenario }) => {
+  const username = scenario.tag();
   await page.goto("/settings/staff");
-  const form = await openDialog(page, "New Staff", card(page, "Staff").getByRole("button", { name: "New", exact: true }));
-  await expect(form.locator('[data-slot="popover-trigger"]')).toContainText("Select role…");
-  await input(form, "Username").fill(scenario.tag());
-  await input(form, "Display Name").fill(scenario.name("Staff"));
+  const staff = card(page, "Staff");
+  const form = await openDialog(page, "New Staff", staff.getByRole("button", { name: "New", exact: true }));
+  await expect(trigger(form, "Role")).toHaveText("Staff");
+  await input(form, "Username").fill(username);
+  await input(form, "Display Name").fill(scenario.name("Clerk"));
+  await input(form, "Password").fill(scenario.tag());
   await form.getByRole("button", { name: "Create", exact: true }).click();
-  await expectToast(page, "Invalid role");
-  await expect(form).toBeVisible();
+  await expectToast(page, "Staff member created.");
+  await searchList(staff, username);
+  await expect(rows(staff, username)).toContainText("staff");
 });
 
 test("the super-admin appears neither in the staff list nor in the audit log", async ({ page, runtime, scenario }) => {
