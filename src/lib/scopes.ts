@@ -114,3 +114,19 @@ export function scopeMatrix(scopes: readonly string[]): ScopeMatrixRow[] {
     actions: ACTION_ORDER.filter((a) => map.get(resource)!.has(a)),
   }));
 }
+
+// Resources whose names are abbreviations label as the app writes them.
+const RESOURCE_LABELS: Record<string, string> = {
+  hr: "HR",
+};
+
+// Labels a scope resource for display: abbreviations as written, otherwise
+// each hyphenated word capitalised.
+export function resourceLabel(resource: string) {
+  const label = RESOURCE_LABELS[resource];
+  if (label) return label;
+  return resource
+    .split("-")
+    .map((w) => w[0]?.toUpperCase() + w.slice(1))
+    .join(" ");
+}

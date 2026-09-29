@@ -13,18 +13,11 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useAdjustOnChange } from "@/hooks/use-adjust-on-change";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { ALL_SCOPES, scopeMatrix } from "@/lib/scopes";
+import { ALL_SCOPES, resourceLabel, scopeMatrix } from "@/lib/scopes";
 import type { Role } from "@/lib/types";
 
 const ACTIONS = ["read", "write", "delete"] as const;
 type Action = (typeof ACTIONS)[number];
-
-function humanize(resource: string) {
-  return resource
-    .split("-")
-    .map((w) => w[0]?.toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 function setsEqual(a: Set<string>, b: Set<string>) {
   if (a.size !== b.size) return false;
@@ -224,11 +217,11 @@ export default function RoleDetailPage() {
                             }`}
                             title="Toggle all actions for this resource"
                           >
-                            {humanize(resource)}
+                            {resourceLabel(resource)}
                           </button>
                         ) : (
                           <span className={allOn ? "font-medium" : ""}>
-                            {humanize(resource)}
+                            {resourceLabel(resource)}
                           </span>
                         )}
                       </td>
