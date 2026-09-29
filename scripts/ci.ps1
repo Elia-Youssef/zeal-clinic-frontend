@@ -75,12 +75,9 @@ function Invoke-WorkflowsStage {
     <#
       workflows: actionlint over the files in .github/workflows. go run builds the pinned version (Go must be
       installed), so local runs and GitHub Actions check with the same rules. go run asks the module proxy
-      about the module even when it is cached, so this stage needs network access. A job waiting for a stage
-      that does not exist yet is switched off with a literal "if: false"; the constant-condition notice for
-      exactly that is ignored.
+      about the module even when it is cached, so this stage needs network access.
     #>
     $module = 'github.com/rhysd/actionlint/cmd/actionlint@v1.7.12'
-    $ignore = 'constant expression .false. in condition'
     if (-not (Get-Command go -CommandType Application -ErrorAction SilentlyContinue)) {
         Write-Host 'Summary: workflows: go is not on PATH (actionlint is built and run with go run)'
         return 1
@@ -91,9 +88,9 @@ function Invoke-WorkflowsStage {
         Write-Host 'Summary: workflows: no workflow files in .github/workflows'
         return 1
     }
-    Write-Host "> go run $module -oneline -no-color -ignore '$ignore' $($files -join ' ')"
+    Write-Host "> go run $module -oneline -no-color $($files -join ' ')"
     $global:LASTEXITCODE = 99
-    $out = @(& go run $module -oneline -no-color -ignore $ignore @files)
+    $out = @(& go run $module -oneline -no-color @files)
     $code = $LASTEXITCODE
     [System.IO.File]::WriteAllLines((Join-Path $ArtifactsDir 'actionlint.txt'), [string[]]$out)
     $problems = 0
