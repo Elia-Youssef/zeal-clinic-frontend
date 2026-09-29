@@ -487,11 +487,14 @@ export type Role = {
   scopes: string[];
 };
 
+/** What the server's audit log stores for a POST, a PUT or PATCH, and a DELETE. */
+export type AuditAction = "create" | "update" | "delete";
+
 export type AuditLogEntry = {
   id: string;
   username: string;
   userRole: string;
-  action: "POST" | "PUT" | "DELETE";
+  action: AuditAction;
   entityType: string;
   entityId: string;
   details?: string;

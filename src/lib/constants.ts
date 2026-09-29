@@ -1,3 +1,5 @@
+import type { AuditAction } from "@/lib/types";
+
 export type DropdownOption = { value: string; label: string };
 
 export const genderOptions: DropdownOption[] = [
@@ -143,11 +145,11 @@ export const transactionColors = {
   neutral: "text-muted-foreground",
 } as const;
 
-/** Audit-log action badge colors (POST/PUT/DELETE). */
-export const auditActionStyles: Record<string, string> = {
-  POST: "bg-positive/10 text-positive border-positive/30",
-  PUT: "bg-status-progress/15 text-status-progress border-status-progress/30",
-  DELETE: "bg-destructive/10 text-destructive border-destructive/30",
+/** Audit-log action badge colors, by the action the server stores. */
+export const auditActionStyles: Record<AuditAction, string> = {
+  create: "bg-positive/10 text-positive border-positive/30",
+  update: "bg-status-progress/15 text-status-progress border-status-progress/30",
+  delete: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 /** Holiday styling shared across schedule views and detail rows. */

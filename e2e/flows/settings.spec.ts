@@ -23,7 +23,7 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   await expect(row).toContainText("nurse");
   await expect(row).toContainText("Active");
 
-  // What this account writes shows in its history; a create has no id in its path, so it shows none.
+  // What this account writes shows in its history, each row under the record's id.
   const session = await scenario.signIn(username, password);
   const patient = await apiRequest<{ id: string }>(scenario.baseURL, session.token, "POST", "/patients", {
     firstName: scenario.name("").trim(),
@@ -37,8 +37,9 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(displayName);
   // The history names actions create / update / delete.
   const history = card(page, "Actions");
-  await expect(rows(history, `patients #${patient.id.slice(0, 8)}`)).toContainText("update");
-  await expect(rows(history).filter({ hasText: "create" })).toContainText("patients #");
+  const record = rows(history, `patients #${patient.id.slice(0, 8)}`);
+  await expect(record.filter({ hasText: "create" })).toHaveCount(1);
+  await expect(record.filter({ hasText: "update" })).toHaveCount(1);
 
   form = await openDialog(page, "Edit Staff", page.getByRole("button", { name: "Edit", exact: true }));
   await expect(input(form, "Username")).toHaveValue(username);
