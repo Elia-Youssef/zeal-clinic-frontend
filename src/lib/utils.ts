@@ -26,6 +26,13 @@ export function fieldValueId(id: string | undefined): string | undefined {
   return id ? `${id}-value` : undefined;
 }
 
+// The end of an id is where two records differ: ids are UUIDv7, whose leading
+// characters hold the creation timestamp, so records made within about a minute
+// of each other would all shorten to the same text.
+export function shortId(id: string): string {
+  return id.slice(-8);
+}
+
 export function formatMoney(
   amount: number | null | undefined,
   symbol = "$",

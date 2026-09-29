@@ -3,6 +3,7 @@ import { DataList } from "@/components/data/data-list";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogEntry } from "@/lib/types";
 import { formatInBeirut } from "@/lib/tz";
+import { shortId } from "@/lib/utils";
 import { auditActionStyles } from "@/lib/constants";
 
 const columns: Column<AuditLogEntry>[] = [
@@ -46,7 +47,7 @@ const columns: Column<AuditLogEntry>[] = [
     key: "entity",
     header: "Entity",
     className: "truncate",
-    render: (e) => `${e.entityType} #${e.entityId.slice(0, 8)}`,
+    render: (e) => `${e.entityType} #${shortId(e.entityId)}`,
   },
 ];
 

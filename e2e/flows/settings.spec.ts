@@ -37,7 +37,7 @@ test("staff: create, edit with the username locked, deactivate and activate, the
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(displayName);
   // The history names actions create / update / delete.
   const history = card(page, "Actions");
-  const record = rows(history, `patients #${patient.id.slice(0, 8)}`);
+  const record = rows(history, `patients #${patient.id.slice(-8)}`);
   await expect(record.filter({ hasText: "create" })).toHaveCount(1);
   await expect(record.filter({ hasText: "update" })).toHaveCount(1);
 

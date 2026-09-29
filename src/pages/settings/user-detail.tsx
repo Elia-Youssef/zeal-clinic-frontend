@@ -8,7 +8,7 @@ import { DetailField } from "@/components/shared/detail-field";
 import { DataList } from "@/components/data/data-list";
 import { type Column } from "@/components/data/data-table";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, shortId } from "@/lib/utils";
 import { beirutDayKey, formatInBeirut } from "@/lib/tz";
 import { useUsersStore } from "@/lib/stores/users-store";
 import { useAlertStore } from "@/lib/stores/alert-store";
@@ -47,7 +47,7 @@ const actionColumns: Column<AuditLogEntry>[] = [
     key: "entity",
     header: "Entity",
     className: "truncate",
-    render: (e) => `${e.entityType} #${e.entityId.slice(0, 8)}`,
+    render: (e) => `${e.entityType} #${shortId(e.entityId)}`,
   },
 ];
 
